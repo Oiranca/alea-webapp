@@ -1,0 +1,15 @@
+{
+  "name": "@alea/api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start:dev": "node -e \"console.log('NestJS bootstrap pendiente')\"",
+    "build": "echo 'api build pendiente'",
+    "test": "echo 'api tests pendientes'",
+    "lint": "echo 'api lint pendiente'",
+    "typecheck": "echo 'api typecheck pendiente'"
+  },
+  "dependencies": {
+    "@alea/types": "workspace:*"
+  }
+}
