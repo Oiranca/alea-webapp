@@ -6,6 +6,7 @@ import { locales } from '@/lib/i18n/config'
 import { AuthProvider } from '@/lib/auth/auth-context'
 import { Providers } from '@/lib/providers'
 import { Header } from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 
 export const metadata: Metadata = {
   title: 'Alea — Asociacion Cultural de Juegos',
@@ -32,14 +33,15 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale} className="dark">
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen bg-background antialiased flex flex-col">
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <AuthProvider>
               <Header locale={locale} />
-              <main id="main-content" className="min-h-[calc(100vh-4rem)]">
+              <main id="main-content" className="flex-1">
                 {children}
               </main>
+              <Footer locale={locale} />
             </AuthProvider>
           </Providers>
         </NextIntlClientProvider>
