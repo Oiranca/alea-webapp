@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
 import { RoomsView } from '@/components/rooms/rooms-view'
+import { getSessionFromServerCookies } from '@/lib/server/auth'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('rooms')
@@ -12,6 +14,10 @@ interface RoomsPageProps {
 }
 
 export default async function RoomsPage({ params }: RoomsPageProps) {
-  await params
+  const { locale } = await params
+  const session = await getSessionFromServerCookies()
+  if (!session) {
+    redirect(`/${locale}/login`)
+  }
   return <RoomsView />
 }

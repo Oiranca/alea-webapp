@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Table2 } from 'lucide-react'
 import type { GameTable } from '@alea/types'
 import { useRoomTables } from '@/lib/hooks/use-rooms'
-import { useTableAvailability } from '@/lib/hooks/use-reservations'
+import { useRoomAvailability } from '@/lib/hooks/use-reservations'
 import { TableCard } from './table-card'
 import { ReservationDialog } from './reservation-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -18,13 +18,14 @@ interface RoomViewProps {
 function TableAvailabilityWrapper({
   table,
   currentDate,
+  availability,
   onReserve,
 }: {
   table: GameTable
   currentDate: string
+  availability?: import('@alea/types').TableAvailability
   onReserve: (table: GameTable) => void
 }) {
-  const { data: availability } = useTableAvailability(table.id, currentDate)
   return (
     <TableCard
       table={table}
@@ -38,6 +39,7 @@ function TableAvailabilityWrapper({
 export function RoomView({ roomId, currentDate }: RoomViewProps) {
   const t = useTranslations('rooms')
   const { data: tables, isLoading, error } = useRoomTables(roomId)
+  const { data: availabilityByTable, isLoading: availabilityLoading } = useRoomAvailability(roomId, currentDate)
   const [selectedTable, setSelectedTable] = useState<GameTable | null>(null)
   const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -46,7 +48,7 @@ export function RoomView({ roomId, currentDate }: RoomViewProps) {
     setDialogOpen(true)
   }
 
-  if (isLoading) {
+  if (isLoading || availabilityLoading) {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3" aria-busy="true" aria-label="Cargando mesas...">
         {Array.from({ length: 6 }).map((_, i) => (
@@ -86,6 +88,7 @@ export function RoomView({ roomId, currentDate }: RoomViewProps) {
             <TableAvailabilityWrapper
               table={table}
               currentDate={currentDate}
+              availability={availabilityByTable?.[table.id]}
               onReserve={handleReserve}
             />
           </div>

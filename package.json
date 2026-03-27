@@ -5,10 +5,10 @@
   "packageManager": "pnpm@9.12.3",
   "scripts": {
     "dev": "pnpm --filter @alea/web dev",
-    "build": "pnpm --filter @alea/web build",
-    "test": "pnpm --filter @alea/web test",
-    "typecheck": "pnpm --filter @alea/web typecheck",
-    "lint": "pnpm --filter @alea/web lint"
+    "build": "pnpm --filter @alea/web build && pnpm --filter @alea/api build",
+    "test": "pnpm --filter @alea/web test && pnpm --filter @alea/api test",
+    "typecheck": "pnpm --filter @alea/web typecheck && pnpm --filter @alea/api typecheck",
+    "lint": "pnpm --filter @alea/web lint && pnpm --filter @alea/api lint"
   },
-  "engines": { "node": ">=20", "pnpm": ">=9" }
+  "engines": { "node": "20.11.1", "pnpm": ">=9" }
 }

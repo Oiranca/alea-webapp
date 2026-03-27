@@ -6,6 +6,8 @@ export function useRooms() {
   return useQuery<Room[]>({
     queryKey: ['rooms'],
     queryFn: () => apiClient.get<Room[]>('/rooms'),
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }
 
@@ -14,5 +16,7 @@ export function useRoomTables(roomId: string | null) {
     queryKey: ['rooms', roomId, 'tables'],
     queryFn: () => apiClient.get<import('@alea/types').GameTable[]>(`/rooms/${roomId}/tables`),
     enabled: !!roomId,
+    staleTime: 10 * 60 * 1000,
+    refetchOnWindowFocus: false,
   })
 }

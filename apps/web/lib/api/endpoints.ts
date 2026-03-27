@@ -13,6 +13,7 @@ export const endpoints = {
     list: '/rooms',
     byId: (id: string) => `/rooms/${id}`,
     tables: (roomId: string) => `/rooms/${roomId}/tables`,
+    tablesAvailability: (roomId: string, date: string) => `/rooms/${roomId}/tables/availability?date=${date}`,
   },
   tables: {
     byId: (id: string) => `/tables/${id}`,

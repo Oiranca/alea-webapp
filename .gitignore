@@ -5,11 +5,11 @@ coverage
 .env
 .env.*
 !.env.example
-pnpm-lock.yaml
 package-lock.json
 yarn.lock
 .DS_Store
 *.log
+*.tsbuildinfo
 *.png
 *.pdf
 *.webm

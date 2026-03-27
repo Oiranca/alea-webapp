@@ -1,40 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { Reservation } from '@alea/types'
-
-const today = new Date().toISOString().split('T')[0]
-
-const MOCK_RESERVATIONS: Reservation[] = [
-  { id: 'r1', tableId: 't1', userId: '2', date: today, startTime: '16:00', endTime: '18:00', status: 'active', createdAt: new Date().toISOString() },
-  { id: 'r2', tableId: 't3', userId: '2', date: today, startTime: '10:00', endTime: '12:00', status: 'active', surface: 'top', createdAt: new Date().toISOString() },
-]
+import { enforceSameOriginForMutation, requireAuth } from '@/lib/server/auth'
+import { createReservation, getTableById, hasReservationConflict, listReservations } from '@/lib/server/mock-db'
 
 export async function GET(request: NextRequest) {
+  const auth = requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+
   const { searchParams } = new URL(request.url)
-  const userId = searchParams.get('userId')
   const tableId = searchParams.get('tableId')
   const date = searchParams.get('date')
+  const requestedUserId = searchParams.get('userId')
 
-  let filtered = [...MOCK_RESERVATIONS]
-  if (userId) filtered = filtered.filter(r => r.userId === userId)
-  if (tableId) filtered = filtered.filter(r => r.tableId === tableId)
-  if (date) filtered = filtered.filter(r => r.date === date)
+  const effectiveUserId = auth.role === 'admin' ? requestedUserId ?? undefined : auth.id
+  const filtered = listReservations({
+    userId: effectiveUserId,
+    tableId: tableId ?? undefined,
+    date: date ?? undefined,
+  })
 
   return NextResponse.json(filtered)
 }
 
 export async function POST(request: NextRequest) {
+  const auth = requireAuth(request)
+  if (auth instanceof NextResponse) return auth
+  const originError = enforceSameOriginForMutation(request)
+  if (originError) return originError
+
   const body = await request.json()
-  const newReservation: Reservation = {
-    id: `r${Date.now()}`,
-    tableId: body.tableId,
-    userId: body.userId ?? '2',
-    date: body.date,
-    startTime: body.startTime,
-    endTime: body.endTime,
-    status: 'active',
-    surface: body.surface ?? null,
-    createdAt: new Date().toISOString(),
+
+  const tableId = String(body.tableId ?? '')
+  const date = String(body.date ?? '')
+  const startTime = String(body.startTime ?? '')
+  const endTime = String(body.endTime ?? '')
+  const surface = body.surface === 'top' || body.surface === 'bottom' ? body.surface : undefined
+
+  if (!tableId || !date || !startTime || !endTime) {
+    return NextResponse.json({ message: 'tableId, date, startTime and endTime are required', statusCode: 400 }, { status: 400 })
   }
-  MOCK_RESERVATIONS.push(newReservation)
+  const table = getTableById(tableId)
+  if (!table) {
+    return NextResponse.json({ message: 'Table not found', statusCode: 404 }, { status: 404 })
+  }
+  if (table.type === 'removable_top' && !surface) {
+    return NextResponse.json({ message: 'Surface is required for removable top tables', statusCode: 400 }, { status: 400 })
+  }
+  if (startTime >= endTime) {
+    return NextResponse.json({ message: 'Invalid reservation time range', statusCode: 400 }, { status: 400 })
+  }
+  if (hasReservationConflict({ tableId, date, startTime, endTime, surface })) {
+    return NextResponse.json({ message: 'Time slot is already reserved', statusCode: 409 }, { status: 409 })
+  }
+
+  const newReservation = createReservation({
+    tableId,
+    userId: auth.id,
+    date,
+    startTime,
+    endTime,
+    surface,
+  })
   return NextResponse.json(newReservation, { status: 201 })
 }

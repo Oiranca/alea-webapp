@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { buildTableAvailability, getTableById } from '@/lib/server/mock-db'
+import { buildTableAvailability, getRoomTables } from '@/lib/server/mock-db'
 import { requireAuth } from '@/lib/server/auth'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -8,9 +8,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { id } = await params
   const date = new URL(request.url).searchParams.get('date') ?? new Date().toISOString().split('T')[0]
-  const table = getTableById(id)
-  if (!table) {
-    return NextResponse.json({ message: 'Table not found', statusCode: 404 }, { status: 404 })
-  }
-  return NextResponse.json(buildTableAvailability(id, date))
+  const tables = getRoomTables(id)
+  const availabilityByTableId = tables.reduce<Record<string, ReturnType<typeof buildTableAvailability>>>((acc, table) => {
+    acc[table.id] = buildTableAvailability(table.id, date)
+    return acc
+  }, {})
+  return NextResponse.json(availabilityByTableId)
 }
