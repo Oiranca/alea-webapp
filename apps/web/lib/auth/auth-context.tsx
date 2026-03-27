@@ -16,9 +16,9 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+export function AuthProvider({ children, initialUser }: { children: React.ReactNode; initialUser?: User | null }) {
+  const [user, setUser] = useState<User | null>(initialUser ?? null)
+  const [isLoading, setIsLoading] = useState(initialUser === undefined)
 
   const checkAuth = useCallback(async () => {
     try {
@@ -28,7 +28,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     finally { setIsLoading(false) }
   }, [])
 
-  useEffect(() => { checkAuth() }, [checkAuth])
+  useEffect(() => {
+    if (initialUser !== undefined) return
+    checkAuth()
+  }, [checkAuth, initialUser])
 
   const login = async (identifier: string, password: string) => {
     const data = await apiClient.post<User>(endpoints.auth.login, { identifier, password })

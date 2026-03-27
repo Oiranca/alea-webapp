@@ -1,7 +1,11 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+import { clearSessionCookie, enforceSameOriginForMutation } from '@/lib/server/auth'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
+  const originError = enforceSameOriginForMutation(request)
+  if (originError) return originError
+
   const response = NextResponse.json({ success: true })
-  response.cookies.delete('auth_user')
+  clearSessionCookie(response)
   return response
 }

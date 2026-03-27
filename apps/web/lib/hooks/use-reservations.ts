@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type { Reservation, CreateReservationRequest, TableAvailability } from '@alea/types'
 import { apiClient } from '@/lib/api/client'
+import { endpoints } from '@/lib/api/endpoints'
 
 export function useMyReservations(userId: string | null) {
   return useQuery<Reservation[]>({
@@ -21,8 +22,16 @@ export function useTableReservations(tableId: string | null, date: string | null
 export function useTableAvailability(tableId: string | null, date: string | null) {
   return useQuery<TableAvailability>({
     queryKey: ['availability', tableId, date],
-    queryFn: () => apiClient.get<TableAvailability>(`/tables/${tableId}/availability?date=${date}`),
+    queryFn: () => apiClient.get<TableAvailability>(endpoints.tables.availability(tableId!, date!)),
     enabled: !!tableId && !!date,
+  })
+}
+
+export function useRoomAvailability(roomId: string | null, date: string | null) {
+  return useQuery<Record<string, TableAvailability>>({
+    queryKey: ['availability', 'room', roomId, date],
+    queryFn: () => apiClient.get<Record<string, TableAvailability>>(endpoints.rooms.tablesAvailability(roomId!, date!)),
+    enabled: !!roomId && !!date,
   })
 }
 
@@ -31,9 +40,11 @@ export function useCreateReservation() {
   return useMutation({
     mutationFn: (data: CreateReservationRequest) =>
       apiClient.post<Reservation>('/reservations', data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['reservations'] })
-      queryClient.invalidateQueries({ queryKey: ['availability'] })
+    onSuccess: (created) => {
+      queryClient.invalidateQueries({ queryKey: ['reservations', 'my'] })
+      queryClient.invalidateQueries({ queryKey: ['reservations', 'table', created.tableId, created.date] })
+      queryClient.invalidateQueries({ queryKey: ['availability', created.tableId, created.date] })
+      queryClient.invalidateQueries({ queryKey: ['availability', 'room'] })
     },
   })
 }

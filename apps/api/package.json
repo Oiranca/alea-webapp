@@ -2,14 +2,19 @@
   "name": "@alea/api",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "start:dev": "node -e \"console.log('NestJS bootstrap pendiente')\"",
-    "build": "echo 'api build pendiente'",
-    "test": "echo 'api tests pendientes'",
-    "lint": "echo 'api lint pendiente'",
-    "typecheck": "echo 'api typecheck pendiente'"
+    "start:dev": "node --watch src/index.ts",
+    "build": "tsc --noEmit",
+    "test": "node --test",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@alea/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "^5.8.2"
   }
 }

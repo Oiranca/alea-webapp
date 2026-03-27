@@ -1,25 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { User, PaginatedResponse } from '@alea/types'
-
-const MOCK_USERS: User[] = Array.from({ length: 47 }, (_, i) => ({
-  id: String(i + 1),
-  memberNumber: String(100001 + i),
-  email: i === 0 ? 'admin@alea.club' : `socio${i}@alea.club`,
-  role: i === 0 ? 'admin' : 'member',
-  createdAt: new Date(2024, 0, i + 1).toISOString(),
-  updatedAt: new Date(2024, 0, i + 1).toISOString(),
-}))
+import { listUsers } from '@/lib/server/mock-db'
+import { requireAdmin } from '@/lib/server/auth'
 
 export async function GET(request: NextRequest) {
+  const admin = requireAdmin(request)
+  if (admin instanceof NextResponse) return admin
+
   const { searchParams } = new URL(request.url)
   const page = parseInt(searchParams.get('page') ?? '1')
   const limit = parseInt(searchParams.get('limit') ?? '10')
   const search = searchParams.get('search') ?? ''
 
-  let filtered = MOCK_USERS
+  let filtered = listUsers()
   if (search) {
     const q = search.toLowerCase()
-    filtered = MOCK_USERS.filter(u => u.email.toLowerCase().includes(q) || u.memberNumber.includes(q))
+    filtered = filtered.filter((u) => u.email.toLowerCase().includes(q) || u.memberNumber.includes(q))
   }
 
   const total = filtered.length

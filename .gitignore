@@ -9,6 +9,7 @@ package-lock.json
 yarn.lock
 .DS_Store
 *.log
+*.tsbuildinfo
 *.png
 *.pdf
 *.webm
