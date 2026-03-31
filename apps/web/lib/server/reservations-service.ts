@@ -78,13 +78,13 @@ export function updateReservationForSession(
   }
 
   const nextStatus = body.status
-  if (nextStatus && !['active', 'cancelled', 'completed'].includes(String(nextStatus))) {
+  if (nextStatus != null && !['active', 'cancelled', 'completed'].includes(String(nextStatus))) {
     serviceError('Invalid reservation status', 400)
   }
 
-  const nextStartTime = body.startTime === undefined ? existingReservation.startTime : String(body.startTime)
-  const nextEndTime = body.endTime === undefined ? existingReservation.endTime : String(body.endTime)
-  const nextDate = body.date === undefined ? existingReservation.date : String(body.date)
+  const nextStartTime = body.startTime == null ? existingReservation.startTime : String(body.startTime)
+  const nextEndTime = body.endTime == null ? existingReservation.endTime : String(body.endTime)
+  const nextDate = body.date == null ? existingReservation.date : String(body.date)
   const nextSurface = body.surface === undefined || body.surface === null
     ? (existingReservation.surface ?? undefined)
     : (parseSurface(body.surface) ?? (existingReservation.surface ?? undefined))
@@ -110,7 +110,7 @@ export function updateReservationForSession(
     startTime: nextStartTime,
     endTime: nextEndTime,
     surface: nextSurface,
-    status: (nextStatus === undefined ? existingReservation.status : String(nextStatus)) as Reservation['status'],
+    status: (nextStatus == null ? existingReservation.status : String(nextStatus)) as Reservation['status'],
   })
 
   if (!updated) {
