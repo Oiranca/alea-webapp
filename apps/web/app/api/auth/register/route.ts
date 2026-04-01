@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const user = register(body)
-    const response = NextResponse.json(user)
+    const response = NextResponse.json(user, { status: 201 })
     setSessionCookie(response, user)
     return response
   } catch (error) {

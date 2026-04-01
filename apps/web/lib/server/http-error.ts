@@ -6,5 +6,5 @@ export function toServiceErrorResponse(error: unknown) {
     return NextResponse.json({ message: error.message, statusCode: error.statusCode }, { status: error.statusCode })
   }
 
-  throw error
+  return NextResponse.json({ message: 'Internal server error', statusCode: 500 }, { status: 500 })
 }
