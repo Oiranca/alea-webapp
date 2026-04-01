@@ -18,5 +18,7 @@ export async function GET(request: NextRequest) {
     // await supabase.auth.exchangeCodeForSession(code)
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin))
+  // Only allow safe relative paths (must start with / and contain no protocol)
+  const safeNext = next && /^\/[^/\\]/.test(next) ? next : '/'
+  return NextResponse.redirect(new URL(safeNext, requestUrl.origin))
 }

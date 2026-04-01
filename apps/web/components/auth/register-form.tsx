@@ -68,9 +68,8 @@ export function RegisterForm({ locale }: RegisterFormProps) {
     try {
       await registerUser(data.memberNumber, data.email, data.password)
       router.push(`/${locale}/rooms`)
-    } catch (err: unknown) {
-      const error = err as { message?: string }
-      setServerError(error?.message ?? t('errors.invalidCredentials'))
+    } catch {
+      setServerError(t('errors.invalidCredentials'))
     }
   }
 
