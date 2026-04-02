@@ -1,13 +1,26 @@
-# Alea Webapp — Migration Plan
+# Migration Execution Plan — Alea Webapp
+
+**Last updated:** 2026-04-02
+**Branch:** develop
+**Epic:** #3 — Next.js API migration (remove NestJS + monorepo)
+**Platform:** Supabase (dev + prod, sole DB/auth provider)
+
+---
 
 ## Current State
 
-| Feature | Issue | Status | Branch |
-|---|---|---|---|
-| API — M1 contract freeze & baseline | #11 | Done | main |
-| API — M2 server layer (services + thin handlers) | #12 | Done | feat/next-api-m2-server-layer |
-| UI — shadcn init + auth UI foundation | #18 | In Progress | feat/shadcn-supabase-ui |
-| Auth — M3 Supabase SSR cutover | #6 | Pending | — |
+| Milestone | Issue | Status | Branch / PR |
+|-----------|-------|--------|-------------|
+| M1 — Contract freeze & baseline | #4 | Done | PR #13 (merged) |
+| M2 — Server layer extraction | #5 | Done | PR #15 (merged) |
+| Platform — Supabase env split | #11 | Done | PR #16 + #20 (merged) |
+| QA — CI quality gates | #12 | In Progress | — |
+| UI — shadcn + auth foundation | #18 | In Progress | PR #19 (open) |
+| M3 — Auth cutover (Supabase SSR) | #6 | Pending | — |
+| M4 — API parity | #7 | Pending | — |
+| SEC — Security hardening | #10 | Pending | — |
+| M5 — Flatten repo / remove NestJS | #8 | Pending | — |
+| M6 — Cleanup + release readiness | #9 | Pending | — |
 
 ---
 
@@ -15,53 +28,57 @@
 
 ### P0 — Completed
 
-#### Issue #11 — [API] M1 contract freeze & baseline
-**Branch:** `main`
-**Status:** Merged
+#### Issue #4 — [M1] Contract freeze & baseline
+**Branch:** `feat/next-api-m1-baseline`
+**PR:** #13 (merged)
 
-**Code deliverables:**
-- Install `@supabase/supabase-js` + `@supabase/ssr` in `apps/web`
-- Initialize `supabase/` directory with `config.toml` for local dev
-- Create initial schema migration (`supabase/migrations/`) with: `profiles`, `rooms`, `tables`, `reservations`
-- Configure RLS policies per table
-- Define env variable structure: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- Create `.env.example` and update `.env.local.example`
-- Set up typed Supabase client for SSR (`createServerClient`, `createBrowserClient`)
-- Acceptance: `supabase start` runs locally, schema applies cleanly, client connects
+#### Issue #5 — [M2] Server layer extraction
+**Branch:** `feat/next-api-m2-server-layer`
+**PR:** #15 (merged)
 
-#### 2. Issue #12 — [QA] Testing stack and CI quality gates (parallel with #11)
+#### Issue #11 — [PLATFORM] Supabase environment split
+**Branch:** `feat/supabase-env-separation`
+**PR:** #16 + #20 (merged)
+
+**Deliverables completed:**
+- `@supabase/supabase-js` + `@supabase/ssr` installed
+- `supabase/` directory with `config.toml` for local dev
+- Initial schema migration: `profiles`, `rooms`, `tables`, `reservations`
+- RLS policies with `WITH CHECK` on all UPDATE policies
+- Env variable structure: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+- `.env.example` and `.env.local.example`
+- Typed Supabase clients: SSR (`createServerClient`) + admin (`createClient` stateless)
+- Signup trigger (`handle_new_user`) for auto-creating profiles
+- GiST exclusion constraint for reservation overlap prevention
+
+---
+
+### P0 — In Progress
+
+#### Issue #12 — [QA] Testing stack and CI quality gates
 **Branch:** `feat/qa-next-api-gates`
-**Why now:** Independent of Supabase. Establishes CI gates that protect all subsequent work.
-
-**Code deliverables:**
-- GitHub Actions workflow: lint + typecheck + test on every PR
-- Coverage thresholds enforced (≥80% for server layer)
-- Supabase CLI step in CI for integration tests (`supabase start`)
-- Semgrep security scan step
-- Dependency audit step (`pnpm audit`)
-- Acceptance: CI blocks merge on failing checks
+**Status:** CI workflow running, Vitest + test suite in place. Pending: coverage thresholds, Supabase CLI integration tests, Semgrep, dependency audit.
 
 ---
 
-### P0.5 — Before M3 (no external blockers)
+### P0.5 — In Progress (before M3)
 
-#### NEW: Issue #18 — [UI] shadcn/ui initialization + Supabase auth UI foundation
+#### Issue #18 — [UI] shadcn/ui initialization + Supabase auth UI foundation
 **Branch:** `feat/shadcn-supabase-ui`
-**Why before M3:** M3 needs working auth UI components. This delivers the shadcn Form foundation and properly structured auth forms that M3 will wire to Supabase SSR.
+**PR:** #19 (open, review comments addressed)
+
 **Deliverables:**
-- `components.json` — formal shadcn initialization
-- `form` component + missing ui components (accordion, alert-dialog, avatar, checkbox, dropdown-menu, popover, scroll-area, tooltip, sonner)
-- Auth forms rewritten with shadcn Form + zod
-- Auth callback route scaffold
+- shadcn/ui initialized with RPG theme tokens
+- Auth UI components (login, register) using Supabase client
+- Review comments from PR #19 addressed
 
 ---
 
-### P1 — M3 (depends on P0 + P0.5)
+### P1 — After Supabase + QA + UI ready
 
-#### Issue #6 — [Auth] M3 Supabase SSR cutover
-**Branch:** TBD
-**Depends on:** #12 (server layer), #18 (auth UI forms)
-**Why after P0.5:** Needs the Form-based auth components from #18 and the service layer from #12 to wire Supabase SSR correctly.
+#### 3. Issue #6 — [M3] Auth cutover to Supabase SSR
+**Branch:** `feat/next-api-m3-auth-cutover`
+**Depends on:** #11
 **Deliverables:**
 - Replace mock auth (`mock-db` users) with Supabase Auth
 - Implement `createServerClient` / `createBrowserClient` SSR pattern
@@ -75,7 +92,7 @@
 
 ### P2 — After M3
 
-#### Issue #10 — [SEC] Security hardening (parallel with #7)
+#### 4. Issue #10 — [SEC] Security hardening (parallel with #7)
 **Branch:** `feat/next-api-security-hardening`
 **Depends on:** #6
 **Deliverables:**
@@ -84,12 +101,12 @@
 - Origin/fetch-metadata checks
 - Security runbook documented
 
-#### Issue #7 — [M4] API parity across all domains (parallel with #10)
+#### 5. Issue #7 — [M4] API parity across all domains (parallel with #10)
 **Branch:** `feat/next-api-m4-api-parity`
 **Depends on:** #6
 **Deliverables:**
 - Replace `mock-db` with Supabase queries in all services
-- `profiles`, `rooms`, `tables`, `reservations` services rewritten against Supabase
+- `users`, `rooms`, `tables`, `reservations` services rewritten against Supabase
 - RLS enforced at DB level, service layer validates above it
 - Consistent auth/authz guards across all handlers
 
@@ -97,7 +114,7 @@
 
 ### P3 — After M4
 
-#### Issue #8 — [M5] Flatten repo / remove NestJS + monorepo
+#### 6. Issue #8 — [M5] Flatten repo / remove NestJS + monorepo
 **Branch:** `feat/next-api-m5-flatten-repo`
 **Depends on:** #7
 **Deliverables:**
@@ -112,7 +129,7 @@
 
 ### P4 — Final
 
-#### Issue #9 — [M6] Cleanup, docs, release readiness
+#### 7. Issue #9 — [M6] Cleanup, docs, release readiness
 **Branch:** `feat/next-api-m6-cleanup`
 **Depends on:** #8
 **Deliverables:**
@@ -126,9 +143,10 @@
 ## Dependency Graph
 
 ```
-#11 (M1 baseline) → #12 (M2 server layer) ─┐
-                                             ├→ #6 (M3 Supabase SSR)
-#18 (shadcn + auth UI) ────────────────────┘
+#4 (M1 baseline) ✅ → #5 (M2 server layer) ✅ → #11 (Platform) ✅ ─┐
+                                                                      ├→ #6 (M3 Supabase SSR)
+#12 (QA gates) 🔄 ────────────────────────────────────────────────────┤
+#18 (shadcn + auth UI) 🔄 ───────────────────────────────────────────┘
 ```
 
 ---
