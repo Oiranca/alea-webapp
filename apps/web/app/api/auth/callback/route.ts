@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
-  const next = requestUrl.searchParams.get('next') ?? '/'
+  const raw = requestUrl.searchParams.get('next') ?? '/'
 
   if (code) {
     // TODO (M3): Exchange code for session using createSupabaseServerClient()
@@ -18,7 +18,22 @@ export async function GET(request: NextRequest) {
     // await supabase.auth.exchangeCodeForSession(code)
   }
 
-  // Only allow safe relative paths (must start with / and contain no protocol)
-  const safeNext = next && /^\/[^/\\]/.test(next) ? next : '/'
-  return NextResponse.redirect(new URL(safeNext, requestUrl.origin))
+  // Reject control characters that can bypass path validation (e.g. %0A → \n)
+  const sanitized = /[\x00-\x1f]/.test(raw) ? '/' : raw
+
+  // Only allow safe relative paths (must start with / and not be protocol-relative)
+  const isRelative = /^\/[^/\\]/.test(sanitized)
+  let finalRedirect = isRelative ? sanitized : '/'
+
+  // Same-origin verification to prevent open redirect after URL resolution
+  try {
+    const resolved = new URL(finalRedirect, requestUrl.origin)
+    if (resolved.origin !== requestUrl.origin) {
+      finalRedirect = '/'
+    }
+  } catch {
+    finalRedirect = '/'
+  }
+
+  return NextResponse.redirect(new URL(finalRedirect, requestUrl.origin))
 }
