@@ -17,6 +17,20 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       exclude: ['node_modules', '.next'],
+      include: [
+        'app/api/auth/**/*.ts',
+        'lib/auth/auth-context.tsx',
+        'lib/server/auth.ts',
+        'lib/server/auth-service.ts',
+        'lib/server/http-error.ts',
+        'lib/server/service-error.ts',
+      ],
+      thresholds: {
+        lines: 85,
+        functions: 85,
+        branches: 75,
+        statements: 85,
+      },
     },
   },
   resolve: {
