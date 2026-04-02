@@ -5,11 +5,12 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { loginSchema, type LoginFormData } from '@/lib/validations/auth'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import {
   Form,
   FormControl,
@@ -25,7 +26,6 @@ export function LoginForm({ locale }: LoginFormProps) {
   const t = useTranslations('auth')
   const { login } = useAuth()
   const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<LoginFormData>({
@@ -67,7 +67,7 @@ export function LoginForm({ locale }: LoginFormProps) {
                 <Input
                   type="text"
                   autoComplete="username"
-                  placeholder="123456 o nombre@email.com"
+                  placeholder={t('identifierPlaceholder')}
                   {...field}
                 />
               </FormControl>
@@ -82,26 +82,12 @@ export function LoginForm({ locale }: LoginFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    className="pr-10"
-                    {...field}
-                  />
-                </FormControl>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-                >
-                  {showPassword
-                    ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    : <Eye className="h-4 w-4" aria-hidden="true" />}
-                </button>
-              </div>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="current-password"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

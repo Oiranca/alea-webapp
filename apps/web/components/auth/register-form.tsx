@@ -1,15 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch, type Control } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Eye, EyeOff, Loader2, Check, X } from 'lucide-react'
+import { Loader2, Check, X } from 'lucide-react'
 import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import {
   Form,
   FormControl,
@@ -20,8 +21,9 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 
-function PasswordStrengthIndicator({ password }: { password: string }) {
+function PasswordStrengthIndicator({ control }: { control: Control<RegisterFormData> }) {
   const t = useTranslations('auth')
+  const password = useWatch({ control, name: 'password' }) ?? ''
   const checks = [
     { key: 'minChars', label: t('requireMinChars'), passed: password.length >= 12 },
     { key: 'lettersNumbers', label: t('requireLettersNumbers'), passed: /[a-zA-Z]/.test(password) && /[0-9]/.test(password) },
@@ -48,8 +50,6 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   const t = useTranslations('auth')
   const { register: registerUser } = useAuth()
   const router = useRouter()
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirm, setShowConfirm] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
   const form = useForm<RegisterFormData>({
@@ -63,7 +63,6 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   })
 
   const { isSubmitting } = form.formState
-  const passwordValue = form.watch('password', '')
 
   const onSubmit = async (data: RegisterFormData) => {
     setServerError(null)
@@ -108,7 +107,7 @@ export function RegisterForm({ locale }: RegisterFormProps) {
                 <Input
                   type="email"
                   autoComplete="email"
-                  placeholder="nombre@email.com"
+                  placeholder={t('emailPlaceholder')}
                   {...field}
                 />
               </FormControl>
@@ -123,28 +122,14 @@ export function RegisterForm({ locale }: RegisterFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('password')}</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    className="pr-10"
-                    {...field}
-                  />
-                </FormControl>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  aria-label={showPassword ? t('hidePassword') : t('showPassword')}
-                >
-                  {showPassword
-                    ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    : <Eye className="h-4 w-4" aria-hidden="true" />}
-                </button>
-              </div>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
               <FormDescription>
-                <PasswordStrengthIndicator password={passwordValue} />
+                <PasswordStrengthIndicator control={form.control} />
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -157,26 +142,12 @@ export function RegisterForm({ locale }: RegisterFormProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>{t('confirmPassword')}</FormLabel>
-              <div className="relative">
-                <FormControl>
-                  <Input
-                    type={showConfirm ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    className="pr-10"
-                    {...field}
-                  />
-                </FormControl>
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                  aria-label={showConfirm ? t('hideConfirmation') : t('showConfirmation')}
-                >
-                  {showConfirm
-                    ? <EyeOff className="h-4 w-4" aria-hidden="true" />
-                    : <Eye className="h-4 w-4" aria-hidden="true" />}
-                </button>
-              </div>
+              <FormControl>
+                <PasswordInput
+                  autoComplete="new-password"
+                  {...field}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

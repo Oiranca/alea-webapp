@@ -14,14 +14,12 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     // TODO (M3): Exchange code for session using createSupabaseServerClient()
-    // const supabase = await createSupabaseServerClient()
-    // await supabase.auth.exchangeCodeForSession(code)
   }
 
   // Reject control characters that can bypass path validation (e.g. %0A → \n)
   const sanitized = /[\x00-\x1f]/.test(raw) ? '/' : raw
 
-  // Only allow safe relative paths (must start with / and not be protocol-relative)
+  // Regex requires /X where X is not / or \. Bare "/" falls through to the default fallback.
   const isRelative = /^\/[^/\\]/.test(sanitized)
   let finalRedirect = isRelative ? sanitized : '/'
 

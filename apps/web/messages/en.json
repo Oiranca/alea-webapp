@@ -20,6 +20,8 @@
     "memberOrEmail": "Member number or email",
     "loginSubtitle": "Welcome to Alea Cultural Association",
     "registerSubtitle": "Join our gaming community",
+    "identifierPlaceholder": "123456 or name@email.com",
+    "emailPlaceholder": "name@email.com",
     "noAccount": "Don't have an account?", "hasAccount": "Already have an account?",
     "showPassword": "Show password", "hidePassword": "Hide password",
     "showConfirmation": "Show confirmation", "hideConfirmation": "Hide confirmation",
