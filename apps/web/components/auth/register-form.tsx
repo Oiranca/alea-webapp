@@ -1,43 +1,33 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm, useWatch, type Control } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Loader2, Check, X } from 'lucide-react'
+import { Check, X, Loader2 } from 'lucide-react'
 import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
 
-function PasswordStrengthIndicator({ control }: { control: Control<RegisterFormData> }) {
-  const t = useTranslations('auth')
-  const password = useWatch({ control, name: 'password' }) ?? ''
+function PasswordStrengthIndicator({ password }: { password: string }) {
   const checks = [
-    { key: 'minChars', label: t('requireMinChars'), passed: password.length >= 12 },
-    { key: 'lettersNumbers', label: t('requireLettersNumbers'), passed: /[a-zA-Z]/.test(password) && /[0-9]/.test(password) },
-    { key: 'specialChar', label: t('requireSpecialChar'), passed: /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(password) },
+    { label: 'Minimo 12 caracteres', passed: password.length >= 12 },
+    { label: 'Letras y numeros', passed: /[a-zA-Z]/.test(password) && /[0-9]/.test(password) },
+    { label: 'Simbolo especial', passed: /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(password) },
   ]
   return (
-    <ul className="mt-2 space-y-1" aria-label={t('passwordRequirementsLabel')}>
+    <ul className="mt-2 space-y-1" aria-label="Requisitos de contrasena">
       {checks.map((check) => (
-        <li key={check.key} className="flex items-center gap-2 text-xs">
+        <li key={check.label} className="flex items-center gap-2 text-xs">
           {check.passed
             ? <Check className="h-3 w-3 text-emerald flex-shrink-0" aria-hidden="true" />
             : <X className="h-3 w-3 text-muted-foreground flex-shrink-0" aria-hidden="true" />}
           <span className={check.passed ? 'text-emerald-light' : 'text-muted-foreground'}>{check.label}</span>
-          <span className="sr-only">{check.passed ? t('requirementMet') : t('requirementPending')}</span>
+          <span className="sr-only">{check.passed ? '(cumplido)' : '(pendiente)'}</span>
         </li>
       ))}
     </ul>
@@ -52,113 +42,75 @@ export function RegisterForm({ locale }: RegisterFormProps) {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
 
-  const form = useForm<RegisterFormData>({
+  const { register, handleSubmit, watch, formState: { errors, isSubmitting } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
-    defaultValues: {
-      memberNumber: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
   })
 
-  const { isSubmitting } = form.formState
+  const passwordValue = watch('password', '')
 
   const onSubmit = async (data: RegisterFormData) => {
     setServerError(null)
     try {
       await registerUser(data.memberNumber, data.email, data.password)
       router.push(`/${locale}/rooms`)
-    } catch {
-      setServerError(t('errors.invalidCredentials'))
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      setServerError(error?.message ?? t('errors.invalidCredentials'))
     }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="space-y-5">
-        {serverError && (
-          <div role="alert" className="rounded-md bg-destructive/15 border border-destructive/30 px-4 py-3 text-sm text-destructive-foreground">
-            {serverError}
-          </div>
-        )}
+    <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-5">
+      {serverError && (
+        <div role="alert" className="rounded-md bg-destructive/15 border border-destructive/30 px-4 py-3 text-sm text-destructive-foreground">
+          {serverError}
+        </div>
+      )}
 
-        <FormField
-          control={form.control}
-          name="memberNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('memberNumber')}</FormLabel>
-              <FormControl>
-                <Input type="text" placeholder="123456" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <div className="space-y-1.5">
+        <Label htmlFor="memberNumber">{t('memberNumber')}</Label>
+        <Input id="memberNumber" type="text" placeholder="123456"
+          aria-describedby={errors.memberNumber ? 'memberNumber-error' : undefined}
+          aria-invalid={!!errors.memberNumber}
+          {...register('memberNumber')}
         />
+        {errors.memberNumber && <p id="memberNumber-error" role="alert" className="text-xs text-destructive">{t(errors.memberNumber.message as Parameters<typeof t>[0])}</p>}
+      </div>
 
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('email')}</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  autoComplete="email"
-                  placeholder={t('emailPlaceholder')}
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <div className="space-y-1.5">
+        <Label htmlFor="email">{t('email')}</Label>
+        <Input id="email" type="email" autoComplete="email" placeholder="nombre@email.com"
+          aria-describedby={errors.email ? 'email-error' : undefined}
+          aria-invalid={!!errors.email}
+          {...register('email')}
         />
+        {errors.email && <p id="email-error" role="alert" className="text-xs text-destructive">{t(errors.email.message as Parameters<typeof t>[0])}</p>}
+      </div>
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('password')}</FormLabel>
-              <FormControl>
-                <PasswordInput
-                  autoComplete="new-password"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                <PasswordStrengthIndicator control={form.control} />
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+      <div className="space-y-1.5">
+        <Label htmlFor="reg-password">{t('password')}</Label>
+        <PasswordInput id="reg-password" autoComplete="new-password"
+          aria-describedby="password-requirements"
+          aria-invalid={!!errors.password}
+          {...register('password')}
         />
+        <div id="password-requirements"><PasswordStrengthIndicator password={passwordValue} /></div>
+        {errors.password && <p role="alert" className="text-xs text-destructive">{t(errors.password.message as Parameters<typeof t>[0])}</p>}
+      </div>
 
-        <FormField
-          control={form.control}
-          name="confirmPassword"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>{t('confirmPassword')}</FormLabel>
-              <FormControl>
-                <PasswordInput
-                  autoComplete="new-password"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
+      <div className="space-y-1.5">
+        <Label htmlFor="confirmPassword">{t('confirmPassword')}</Label>
+        <PasswordInput id="confirmPassword" variant="confirmation" autoComplete="new-password"
+          aria-describedby={errors.confirmPassword ? 'confirm-error' : undefined}
+          aria-invalid={!!errors.confirmPassword}
+          {...register('confirmPassword')}
         />
+        {errors.confirmPassword && <p id="confirm-error" role="alert" className="text-xs text-destructive">{t(errors.confirmPassword.message as Parameters<typeof t>[0])}</p>}
+      </div>
 
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting
-            ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('register')}...</>
-            : t('register')}
-        </Button>
-      </form>
-    </Form>
+      <Button type="submit" className="w-full" disabled={isSubmitting}>
+        {isSubmitting ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('register')}...</> : t('register')}
+      </Button>
+    </form>
   )
 }
