@@ -15,7 +15,7 @@
 | M2 — Server layer extraction | #5 | Done | PR #15 (merged) |
 | Platform — Supabase env split | #11 | Done | PR #16 + #20 (merged) |
 | QA — CI quality gates | #12 | In Progress | — |
-| UI — shadcn + auth foundation | #18 | In Progress | PR #19 (open) |
+| UI — shadcn + auth foundation | #18 | Done | PR #19 (merged) |
 | M3 — Auth cutover (Supabase SSR) | #6 | Pending | — |
 | M4 — API parity | #7 | Pending | — |
 | SEC — Security hardening | #10 | Pending | — |
@@ -51,6 +51,20 @@
 - Signup trigger (`handle_new_user`) for auto-creating profiles
 - GiST exclusion constraint for reservation overlap prevention
 
+#### Issue #18 — [UI] shadcn/ui initialization + Supabase auth UI foundation
+**Branch:** `feat/shadcn-supabase-ui`
+**PR:** #19 (merged)
+
+**Deliverables completed:**
+- `components.json` — formal shadcn/ui initialization
+- shadcn components: form, accordion, alert-dialog, avatar, checkbox, dropdown-menu, popover, scroll-area, tooltip, sonner
+- Shared `PasswordInput` component with variant support and full test coverage
+- Auth forms (login + register) rewritten with shadcn Form + zod + i18n
+- `FormMessage` with automatic i18n key translation via `useTranslations`
+- Auth callback route scaffold with 3-layer open redirect defense
+- Full i18n coverage (en.json + es.json) with proper Spanish accents
+- All review comments addressed (security, a11y, code quality)
+
 ---
 
 ### P0 — In Progress
@@ -61,24 +75,12 @@
 
 ---
 
-### P0.5 — In Progress (before M3)
-
-#### Issue #18 — [UI] shadcn/ui initialization + Supabase auth UI foundation
-**Branch:** `feat/shadcn-supabase-ui`
-**PR:** #19 (open, review comments addressed)
-
-**Deliverables:**
-- shadcn/ui initialized with RPG theme tokens
-- Auth UI components (login, register) using Supabase client
-- Review comments from PR #19 addressed
-
----
-
 ### P1 — After Supabase + QA + UI ready
 
 #### 3. Issue #6 — [M3] Auth cutover to Supabase SSR
 **Branch:** `feat/next-api-m3-auth-cutover`
-**Depends on:** #11
+**Depends on:** #11, #18, #12
+**Note:** Blockers #11 and #18 are now resolved. Only #12 (QA gates) remains before this can start.
 **Deliverables:**
 - Replace mock auth (`mock-db` users) with Supabase Auth
 - Implement `createServerClient` / `createBrowserClient` SSR pattern
@@ -143,10 +145,10 @@
 ## Dependency Graph
 
 ```
-#4 (M1 baseline) ✅ → #5 (M2 server layer) ✅ → #11 (Platform) ✅ ─┐
-                                                                      ├→ #6 (M3 Supabase SSR)
-#12 (QA gates) 🔄 ────────────────────────────────────────────────────┤
-#18 (shadcn + auth UI) 🔄 ───────────────────────────────────────────┘
+#4 (M1) ✅ → #5 (M2) ✅ → #11 (Platform) ✅ ─┐
+                                                 ├→ #6 (M3 Supabase SSR) ← NEXT
+#12 (QA gates) 🔄 ──────────────────────────────┤
+#18 (shadcn + auth UI) ✅ ──────────────────────┘
 ```
 
 ---
