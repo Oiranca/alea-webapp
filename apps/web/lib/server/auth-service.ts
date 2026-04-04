@@ -15,11 +15,6 @@ type AuthClient = {
   }
 }
 
-async function rollbackCreatedAuthUser(userId: string) {
-  const admin = createSupabaseServerAdminClient()
-  await admin.auth.admin.deleteUser(userId)
-}
-
 function toPublicUser(profile: ProfileRow): User {
   return {
     id: profile.id,
@@ -110,7 +105,7 @@ export async function login(
 
 export async function register(
   input: { memberNumber?: unknown; email?: unknown; password?: unknown },
-  client?: AuthClient,
+  _client?: AuthClient,
 ): Promise<User> {
   const memberNumber = String(input.memberNumber ?? '').trim()
   const email = String(input.email ?? '').trim().toLowerCase()
@@ -122,49 +117,8 @@ export async function register(
   if (password.length < 12) {
     serviceError('Password must be at least 12 characters', 400)
   }
-  if (await getProfileByEmail(email)) {
-    serviceError('Email already registered', 409)
-  }
-  if (await getProfileByMemberNumber(memberNumber)) {
-    serviceError('Member number already registered', 409)
-  }
 
-  const admin = createSupabaseServerAdminClient()
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  })
-
-  if (createError || !created.user) {
-    const statusCode = createError?.message.toLowerCase().includes('already') ? 409 : 500
-    serviceError(createError?.message ?? 'Internal server error', statusCode)
-  }
-
-  const { error: profileError } = await admin
-    .from('profiles')
-    .update({ member_number: memberNumber, email })
-    .eq('id', created.user.id)
-
-  if (profileError) {
-    await rollbackCreatedAuthUser(created.user.id)
-    const statusCode = profileError.message.toLowerCase().includes('duplicate') ? 409 : 500
-    serviceError(profileError.message, statusCode)
-  }
-
-  const supabase = client ?? await createSupabaseServerClient()
-  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
-
-  if (signInError) {
-    serviceError('Internal server error', 500)
-  }
-
-  const profile = await getProfileById(created.user.id)
-  if (!profile) {
-    serviceError('Internal server error', 500)
-  }
-
-  return toPublicUser(profile)
+  serviceError('Registration is currently unavailable', 403)
 }
 
 export async function getCurrentUser(session: SessionUser | null): Promise<User> {

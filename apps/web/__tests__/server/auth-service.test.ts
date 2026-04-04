@@ -13,12 +13,6 @@ const adminState = {
   byEmail: new Map<string, ProfileRow>(),
   byMemberNumber: new Map<string, ProfileRow>(),
   byId: new Map<string, ProfileRow>(),
-  deletedUserIds: [] as string[],
-  createUserResult: {
-    data: { user: { id: 'user-3' } },
-    error: null as { message: string } | null,
-  },
-  updateError: null as { message: string } | null,
 }
 
 const signInWithPassword = vi.fn()
@@ -46,11 +40,8 @@ vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerAdminClient: vi.fn(() => ({
     auth: {
       admin: {
-        createUser: vi.fn(async () => adminState.createUserResult),
-        deleteUser: vi.fn(async (userId: string) => {
-          adminState.deletedUserIds.push(userId)
-          return { data: { user: null }, error: null }
-        }),
+        createUser: vi.fn(),
+        deleteUser: vi.fn(),
       },
     },
     from: vi.fn(() => ({
@@ -70,22 +61,7 @@ vi.mock('@/lib/supabase/server', () => ({
           }),
         })),
       })),
-      update: vi.fn((patch: { member_number: string; email: string }) => ({
-        eq: vi.fn(async (_column: string, value: string) => {
-          const current = adminState.byId.get(value)
-          if (current) {
-            const next = {
-              ...current,
-              member_number: patch.member_number,
-              email: patch.email,
-            }
-            adminState.byId.set(value, next)
-            adminState.byEmail.set(next.email, next)
-            adminState.byMemberNumber.set(next.member_number, next)
-          }
-          return { error: adminState.updateError }
-        }),
-      })),
+      update: vi.fn(),
     })),
   })),
 }))
@@ -101,12 +77,6 @@ describe('auth service', () => {
     adminState.byEmail.clear()
     adminState.byMemberNumber.clear()
     adminState.byId.clear()
-    adminState.deletedUserIds = []
-    adminState.updateError = null
-    adminState.createUserResult = {
-      data: { user: { id: 'user-3' } },
-      error: null,
-    }
     signInWithPassword.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     signOut.mockResolvedValue({ error: null })
 
@@ -191,15 +161,8 @@ describe('auth service', () => {
   })
 
   describe('register', () => {
-    it('creates the auth user, updates the profile, signs in, and returns the public profile', async () => {
+    it('blocks public self-registration during the auth cutover', async () => {
       const { register } = await loadService()
-      const createdProfile = makeProfile({
-        id: 'user-3',
-        member_number: '100099',
-        email: 'nuevo@alea.club',
-        role: 'member',
-      })
-      adminState.byId.set(createdProfile.id, createdProfile)
 
       await expect(
         register({
@@ -207,45 +170,39 @@ describe('auth service', () => {
           email: 'nuevo@alea.club',
           password: 'Password1234!@#',
         }),
-      ).resolves.toMatchObject({
-        id: 'user-3',
-        memberNumber: '100099',
-        email: 'nuevo@alea.club',
-        role: 'member',
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 403,
       })
     })
 
-    it('rejects a duplicate email with a 409 ServiceError', async () => {
+    it('still validates missing registration fields with a 400 ServiceError', async () => {
       const { register } = await loadService()
 
       await expect(
         register({
-          memberNumber: '100099',
           email: 'admin@alea.club',
           password: 'Password1234!@#',
         }),
       ).rejects.toMatchObject({
         name: 'ServiceError',
-        statusCode: 409,
+        statusCode: 400,
       })
     })
 
-    it('rolls back the auth user when the profile update fails', async () => {
+    it('enforces the minimum password length on the server', async () => {
       const { register } = await loadService()
-      adminState.updateError = { message: 'duplicate key value violates unique constraint' }
 
       await expect(
         register({
           memberNumber: '100099',
           email: 'nuevo@alea.club',
-          password: 'Password1234!@#',
+          password: 'short',
         }),
       ).rejects.toMatchObject({
         name: 'ServiceError',
-        statusCode: 409,
+        statusCode: 400,
       })
-
-      expect(adminState.deletedUserIds).toEqual(['user-3'])
     })
   })
 })

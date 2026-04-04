@@ -72,13 +72,10 @@ describe('auth API routes', () => {
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     })
-    registerMock.mockResolvedValue({
-      id: 'user-2',
-      memberNumber: '100099',
-      email: 'nuevo@alea.club',
-      role: 'member',
-      createdAt: '2024-01-01T00:00:00.000Z',
-      updatedAt: '2024-01-01T00:00:00.000Z',
+    registerMock.mockRejectedValue({
+      name: 'ServiceError',
+      message: 'Registration is currently unavailable',
+      statusCode: 403,
     })
     logoutWithClientMock.mockResolvedValue({ success: true })
     getSessionFromRequestMock.mockResolvedValue({ id: 'user-2', role: 'member' })
@@ -145,10 +142,10 @@ describe('auth API routes', () => {
     await expect(response.json()).resolves.toMatchObject({ statusCode: 401 })
   })
 
-  it('maps duplicate registration conflicts to a 409 response', async () => {
+  it('returns a generic 403 when public registration is unavailable', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
     const { ServiceError } = await import('@/lib/server/service-error')
-    registerMock.mockRejectedValueOnce(new ServiceError('Email already registered', 409))
+    registerMock.mockRejectedValueOnce(new ServiceError('Registration is currently unavailable', 403))
 
     const response = await POST(
       createJsonRequest('/api/auth/register', {
@@ -158,32 +155,40 @@ describe('auth API routes', () => {
       }),
     )
 
-    expect(response.status).toBe(409)
-    await expect(response.json()).resolves.toMatchObject({ statusCode: 409 })
+    expect(response.status).toBe(403)
+    await expect(response.json()).resolves.toMatchObject({ statusCode: 403 })
   })
 
-  it('registers a user, reads it from /me, and signs out through the auth routes', async () => {
-    const registerRoute = await import('@/app/api/auth/register/route')
+  it('reads the session from /me after login and signs out through the auth routes', async () => {
+    const loginRoute = await import('@/app/api/auth/login/route')
     const meRoute = await import('@/app/api/auth/me/route')
     const logoutRoute = await import('@/app/api/auth/logout/route')
+    getSessionFromRequestMock.mockResolvedValueOnce({ id: 'user-1', role: 'admin' })
+    getCurrentUserMock.mockResolvedValueOnce({
+      id: 'user-1',
+      memberNumber: '100001',
+      email: 'admin@alea.club',
+      role: 'admin',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    })
 
-    const registerResponse = await registerRoute.POST(
-      createJsonRequest('/api/auth/register', {
-        memberNumber: '100099',
-        email: 'nuevo@alea.club',
-        password: 'Password1234!@#',
+    const loginResponse = await loginRoute.POST(
+      createJsonRequest('/api/auth/login', {
+        identifier: 'admin@alea.club',
+        password: 'Admin1234!@#',
       }),
     )
 
-    expect(registerResponse.status).toBe(201)
-    expect(registerResponse.cookies.get('sb-access-token')?.value).toBe('test-session')
+    expect(loginResponse.status).toBe(200)
+    expect(loginResponse.cookies.get('sb-access-token')?.value).toBe('test-session')
 
     const meResponse = await meRoute.GET(new NextRequest('http://localhost:3000/api/auth/me'))
     expect(meResponse.status).toBe(200)
     await expect(meResponse.json()).resolves.toMatchObject({
-      memberNumber: '100099',
-      email: 'nuevo@alea.club',
-      role: 'member',
+      memberNumber: '100001',
+      email: 'admin@alea.club',
+      role: 'admin',
     })
 
     const logoutResponse = await logoutRoute.POST(createJsonRequest('/api/auth/logout'))
