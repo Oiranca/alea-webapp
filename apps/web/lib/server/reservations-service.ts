@@ -48,18 +48,18 @@ const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, 
 
 function parseDate(value: string): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    throw serviceError('Date must be in YYYY-MM-DD format', 400)
+    serviceError('Date must be in YYYY-MM-DD format', 400)
   }
   const d = new Date(value)
   if (isNaN(d.getTime())) {
-    throw serviceError('Invalid date value', 400)
+    serviceError('Invalid date value', 400)
   }
   return value
 }
 
 function parseHHMM(value: string): string {
   if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
-    throw serviceError('Time must be in HH:MM format (00:00–23:59)', 400)
+    serviceError('Time must be in HH:MM format (00:00–23:59)', 400)
   }
   return value
 }
@@ -218,16 +218,16 @@ export async function createReservationForSession(
   body: { tableId?: unknown; date?: unknown; startTime?: unknown; endTime?: unknown; surface?: unknown },
 ) {
   const tableId = requireString(body.tableId)
-  const dateRaw = requireString(body.date)
+  const rawDate = requireString(body.date)
   const rawStartTime = requireString(body.startTime)
   const rawEndTime = requireString(body.endTime)
   const surface = parseSurface(body.surface)
 
-  if (!tableId || !dateRaw || !rawStartTime || !rawEndTime) {
+  if (!tableId || !rawDate || !rawStartTime || !rawEndTime) {
     serviceError('tableId, date, startTime and endTime are required', 400)
   }
 
-  const date = parseDate(dateRaw)
+  const date = parseDate(rawDate)
   const startTime = parseHHMM(rawStartTime)
   const endTime = parseHHMM(rawEndTime)
 
