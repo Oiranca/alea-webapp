@@ -241,7 +241,7 @@ describe('auth API routes', () => {
     expect(sanitized.headers.get('location')).toBe('http://localhost:3000/')
   })
 
-  it('returns 401 when the PKCE code exchange fails', async () => {
+  it('redirects to a safe error page when the PKCE code exchange fails', async () => {
     const { GET } = await import('@/app/api/auth/callback/route')
     exchangeCodeForSessionMock.mockResolvedValueOnce({
       data: { session: null, user: null },
@@ -252,10 +252,7 @@ describe('auth API routes', () => {
       new NextRequest('http://localhost:3000/api/auth/callback?code=expired-code&next=%2Frooms'),
     )
 
-    expect(response.status).toBe(401)
-    await expect(response.json()).resolves.toMatchObject({
-      message: 'Authentication callback failed',
-      statusCode: 401,
-    })
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('http://localhost:3000/?authError=callback')
   })
 })
