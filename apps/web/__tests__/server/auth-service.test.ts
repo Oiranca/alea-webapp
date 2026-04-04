@@ -17,6 +17,7 @@ const adminState = {
 
 const signInWithPassword = vi.fn()
 const signOut = vi.fn()
+const sessionScopedProfileMaybeSingle = vi.fn()
 
 function makeProfile(overrides?: Partial<ProfileRow>): ProfileRow {
   return {
@@ -36,6 +37,19 @@ vi.mock('@/lib/supabase/server', () => ({
       signInWithPassword,
       signOut,
     },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn((column: string, value: string) => ({
+          maybeSingle: vi.fn(async () => {
+            sessionScopedProfileMaybeSingle(column, value)
+            if (column === 'id') {
+              return { data: adminState.byId.get(value) ?? null, error: null }
+            }
+            return { data: null, error: null }
+          }),
+        })),
+      })),
+    })),
   })),
   createSupabaseServerAdminClient: vi.fn(() => ({
     auth: {
@@ -79,6 +93,7 @@ describe('auth service', () => {
     adminState.byId.clear()
     signInWithPassword.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
     signOut.mockResolvedValue({ error: null })
+    sessionScopedProfileMaybeSingle.mockReset()
 
     const admin = makeProfile()
     const member = makeProfile({
@@ -223,6 +238,17 @@ describe('auth service', () => {
         name: 'ServiceError',
         statusCode: 401,
       })
+    })
+
+    it('reads the current profile through the session-scoped client instead of the admin client', async () => {
+      const { getCurrentUser } = await loadService()
+
+      await expect(getCurrentUser({ id: 'user-2', role: 'member' })).resolves.toMatchObject({
+        id: 'user-2',
+        email: 'socio@alea.club',
+        role: 'member',
+      })
+      expect(sessionScopedProfileMaybeSingle).toHaveBeenCalledWith('id', 'user-2')
     })
   })
 

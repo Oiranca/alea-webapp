@@ -17,6 +17,16 @@ type AuthClient = {
   }
 }
 
+type ProfileLookupClient = {
+  from: (table: 'profiles') => {
+    select: (columns: string) => {
+      eq: (column: 'id', value: string) => {
+        maybeSingle: () => Promise<{ data: ProfileRow | null; error: { message: string } | null }>
+      }
+    }
+  }
+}
+
 function toPublicUser(profile: ProfileRow): User {
   return {
     id: profile.id,
@@ -123,12 +133,30 @@ export async function register(
   serviceError('Registration is currently unavailable', 403)
 }
 
-export async function getCurrentUser(session: SessionUser | null): Promise<User> {
+async function getSessionScopedProfile(id: string, client?: ProfileLookupClient) {
+  const supabase = client ?? await createSupabaseServerClient()
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PUBLIC_PROFILE_COLUMNS)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) {
+    serviceError('Internal server error', 500)
+  }
+
+  return data
+}
+
+export async function getCurrentUser(
+  session: SessionUser | null,
+  client?: ProfileLookupClient,
+): Promise<User> {
   if (!session) {
     serviceError('Unauthorized', 401)
   }
 
-  const profile = await getProfileById(session.id)
+  const profile = await getSessionScopedProfile(session.id, client)
   if (!profile) {
     serviceError('Unauthorized', 401)
   }
