@@ -5,6 +5,8 @@ import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/l
 import type { Tables } from '@/lib/supabase/types'
 
 type ProfileRow = Tables<'profiles'>
+const PUBLIC_PROFILE_COLUMNS = 'id, member_number, email, role, created_at, updated_at'
+
 type AuthClient = {
   auth: {
     signInWithPassword: (credentials: { email: string; password: string }) => Promise<{
@@ -30,7 +32,7 @@ async function getProfileById(id: string) {
   const admin = createSupabaseServerAdminClient()
   const { data, error } = await admin
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('id', id)
     .maybeSingle()
 
@@ -45,7 +47,7 @@ async function getProfileByEmail(email: string) {
   const admin = createSupabaseServerAdminClient()
   const { data, error } = await admin
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('email', email)
     .maybeSingle()
 
@@ -60,7 +62,7 @@ async function getProfileByMemberNumber(memberNumber: string) {
   const admin = createSupabaseServerAdminClient()
   const { data, error } = await admin
     .from('profiles')
-    .select('*')
+    .select(PUBLIC_PROFILE_COLUMNS)
     .eq('member_number', memberNumber)
     .maybeSingle()
 

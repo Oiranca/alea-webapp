@@ -8,10 +8,11 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const originError = enforceSameOriginForMutation(request)
+  if (originError) return originError
+
   const admin = await requireAdmin(request)
   if (admin instanceof NextResponse) return admin
-  const originError = enforceSameOriginForMutation(request)
-  if (originError) return admin.applyCookies(originError)
 
   try {
     const body = await request.json()

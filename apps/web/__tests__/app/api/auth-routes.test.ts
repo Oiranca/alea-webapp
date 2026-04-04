@@ -286,6 +286,7 @@ describe('auth API routes', () => {
 
     expect(response.status).toBe(307)
     expect(response.headers.get('location')).toBe('http://localhost:3000/?authError=callback')
+    expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
   })
 
   it('redirects to a safe error page when the PKCE exchange throws unexpectedly', async () => {
@@ -298,5 +299,6 @@ describe('auth API routes', () => {
 
     expect(response.status).toBe(307)
     expect(response.headers.get('location')).toBe('http://localhost:3000/?authError=callback')
+    expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
   })
 })

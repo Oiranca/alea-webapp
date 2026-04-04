@@ -4,10 +4,11 @@ import { toServiceErrorResponse } from '@/lib/server/http-error'
 import { updateReservationForSession } from '@/lib/server/reservations-service'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const originError = enforceSameOriginForMutation(request)
+  if (originError) return originError
+
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
-  const originError = enforceSameOriginForMutation(request)
-  if (originError) return auth.applyCookies(originError)
 
   try {
     const { id } = await params

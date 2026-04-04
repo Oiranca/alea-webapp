@@ -33,17 +33,18 @@ export async function GET(request: NextRequest) {
   }
 
   if (code) {
+    const client = createSupabaseRouteHandlerClient(request)
+
     try {
-      const { supabase, applyCookies } = createSupabaseRouteHandlerClient(request)
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
+      const { error } = await client.supabase.auth.exchangeCodeForSession(code)
 
       if (error) {
-        return NextResponse.redirect(callbackErrorRedirect)
+        return client.applyCookies(NextResponse.redirect(callbackErrorRedirect))
       }
 
-      return applyCookies(NextResponse.redirect(new URL(finalRedirect, requestUrl.origin)))
+      return client.applyCookies(NextResponse.redirect(new URL(finalRedirect, requestUrl.origin)))
     } catch {
-      return NextResponse.redirect(callbackErrorRedirect)
+      return client.applyCookies(NextResponse.redirect(callbackErrorRedirect))
     }
   }
 
