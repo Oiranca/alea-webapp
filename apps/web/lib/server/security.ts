@@ -1,4 +1,3 @@
-import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import type { CookieOptionsWithName } from '@supabase/ssr'
 
@@ -61,6 +60,17 @@ function getClientAddress(request: NextRequest) {
   }
 
   return request.headers.get('x-real-ip')?.trim() || 'local'
+}
+
+function tokensMatch(left: string, right: string) {
+  if (left.length !== right.length) return false
+
+  let mismatch = 0
+  for (let index = 0; index < left.length; index += 1) {
+    mismatch |= left.charCodeAt(index) ^ right.charCodeAt(index)
+  }
+
+  return mismatch === 0
 }
 
 export function createCsrfToken() {
@@ -129,13 +139,7 @@ export function enforceMutationSecurity(request: NextRequest): NextResponse | nu
     return forbidden('Invalid CSRF token')
   }
 
-  const csrfCookieBuffer = Buffer.from(csrfCookie)
-  const csrfHeaderBuffer = Buffer.from(csrfHeader)
-
-  if (
-    csrfCookieBuffer.length !== csrfHeaderBuffer.length
-    || !timingSafeEqual(csrfCookieBuffer, csrfHeaderBuffer)
-  ) {
+  if (!tokensMatch(csrfCookie, csrfHeader)) {
     return forbidden('Invalid CSRF token')
   }
 
