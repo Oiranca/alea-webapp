@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto'
 import { NextRequest, NextResponse } from 'next/server'
 import type { CookieOptionsWithName } from '@supabase/ssr'
 
@@ -128,7 +129,13 @@ export function enforceMutationSecurity(request: NextRequest): NextResponse | nu
     return forbidden('Invalid CSRF token')
   }
 
-  if (csrfCookie !== csrfHeader) {
+  const csrfCookieBuffer = Buffer.from(csrfCookie)
+  const csrfHeaderBuffer = Buffer.from(csrfHeader)
+
+  if (
+    csrfCookieBuffer.length !== csrfHeaderBuffer.length
+    || !timingSafeEqual(csrfCookieBuffer, csrfHeaderBuffer)
+  ) {
     return forbidden('Invalid CSRF token')
   }
 

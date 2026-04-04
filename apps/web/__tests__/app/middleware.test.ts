@@ -68,7 +68,7 @@ describe('middleware', () => {
     )
   })
 
-  it('switches the Supabase auth cookie policy to a secure host-only name in production', async () => {
+  it('switches the Supabase auth cookie policy to secure cookies in production', async () => {
     vi.stubEnv('NODE_ENV', 'production')
     const middleware = (await import('@/middleware')).default
 
