@@ -221,9 +221,61 @@ describe('reservations service', () => {
       expect(result).toHaveLength(2)
       expect(result.every((reservation) => reservation.userId === '2')).toBe(true)
     })
+
+    it('lets admins filter by user, table, and date', async () => {
+      const { listVisibleReservations } = await loadReservationModules()
+
+      reservationsState.push(makeReservation({
+        id: 'r3',
+        user_id: '9',
+        table_id: 't1',
+        date: '2026-04-05',
+        start_time: '12:00:00',
+        end_time: '13:00:00',
+      }))
+
+      const result = await listVisibleReservations({
+        session: adminSession,
+        userId: '9',
+        tableId: 't1',
+        date: '2026-04-05',
+      })
+
+      expect(result).toEqual([
+        expect.objectContaining({
+          id: 'r3',
+          userId: '9',
+          tableId: 't1',
+          date: '2026-04-05',
+          startTime: '12:00',
+          endTime: '13:00',
+        }),
+      ])
+    })
   })
 
   describe('createReservationForSession', () => {
+    it('creates an active reservation through the session-scoped client', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      const created = await createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-05',
+        startTime: '12:00',
+        endTime: '13:00',
+      })
+
+      expect(created).toEqual(expect.objectContaining({
+        tableId: 't1',
+        userId: '2',
+        date: '2026-04-05',
+        startTime: '12:00',
+        endTime: '13:00',
+        status: 'active',
+        surface: null,
+      }))
+    })
+
     it('requires a surface for removable-top tables', async () => {
       const { createReservationForSession } = await loadReservationModules()
 
@@ -251,9 +303,91 @@ describe('reservations service', () => {
         statusCode: 409,
       })
     })
+
+    it('rejects single-digit hour "9:00" with 400', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-05',
+        startTime: '9:00',
+        endTime: '10:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('rejects out-of-range hour "25:00" with 400', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-05',
+        startTime: '25:00',
+        endTime: '26:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('rejects out-of-range minutes "18:70" with 400', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-05',
+        startTime: '18:70',
+        endTime: '19:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('accepts midnight "00:00" as a valid time', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-05',
+        startTime: '00:00',
+        endTime: '01:00',
+      })).resolves.toEqual(expect.objectContaining({ startTime: '00:00', endTime: '01:00' }))
+    })
+
+    it('ignores non-active reservations when checking conflicts', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      reservationsState[0]!.status = 'cancelled'
+
+      await expect(createReservationForSession(memberSession, {
+        tableId: 't1',
+        date: '2026-04-04',
+        startTime: '17:00',
+        endTime: '18:30',
+      })).resolves.toEqual(expect.objectContaining({
+        tableId: 't1',
+        startTime: '17:00',
+        endTime: '18:30',
+      }))
+    })
   })
 
   describe('updateReservationForSession', () => {
+    it('rejects invalid statuses', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      await expect(updateReservationForSession(memberSession, 'r1', { status: 'pending' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
+
+    it('rejects updates from non-owners', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      await expect(updateReservationForSession({ id: '999', role: 'member' }, 'r1', {
+        startTime: '18:00',
+        endTime: '19:00',
+      })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 403,
+      })
+    })
+
     it('treats null status as absent', async () => {
       const { updateReservationForSession } = await loadReservationModules()
 
@@ -307,6 +441,57 @@ describe('reservations service', () => {
       const updated = await updateReservationForSession(memberSession, 'r1', { surface: undefined })
 
       expect(updated.surface).toBeNull()
+    })
+
+    it('rejects single-digit hour "9:00" in startTime with 400', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      await expect(updateReservationForSession(memberSession, 'r1', {
+        startTime: '9:00',
+        endTime: '10:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('rejects out-of-range hour "25:00" in endTime with 400', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      await expect(updateReservationForSession(memberSession, 'r1', {
+        startTime: '16:00',
+        endTime: '25:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('rejects out-of-range minutes "18:70" in startTime with 400', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      await expect(updateReservationForSession(memberSession, 'r1', {
+        startTime: '18:70',
+        endTime: '19:00',
+      })).rejects.toMatchObject({ name: 'ServiceError', statusCode: 400 })
+    })
+
+    it('accepts midnight "00:00" as a valid startTime', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      const updated = await updateReservationForSession(memberSession, 'r1', {
+        startTime: '00:00',
+        endTime: '01:00',
+      })
+
+      expect(updated.startTime).toBe('00:00')
+      expect(updated.endTime).toBe('01:00')
+    })
+
+    it('ignores the current reservation when checking conflicts during updates', async () => {
+      const { updateReservationForSession } = await loadReservationModules()
+
+      const updated = await updateReservationForSession(memberSession, 'r1', {
+        startTime: '16:30',
+        endTime: '17:30',
+      })
+
+      expect(updated.startTime).toBe('16:30')
+      expect(updated.endTime).toBe('17:30')
     })
   })
 

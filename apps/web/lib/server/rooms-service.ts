@@ -171,7 +171,12 @@ export async function updateRoom(id: string, body: { name?: unknown; description
   const supabase = await createSupabaseServerClient()
   const updates: TablesUpdate<'rooms'> = {
     name: body.name ? String(body.name) : undefined,
-    description: body.description === undefined ? undefined : String(body.description),
+    description:
+      body.description === undefined
+        ? undefined
+        : body.description === null
+          ? null
+          : String(body.description),
   }
   const rooms = supabase.from('rooms') as unknown as RoomsTableClient
   const { data, error } = await rooms

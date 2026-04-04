@@ -142,6 +142,42 @@ describe('updateRoom', () => {
     expect(updated).not.toBeNull()
     expect(updated?.name).toBe('Sala Mirkwood Updated')
   })
+
+  it('preserves existing description when description is null', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { id: '1', name: 'Sala Mirkwood', table_count: 8, description: 'Sala principal' },
+      error: null,
+    })
+    const { updateRoom } = await loadRoomsModules()
+
+    const updated = await updateRoom('1', { description: null })
+
+    expect(updated.description).not.toBe('null')
+  })
+
+  it('preserves existing description when description is undefined', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { id: '1', name: 'Sala Mirkwood', table_count: 8, description: 'Sala principal' },
+      error: null,
+    })
+    const { updateRoom } = await loadRoomsModules()
+
+    const updated = await updateRoom('1', { description: undefined })
+
+    expect(updated.description).not.toBe('null')
+  })
+
+  it('sets description to the new string when a value is provided', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { id: '1', name: 'Sala Mirkwood', table_count: 8, description: 'New description' },
+      error: null,
+    })
+    const { updateRoom } = await loadRoomsModules()
+
+    const updated = await updateRoom('1', { description: 'New description' })
+
+    expect(updated.description).toBe('New description')
+  })
 })
 
 describe('getRoomTablesAvailability', () => {

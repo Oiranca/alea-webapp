@@ -45,7 +45,13 @@ type SessionReservationsTableClient = {
 }
 
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, created_at'
-const TABLE_COLUMNS = 'id, room_id, name, type, qr_code, pos_x, pos_y'
+
+function parseHHMM(value: string): string {
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    throw serviceError('Time must be in HH:MM format', 400)
+  }
+  return value
+}
 
 function parseSurface(value: unknown): TableSurface | undefined {
   return value === 'top' || value === 'bottom' ? value : undefined
@@ -201,13 +207,16 @@ export async function createReservationForSession(
 ) {
   const tableId = requireString(body.tableId)
   const date = requireString(body.date)
-  const startTime = requireString(body.startTime)
-  const endTime = requireString(body.endTime)
+  const rawStartTime = requireString(body.startTime)
+  const rawEndTime = requireString(body.endTime)
   const surface = parseSurface(body.surface)
 
-  if (!tableId || !date || !startTime || !endTime) {
+  if (!tableId || !date || !rawStartTime || !rawEndTime) {
     serviceError('tableId, date, startTime and endTime are required', 400)
   }
+
+  const startTime = parseHHMM(rawStartTime)
+  const endTime = parseHHMM(rawEndTime)
 
   const table = await getTable(tableId)
   if (!table) {
@@ -269,10 +278,10 @@ export async function updateReservationForSession(
 
   const nextStartTime = body.startTime == null
     ? normalizeTime(existingReservation.start_time)
-    : String(body.startTime)
+    : parseHHMM(String(body.startTime))
   const nextEndTime = body.endTime == null
     ? normalizeTime(existingReservation.end_time)
-    : String(body.endTime)
+    : parseHHMM(String(body.endTime))
   const nextDate = body.date == null ? existingReservation.date : String(body.date)
   const nextSurface = body.surface === undefined || body.surface === null
     ? (existingReservation.surface ?? null)

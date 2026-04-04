@@ -187,12 +187,25 @@ describe('updateUser', () => {
     resetQueryMocks()
   })
 
-  it('returns the updated public user payload', async () => {
+  it('returns the updated public user payload for the correct user id', async () => {
+    maybeSingleMock.mockImplementation(async function (this: { _eqId?: string }) {
+      return { data: profileRows[1], error: null }
+    })
     const { updateUser } = await loadUsersModules()
 
     const updated = await updateUser('2', { email: 'SOCIO@ALEA.CLUB', role: 'member' })
 
-    expect(updated.email).toBe('admin@alea.club')
+    expect(updated.id).toBe('2')
+    expect(updated.email).toBe('socio@alea.club')
+  })
+
+  it('throws 400 when no updatable fields are provided', async () => {
+    const { updateUser } = await loadUsersModules()
+
+    await expect(updateUser('1', {})).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 400,
+    })
   })
 })
 
