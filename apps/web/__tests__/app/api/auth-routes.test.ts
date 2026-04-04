@@ -5,8 +5,9 @@ const loginMock = vi.fn()
 const registerMock = vi.fn()
 const logoutWithClientMock = vi.fn()
 const getCurrentUserMock = vi.fn()
-const getSessionFromRequestMock = vi.fn()
 const exchangeCodeForSessionMock = vi.fn()
+const routeGetUserMock = vi.fn()
+const routeProfileMaybeSingleMock = vi.fn()
 
 vi.mock('@/lib/server/auth-service', () => ({
   login: loginMock,
@@ -15,20 +16,20 @@ vi.mock('@/lib/server/auth-service', () => ({
   getCurrentUser: getCurrentUserMock,
 }))
 
-vi.mock('@/lib/server/auth', async () => {
-  const actual = await vi.importActual<typeof import('@/lib/server/auth')>('@/lib/server/auth')
-  return {
-    ...actual,
-    getSessionFromRequest: getSessionFromRequestMock,
-  }
-})
-
 vi.mock('@/lib/supabase/server', () => ({
   createSupabaseRouteHandlerClient: vi.fn(() => ({
     supabase: {
       auth: {
         exchangeCodeForSession: exchangeCodeForSessionMock,
+        getUser: routeGetUserMock,
       },
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: routeProfileMaybeSingleMock,
+          })),
+        })),
+      })),
     },
     applyCookies: (response: NextResponse) => {
       response.cookies.set('sb-access-token', 'test-session')
@@ -78,7 +79,11 @@ describe('auth API routes', () => {
       statusCode: 403,
     })
     logoutWithClientMock.mockResolvedValue({ success: true })
-    getSessionFromRequestMock.mockResolvedValue({ id: 'user-2', role: 'member' })
+    routeGetUserMock.mockResolvedValue({ data: { user: { id: 'user-2' } }, error: null })
+    routeProfileMaybeSingleMock.mockResolvedValue({
+      data: { id: 'user-2', role: 'member' },
+      error: null,
+    })
     getCurrentUserMock.mockResolvedValue({
       id: 'user-2',
       memberNumber: '100099',
@@ -163,7 +168,14 @@ describe('auth API routes', () => {
     const loginRoute = await import('@/app/api/auth/login/route')
     const meRoute = await import('@/app/api/auth/me/route')
     const logoutRoute = await import('@/app/api/auth/logout/route')
-    getSessionFromRequestMock.mockResolvedValueOnce({ id: 'user-1', role: 'admin' })
+    routeGetUserMock.mockResolvedValueOnce({
+      data: { user: { id: 'user-1' } },
+      error: null,
+    })
+    routeProfileMaybeSingleMock.mockResolvedValueOnce({
+      data: { id: 'user-1', role: 'admin' },
+      error: null,
+    })
     getCurrentUserMock.mockResolvedValueOnce({
       id: 'user-1',
       memberNumber: '100001',
@@ -196,10 +208,9 @@ describe('auth API routes', () => {
     await expect(logoutResponse.json()).resolves.toEqual({ success: true })
   })
 
-  it('returns 401 from /me when the Supabase session is missing', async () => {
+  it('returns 401 from /me when current-user resolution is unauthorized', async () => {
     const { GET } = await import('@/app/api/auth/me/route')
     const { ServiceError } = await import('@/lib/server/service-error')
-    getSessionFromRequestMock.mockResolvedValueOnce(null)
     getCurrentUserMock.mockRejectedValueOnce(new ServiceError('Unauthorized', 401))
 
     const response = await GET(new NextRequest('http://localhost:3000/api/auth/me'))

@@ -9,8 +9,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   try {
     const { id } = await params
-    return NextResponse.json(getTableAvailability(id, new URL(request.url).searchParams.get('date')))
+    return auth.applyCookies(NextResponse.json(getTableAvailability(id, new URL(request.url).searchParams.get('date'))))
   } catch (error) {
-    return toServiceErrorResponse(error)
+    return auth.applyCookies(toServiceErrorResponse(error))
   }
 }

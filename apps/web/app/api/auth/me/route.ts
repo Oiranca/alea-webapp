@@ -4,9 +4,11 @@ import { getCurrentUser } from '@/lib/server/auth-service'
 import { toServiceErrorResponse } from '@/lib/server/http-error'
 
 export async function GET(request: NextRequest) {
+  const auth = await getSessionFromRequest(request)
+
   try {
-    return NextResponse.json(await getCurrentUser(await getSessionFromRequest(request)))
+    return auth.applyCookies(NextResponse.json(await getCurrentUser(auth.session)))
   } catch (error) {
-    return toServiceErrorResponse(error)
+    return auth.applyCookies(toServiceErrorResponse(error))
   }
 }

@@ -7,11 +7,11 @@ export async function GET(request: NextRequest) {
   if (admin instanceof NextResponse) return admin
 
   const { searchParams } = new URL(request.url)
-  return NextResponse.json(
+  return admin.applyCookies(NextResponse.json(
     listPaginatedUsers({
       page: parseInt(searchParams.get('page') ?? '1'),
       limit: parseInt(searchParams.get('limit') ?? '10'),
       search: searchParams.get('search') ?? '',
     }),
-  )
+  ))
 }

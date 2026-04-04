@@ -20,6 +20,8 @@
     "memberOrEmail": "Numero de socio o correo",
     "loginSubtitle": "Bienvenido a la Asociacion Cultural Alea",
     "registerSubtitle": "Unete a nuestra comunidad de jugadores",
+    "registerUnavailableTitle": "El registro esta temporalmente deshabilitado",
+    "registerUnavailableBody": "Hemos pausado el autoregistro mientras terminamos la migracion de autenticacion. Inicia sesion con una cuenta existente o contacta con la asociacion para solicitar acceso.",
     "noAccount": "No tienes cuenta?", "hasAccount": "Ya tienes cuenta?",
     "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña",
     "showConfirmation": "Mostrar confirmacion", "hideConfirmation": "Ocultar confirmacion",

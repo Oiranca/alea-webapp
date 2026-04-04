@@ -8,26 +8,26 @@ export async function GET(request: NextRequest) {
   if (auth instanceof NextResponse) return auth
 
   const { searchParams } = new URL(request.url)
-  return NextResponse.json(
+  return auth.applyCookies(NextResponse.json(
     listVisibleReservations({
-      session: auth,
+      session: auth.session,
       userId: searchParams.get('userId'),
       tableId: searchParams.get('tableId'),
       date: searchParams.get('date'),
     }),
-  )
+  ))
 }
 
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
   const originError = enforceSameOriginForMutation(request)
-  if (originError) return originError
+  if (originError) return auth.applyCookies(originError)
 
   try {
     const body = await request.json()
-    return NextResponse.json(createReservationForSession(auth, body), { status: 201 })
+    return auth.applyCookies(NextResponse.json(createReservationForSession(auth.session, body), { status: 201 }))
   } catch (error) {
-    return toServiceErrorResponse(error)
+    return auth.applyCookies(toServiceErrorResponse(error))
   }
 }

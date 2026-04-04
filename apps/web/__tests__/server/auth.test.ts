@@ -4,22 +4,13 @@ import { NextRequest, NextResponse } from 'next/server'
 const routeGetUser = vi.fn()
 const serverGetUser = vi.fn()
 const profileMaybeSingle = vi.fn()
+const routeApplyCookies = vi.fn((response: NextResponse) => response)
 
-vi.mock('@/lib/supabase/server', () => ({
-  createSupabaseRouteHandlerClient: vi.fn(() => ({
-    supabase: {
-      auth: {
-        getUser: routeGetUser,
-      },
-    },
-    applyCookies: (response: NextResponse) => response,
-  })),
-  createSupabaseServerClient: vi.fn(async () => ({
+function buildProfileClient(getUser: typeof routeGetUser | typeof serverGetUser) {
+  return {
     auth: {
-      getUser: serverGetUser,
+      getUser,
     },
-  })),
-  createSupabaseServerAdminClient: vi.fn(() => ({
     from: vi.fn(() => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
@@ -27,7 +18,15 @@ vi.mock('@/lib/supabase/server', () => ({
         })),
       })),
     })),
+  }
+}
+
+vi.mock('@/lib/supabase/server', () => ({
+  createSupabaseRouteHandlerClient: vi.fn(() => ({
+    supabase: buildProfileClient(routeGetUser),
+    applyCookies: routeApplyCookies,
   })),
+  createSupabaseServerClient: vi.fn(async () => buildProfileClient(serverGetUser)),
 }))
 
 function withSession(userId = 'user-1', role: 'member' | 'admin' = 'admin') {
@@ -55,6 +54,7 @@ describe('server auth helpers', () => {
     routeGetUser.mockResolvedValue({ data: { user: null }, error: null })
     serverGetUser.mockResolvedValue({ data: { user: null }, error: null })
     profileMaybeSingle.mockResolvedValue({ data: null, error: null })
+    routeApplyCookies.mockImplementation((response: NextResponse) => response)
   })
 
   it('reads the session from a request-scoped Supabase client', async () => {
@@ -63,7 +63,10 @@ describe('server auth helpers', () => {
 
     await expect(
       getSessionFromRequest(new NextRequest('http://localhost:3000/api/auth/me')),
-    ).resolves.toEqual({ id: 'user-1', role: 'admin' })
+    ).resolves.toMatchObject({
+      session: { id: 'user-1', role: 'admin' },
+      applyCookies: expect.any(Function),
+    })
   })
 
   it('reads the session from server cookies for SSR hydration', async () => {
@@ -83,7 +86,7 @@ describe('server auth helpers', () => {
 
     await expect(
       getSessionFromRequest(new NextRequest('http://localhost:3000/api/auth/me')),
-    ).resolves.toBeNull()
+    ).resolves.toMatchObject({ session: null })
   })
 
   it('returns 401 from requireAuth when no Supabase user is present', async () => {
@@ -92,6 +95,7 @@ describe('server auth helpers', () => {
     const response = await requireAuth(new NextRequest('http://localhost:3000/api/users'))
     expect(response).toBeInstanceOf(NextResponse)
     expect((response as NextResponse).status).toBe(401)
+    expect(routeApplyCookies).toHaveBeenCalledTimes(1)
   })
 
   it('returns 403 from requireAdmin for authenticated members', async () => {
@@ -101,6 +105,7 @@ describe('server auth helpers', () => {
     const response = await requireAdmin(new NextRequest('http://localhost:3000/api/users'))
     expect(response).toBeInstanceOf(NextResponse)
     expect((response as NextResponse).status).toBe(403)
+    expect(routeApplyCookies).toHaveBeenCalledTimes(1)
   })
 
   it('returns the session user from requireAdmin for admins', async () => {
@@ -109,7 +114,10 @@ describe('server auth helpers', () => {
 
     await expect(
       requireAdmin(new NextRequest('http://localhost:3000/api/users')),
-    ).resolves.toEqual({ id: 'user-1', role: 'admin' })
+    ).resolves.toMatchObject({
+      session: { id: 'user-1', role: 'admin' },
+      applyCookies: expect.any(Function),
+    })
   })
 
   it('enforces same-origin for unsafe methods and skips GET requests', async () => {

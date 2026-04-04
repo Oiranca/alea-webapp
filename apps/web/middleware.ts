@@ -1,6 +1,6 @@
 import createMiddleware from 'next-intl/middleware'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+import { type NextRequest, type NextResponse } from 'next/server'
 import { locales, defaultLocale } from './lib/i18n/config'
 
 const handleI18nRouting = createMiddleware({

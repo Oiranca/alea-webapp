@@ -11,12 +11,12 @@ export async function POST(request: NextRequest) {
   const admin = await requireAdmin(request)
   if (admin instanceof NextResponse) return admin
   const originError = enforceSameOriginForMutation(request)
-  if (originError) return originError
+  if (originError) return admin.applyCookies(originError)
 
   try {
     const body = await request.json()
-    return NextResponse.json(createRoomEntry(body), { status: 201 })
+    return admin.applyCookies(NextResponse.json(createRoomEntry(body), { status: 201 }))
   } catch (error) {
-    return toServiceErrorResponse(error)
+    return admin.applyCookies(toServiceErrorResponse(error))
   }
 }
