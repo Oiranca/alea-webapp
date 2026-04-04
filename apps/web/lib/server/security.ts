@@ -79,7 +79,6 @@ export function getCsrfCookieOptions() {
 
 export function getSupabaseCookieOptions() {
   return {
-    name: isProduction() ? '__Host-alea-auth-token' : 'alea-auth-token',
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
@@ -125,7 +124,11 @@ export function enforceMutationSecurity(request: NextRequest): NextResponse | nu
   const csrfCookie = request.cookies.get(CSRF_COOKIE_NAME)?.value
   const csrfHeader = request.headers.get(CSRF_HEADER_NAME)
 
-  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+  if (!csrfCookie || !csrfHeader) {
+    return forbidden('Invalid CSRF token')
+  }
+
+  if (csrfCookie !== csrfHeader) {
     return forbidden('Invalid CSRF token')
   }
 
