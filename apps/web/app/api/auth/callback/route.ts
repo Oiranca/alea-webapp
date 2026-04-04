@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/server'
 
 /**
  * Supabase PKCE auth callback handler.
@@ -11,10 +12,8 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const raw = requestUrl.searchParams.get('next') ?? '/'
-
-  if (code) {
-    // TODO (M3): Exchange code for session using createSupabaseServerClient()
-  }
+  const callbackErrorRedirect = new URL('/', requestUrl.origin)
+  callbackErrorRedirect.searchParams.set('authError', 'callback')
 
   // Reject control characters that can bypass path validation (e.g. %0A → \n)
   const sanitized = /[\x00-\x1f]/.test(raw) ? '/' : raw
@@ -31,6 +30,22 @@ export async function GET(request: NextRequest) {
     }
   } catch {
     finalRedirect = '/'
+  }
+
+  if (code) {
+    const client = createSupabaseRouteHandlerClient(request)
+
+    try {
+      const { error } = await client.supabase.auth.exchangeCodeForSession(code)
+
+      if (error) {
+        return client.applyCookies(NextResponse.redirect(callbackErrorRedirect))
+      }
+
+      return client.applyCookies(NextResponse.redirect(new URL(finalRedirect, requestUrl.origin)))
+    } catch {
+      return client.applyCookies(NextResponse.redirect(callbackErrorRedirect))
+    }
   }
 
   return NextResponse.redirect(new URL(finalRedirect, requestUrl.origin))

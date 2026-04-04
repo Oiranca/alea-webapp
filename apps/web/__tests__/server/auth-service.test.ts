@@ -1,96 +1,288 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ServiceError } from '@/lib/server/service-error'
 
-async function loadAuthModules() {
-  vi.resetModules()
-
-  const service = await import('@/lib/server/auth-service')
-
-  return { ...service }
+type ProfileRow = {
+  id: string
+  member_number: string
+  email: string
+  role: 'member' | 'admin'
+  created_at: string
+  updated_at: string
 }
 
-describe('login', () => {
+const adminState = {
+  byEmail: new Map<string, ProfileRow>(),
+  byMemberNumber: new Map<string, ProfileRow>(),
+  byId: new Map<string, ProfileRow>(),
+}
+
+const signInWithPassword = vi.fn()
+const signOut = vi.fn()
+const sessionScopedProfileMaybeSingle = vi.fn()
+
+function makeProfile(overrides?: Partial<ProfileRow>): ProfileRow {
+  return {
+    id: 'user-1',
+    member_number: '100001',
+    email: 'admin@alea.club',
+    role: 'admin',
+    created_at: '2024-01-01T00:00:00.000Z',
+    updated_at: '2024-01-01T00:00:00.000Z',
+    ...overrides,
+  }
+}
+
+vi.mock('@/lib/supabase/server', () => ({
+  createSupabaseServerClient: vi.fn(async () => ({
+    auth: {
+      signInWithPassword,
+      signOut,
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn((column: string, value: string) => ({
+          maybeSingle: vi.fn(async () => {
+            sessionScopedProfileMaybeSingle(column, value)
+            if (column === 'id') {
+              return { data: adminState.byId.get(value) ?? null, error: null }
+            }
+            return { data: null, error: null }
+          }),
+        })),
+      })),
+    })),
+  })),
+  createSupabaseServerAdminClient: vi.fn(() => ({
+    auth: {
+      admin: {
+        createUser: vi.fn(),
+        deleteUser: vi.fn(),
+      },
+    },
+    from: vi.fn(() => ({
+      select: vi.fn(() => ({
+        eq: vi.fn((column: string, value: string) => ({
+          maybeSingle: vi.fn(async () => {
+            if (column === 'email') {
+              return { data: adminState.byEmail.get(value) ?? null, error: null }
+            }
+            if (column === 'member_number') {
+              return { data: adminState.byMemberNumber.get(value) ?? null, error: null }
+            }
+            if (column === 'id') {
+              return { data: adminState.byId.get(value) ?? null, error: null }
+            }
+            return { data: null, error: null }
+          }),
+        })),
+      })),
+      update: vi.fn(),
+    })),
+  })),
+}))
+
+async function loadService() {
+  return import('@/lib/server/auth-service')
+}
+
+describe('auth service', () => {
   beforeEach(() => {
     vi.resetModules()
+    vi.clearAllMocks()
+    adminState.byEmail.clear()
+    adminState.byMemberNumber.clear()
+    adminState.byId.clear()
+    signInWithPassword.mockResolvedValue({ data: { user: { id: 'user-1' } }, error: null })
+    signOut.mockResolvedValue({ error: null })
+    sessionScopedProfileMaybeSingle.mockReset()
+
+    const admin = makeProfile()
+    const member = makeProfile({
+      id: 'user-2',
+      member_number: '100002',
+      email: 'socio@alea.club',
+      role: 'member',
+    })
+    adminState.byEmail.set(admin.email, admin)
+    adminState.byMemberNumber.set(admin.member_number, admin)
+    adminState.byId.set(admin.id, admin)
+    adminState.byEmail.set(member.email, member)
+    adminState.byMemberNumber.set(member.member_number, member)
+    adminState.byId.set(member.id, member)
   })
 
-  it('returns user object with id, role, email for valid credentials', async () => {
-    const { login } = await loadAuthModules()
+  describe('login', () => {
+    it('returns the public user for a valid email/password pair', async () => {
+      const { login } = await loadService()
 
-    const user = login({ identifier: 'admin@alea.club', password: 'Admin1234!@#' })
+      await expect(
+        login({ identifier: 'admin@alea.club', password: 'Admin1234!@#' }),
+      ).resolves.toMatchObject({
+        id: 'user-1',
+        role: 'admin',
+        email: 'admin@alea.club',
+        memberNumber: '100001',
+      })
+    })
 
-    expect(user).toBeDefined()
-    expect(user.id).toBe('1')
-    expect(user.role).toBe('admin')
-    expect(user.email).toBe('admin@alea.club')
+    it('resolves the member number to email before signing in', async () => {
+      const { login } = await loadService()
+
+      await expect(
+        login({ identifier: '100002', password: 'Socio1234!@#' }),
+      ).resolves.toMatchObject({
+        id: 'user-2',
+        email: 'socio@alea.club',
+      })
+      expect(signInWithPassword).toHaveBeenCalledWith({
+        email: 'socio@alea.club',
+        password: 'Socio1234!@#',
+      })
+    })
+
+    it('rejects missing credentials with a 400 ServiceError', async () => {
+      const { login } = await loadService()
+
+      await expect(login({ identifier: 'admin@alea.club' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
+
+    it('rejects an unknown identifier with a 401 ServiceError', async () => {
+      const { login } = await loadService()
+
+      await expect(
+        login({ identifier: 'nobody@alea.club', password: 'Admin1234!@#' }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 401,
+      })
+    })
+
+    it('rejects invalid credentials when Supabase sign-in fails', async () => {
+      const { login } = await loadService()
+      signInWithPassword.mockResolvedValueOnce({
+        data: { user: null },
+        error: { message: 'Invalid login credentials' },
+      })
+
+      await expect(
+        login({ identifier: 'admin@alea.club', password: 'wrong-password' }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 401,
+      })
+    })
   })
 
-  it('returns user when logging in with memberNumber', async () => {
-    const { login } = await loadAuthModules()
+  describe('register', () => {
+    it('blocks public self-registration during the auth cutover', async () => {
+      const { register } = await loadService()
 
-    const user = login({ identifier: '100002', password: 'Socio1234!@#' })
+      await expect(
+        register({
+          memberNumber: '100099',
+          email: 'nuevo@alea.club',
+          password: 'Password1234!@#',
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 403,
+      })
+    })
 
-    expect(user).toBeDefined()
-    expect(user.id).toBe('2')
+    it('still validates missing registration fields with a 400 ServiceError', async () => {
+      const { register } = await loadService()
+
+      await expect(
+        register({
+          email: 'admin@alea.club',
+          password: 'Password1234!@#',
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
+
+    it('enforces the minimum password length on the server', async () => {
+      const { register } = await loadService()
+
+      await expect(
+        register({
+          memberNumber: '100099',
+          email: 'nuevo@alea.club',
+          password: 'short',
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
   })
 
-  it('throws ServiceError for wrong password', async () => {
-    const { login } = await loadAuthModules()
+  describe('getCurrentUser', () => {
+    it('rejects when no session is present', async () => {
+      const { getCurrentUser } = await loadService()
 
-    let caught: ServiceError | undefined
-    try {
-      login({ identifier: 'admin@alea.club', password: 'WrongPassword!' })
-    } catch (err) {
-      caught = err as ServiceError
-    }
+      await expect(getCurrentUser(null)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 401,
+      })
+    })
 
-    expect(caught).toBeDefined()
-    expect(caught?.name).toBe('ServiceError')
-    expect([400, 401]).toContain(caught?.statusCode)
+    it('rejects when the session user profile is missing', async () => {
+      const { getCurrentUser } = await loadService()
+
+      await expect(getCurrentUser({ id: 'missing-user', role: 'member' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 401,
+      })
+    })
+
+    it('reads the current profile through the session-scoped client instead of the admin client', async () => {
+      const { getCurrentUser } = await loadService()
+
+      await expect(getCurrentUser({ id: 'user-2', role: 'member' })).resolves.toMatchObject({
+        id: 'user-2',
+        email: 'socio@alea.club',
+        role: 'member',
+      })
+      expect(sessionScopedProfileMaybeSingle).toHaveBeenCalledWith('id', 'user-2')
+    })
   })
 
-  it('throws ServiceError for unknown identifier', async () => {
-    const { login } = await loadAuthModules()
+  describe('logout', () => {
+    it('returns success when the server client signs out cleanly', async () => {
+      const { logout } = await loadService()
 
-    let caught: ServiceError | undefined
-    try {
-      login({ identifier: 'nobody@alea.club', password: 'Admin1234!@#' })
-    } catch (err) {
-      caught = err as ServiceError
-    }
+      await expect(logout()).resolves.toEqual({ success: true })
+    })
 
-    expect(caught).toBeDefined()
-    expect(caught?.name).toBe('ServiceError')
-    expect([400, 401]).toContain(caught?.statusCode)
-  })
+    it('maps sign-out failures to a 500 ServiceError', async () => {
+      const { logout } = await loadService()
+      signOut.mockResolvedValueOnce({ error: { message: 'sign-out failed' } })
 
-  it('throws ServiceError with status 400 for missing identifier', async () => {
-    const { login } = await loadAuthModules()
+      await expect(logout()).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 500,
+      })
+    })
 
-    let caught: ServiceError | undefined
-    try {
-      login({ password: 'Admin1234!@#' })
-    } catch (err) {
-      caught = err as ServiceError
-    }
+    it('maps route-handler sign-out failures to a 500 ServiceError', async () => {
+      const { logoutWithClient } = await loadService()
 
-    expect(caught).toBeDefined()
-    expect(caught?.name).toBe('ServiceError')
-    expect(caught?.statusCode).toBe(400)
-  })
-
-  it('throws ServiceError with status 400 for missing password', async () => {
-    const { login } = await loadAuthModules()
-
-    let caught: ServiceError | undefined
-    try {
-      login({ identifier: 'admin@alea.club' })
-    } catch (err) {
-      caught = err as ServiceError
-    }
-
-    expect(caught).toBeDefined()
-    expect(caught?.name).toBe('ServiceError')
-    expect(caught?.statusCode).toBe(400)
+      await expect(
+        logoutWithClient({
+          auth: {
+            signInWithPassword,
+            signOut: vi.fn(async () => ({ error: { message: 'sign-out failed' } })),
+          },
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 500,
+      })
+    })
   })
 })

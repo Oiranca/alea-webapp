@@ -20,6 +20,8 @@
     "memberOrEmail": "Member number or email",
     "loginSubtitle": "Welcome to Alea Cultural Association",
     "registerSubtitle": "Join our gaming community",
+    "registerUnavailableTitle": "Registration is temporarily unavailable",
+    "registerUnavailableBody": "We have paused self-service registration while the authentication cutover is being finalized. Please sign in with an existing account or contact the association to request access.",
     "noAccount": "Don't have an account?", "hasAccount": "Already have an account?",
     "showPassword": "Show password", "hidePassword": "Hide password",
     "showConfirmation": "Show confirmation", "hideConfirmation": "Hide confirmation",

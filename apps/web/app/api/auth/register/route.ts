@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { enforceSameOriginForMutation, setSessionCookie } from '@/lib/server/auth'
+import { createSupabaseRouteHandlerClient } from '@/lib/supabase/server'
+import { enforceSameOriginForMutation } from '@/lib/server/auth'
 import { register } from '@/lib/server/auth-service'
 import { toServiceErrorResponse } from '@/lib/server/http-error'
 
@@ -8,11 +9,10 @@ export async function POST(request: NextRequest) {
   if (originError) return originError
 
   try {
+    const { supabase, applyCookies } = createSupabaseRouteHandlerClient(request)
     const body = await request.json()
-    const user = register(body)
-    const response = NextResponse.json(user, { status: 201 })
-    setSessionCookie(response, user)
-    return response
+    const user = await register(body, supabase)
+    return applyCookies(NextResponse.json(user, { status: 201 }))
   } catch (error) {
     return toServiceErrorResponse(error)
   }
