@@ -99,13 +99,13 @@ export function getSupabaseCookieOptions() {
 
 export function ensureCsrfCookie(request: NextRequest, response: NextResponse) {
   const currentToken = request.cookies.get(CSRF_COOKIE_NAME)?.value
-  const token = currentToken && currentToken.length >= 32 ? currentToken : createCsrfToken()
+  const shouldSetCookie = !currentToken || currentToken.length < 32
+  const token = shouldSetCookie ? createCsrfToken() : currentToken
 
-  if (!currentToken || currentToken !== token) {
+  if (shouldSetCookie) {
     request.cookies.set(CSRF_COOKIE_NAME, token)
+    response.cookies.set(CSRF_COOKIE_NAME, token, getCsrfCookieOptions())
   }
-
-  response.cookies.set(CSRF_COOKIE_NAME, token, getCsrfCookieOptions())
 
   return response
 }
@@ -146,7 +146,14 @@ export function enforceMutationSecurity(request: NextRequest): NextResponse | nu
   return null
 }
 
-export const enforceSameOriginForMutation = enforceMutationSecurity
+/**
+ * @deprecated Use `enforceMutationSecurity` instead. This helper now enforces
+ * Fetch Metadata, same-origin `Origin` validation, and double-submit CSRF
+ * protection, so the old name is preserved only for backwards compatibility.
+ */
+export function enforceSameOriginForMutation(request: NextRequest): NextResponse | null {
+  return enforceMutationSecurity(request)
+}
 
 export function enforceRateLimit(
   request: NextRequest,

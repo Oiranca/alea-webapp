@@ -7,7 +7,8 @@ function getCookieValue(name: string) {
   if (typeof document === 'undefined') return null
 
   const prefixedCookie = document.cookie
-    .split('; ')
+    .split(';')
+    .map((cookie) => cookie.trim())
     .find((cookie) => cookie.startsWith(`${name}=`))
 
   if (!prefixedCookie) return null

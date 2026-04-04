@@ -35,6 +35,26 @@ describe('api client', () => {
     )
   })
 
+  it('reads cookies without requiring a semicolon-space delimiter', async () => {
+    Object.defineProperty(document, 'cookie', {
+      configurable: true,
+      value: 'other=value;alea-csrf-token=test-csrf-token',
+    })
+
+    const { apiClient } = await import('@/lib/api/client')
+
+    await apiClient.post('/auth/login', { identifier: 'admin@alea.club', password: 'secret' })
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/auth/login',
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          'x-csrf-token': 'test-csrf-token',
+        }),
+      }),
+    )
+  })
+
   it('preserves the CSRF header when callers pass additional headers', async () => {
     Object.defineProperty(document, 'cookie', {
       configurable: true,

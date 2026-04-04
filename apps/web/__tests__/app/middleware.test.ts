@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest, NextResponse } from 'next/server'
+import type { CookieOptions } from '@supabase/ssr'
 
 const createI18nResponse = vi.fn((request: NextRequest) =>
   NextResponse.redirect(new URL('/es', request.url)),
@@ -13,9 +14,9 @@ vi.mock('next-intl/middleware', () => ({
 
 vi.mock('@supabase/ssr', () => ({
   createServerClient: createServerClientMock.mockImplementation((_url: string, _key: string, options: {
-    cookieOptions?: { name?: string; httpOnly?: boolean; secure?: boolean; sameSite?: string; path?: string }
+    cookieOptions?: CookieOptions & { name?: string }
     cookies: {
-      setAll: (cookiesToSet: { name: string; value: string; options: { path?: string } }[]) => void
+      setAll: (cookiesToSet: { name: string; value: string; options: CookieOptions }[]) => void
     }
   }) => ({
     auth: {
@@ -66,6 +67,18 @@ describe('middleware', () => {
         }),
       }),
     )
+  })
+
+  it('does not rewrite the CSRF cookie when a valid token already exists', async () => {
+    const middleware = (await import('@/middleware')).default
+
+    const response = await middleware(new NextRequest('http://localhost:3000/rooms', {
+      headers: {
+        cookie: 'alea-csrf-token=1234567890abcdef1234567890abcdef',
+      },
+    }))
+
+    expect(response.cookies.get('alea-csrf-token')).toBeUndefined()
   })
 
   it('switches the Supabase auth cookie policy to secure cookies in production', async () => {
