@@ -14,7 +14,7 @@
 | M1 — Contract freeze & baseline | #4 | Done | PR #13 (merged) |
 | M2 — Server layer extraction | #5 | Done | PR #15 (merged) |
 | Platform — Supabase env split | #11 | Done | PR #16 + #20 (merged) |
-| QA — CI quality gates | #12 | In Progress | — |
+| QA — CI quality gates | #12 | Done | — |
 | UI — shadcn + auth foundation | #18 | Done | PR #19 (merged) |
 | M3 — Auth cutover (Supabase SSR) | #6 | Pending | — |
 | M4 — API parity | #7 | Pending | — |
@@ -67,11 +67,19 @@
 
 ---
 
-### P0 — In Progress
+### P0 — Completed
 
 #### Issue #12 — [QA] Testing stack and CI quality gates
 **Branch:** `feat/qa-next-api-gates`
-**Status:** CI workflow running, Vitest + test suite in place. Pending: coverage thresholds, Supabase CLI integration tests, Semgrep, dependency audit.
+**Status:** Done. CI expanded with auth coverage thresholds, Supabase local validation, Semgrep, and production dependency audit. Next.js upgraded to `15.5.14` to clear the current production advisories identified by `pnpm audit`.
+
+**Deliverables completed:**
+- CI job matrix for `lint`, `typecheck`, `test`, `build`
+- Auth-critical coverage thresholds enforced in Vitest
+- Supabase CLI validation in CI with local stack boot + migration reset + lint
+- Semgrep static analysis gate
+- Production dependency audit gate
+- `next` / `eslint-config-next` upgraded to `15.5.14`
 
 ---
 
@@ -80,7 +88,7 @@
 #### 3. Issue #6 — [M3] Auth cutover to Supabase SSR
 **Branch:** `feat/next-api-m3-auth-cutover`
 **Depends on:** #11, #18, #12
-**Note:** Blockers #11 and #18 are now resolved. Only #12 (QA gates) remains before this can start.
+**Note:** All prerequisite blockers are resolved. M3 is now ready to start.
 **Deliverables:**
 - Replace mock auth (`mock-db` users) with Supabase Auth
 - Implement `createServerClient` / `createBrowserClient` SSR pattern
@@ -147,7 +155,7 @@
 ```
 #4 (M1) ✅ → #5 (M2) ✅ → #11 (Platform) ✅ ─┐
                                                  ├→ #6 (M3 Supabase SSR) ← NEXT
-#12 (QA gates) 🔄 ──────────────────────────────┤
+#12 (QA gates) ✅ ──────────────────────────────┤
 #18 (shadcn + auth UI) ✅ ──────────────────────┘
 ```
 
