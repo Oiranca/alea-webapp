@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/server/auth'
 import { listPaginatedUsers } from '@/lib/server/users-service'
 
 export async function GET(request: NextRequest) {
-  const admin = requireAdmin(request)
+  const admin = await requireAdmin(request)
   if (admin instanceof NextResponse) return admin
 
   const { searchParams } = new URL(request.url)

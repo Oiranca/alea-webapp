@@ -4,7 +4,7 @@ import { toServiceErrorResponse } from '@/lib/server/http-error'
 import { deleteUser, updateUser } from '@/lib/server/users-service'
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = requireAdmin(request)
+  const admin = await requireAdmin(request)
   if (admin instanceof NextResponse) return admin
   const originError = enforceSameOriginForMutation(request)
   if (originError) return originError
@@ -18,7 +18,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const admin = requireAdmin(request)
+  const admin = await requireAdmin(request)
   if (admin instanceof NextResponse) return admin
   const originError = enforceSameOriginForMutation(request)
   if (originError) return originError

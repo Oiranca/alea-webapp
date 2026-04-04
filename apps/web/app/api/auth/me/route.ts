@@ -5,7 +5,7 @@ import { toServiceErrorResponse } from '@/lib/server/http-error'
 
 export async function GET(request: NextRequest) {
   try {
-    return NextResponse.json(getCurrentUser(getSessionFromRequest(request)))
+    return NextResponse.json(await getCurrentUser(await getSessionFromRequest(request)))
   } catch (error) {
     return toServiceErrorResponse(error)
   }

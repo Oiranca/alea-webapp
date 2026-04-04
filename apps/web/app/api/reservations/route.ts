@@ -4,7 +4,7 @@ import { toServiceErrorResponse } from '@/lib/server/http-error'
 import { createReservationForSession, listVisibleReservations } from '@/lib/server/reservations-service'
 
 export async function GET(request: NextRequest) {
-  const auth = requireAuth(request)
+  const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
 
   const { searchParams } = new URL(request.url)
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = requireAuth(request)
+  const auth = await requireAuth(request)
   if (auth instanceof NextResponse) return auth
   const originError = enforceSameOriginForMutation(request)
   if (originError) return originError

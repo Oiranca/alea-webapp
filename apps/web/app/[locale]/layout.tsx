@@ -8,7 +8,7 @@ import { Providers } from '@/lib/providers'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { getSessionFromServerCookies } from '@/lib/server/auth'
-import { findUserById, getPublicUser } from '@/lib/server/mock-db'
+import { getCurrentUser } from '@/lib/server/auth-service'
 
 export const metadata: Metadata = {
   title: 'Alea — Asociacion Cultural de Juegos',
@@ -33,14 +33,14 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   const messages = await getMessages()
   const session = await getSessionFromServerCookies()
-  const initialUser = session ? findUserById(session.id) : null
+  const initialUser = session ? await getCurrentUser(session) : null
 
   return (
     <html lang={locale} className="dark">
       <body className="min-h-screen bg-background antialiased flex flex-col">
         <NextIntlClientProvider messages={messages}>
           <Providers>
-            <AuthProvider initialUser={initialUser ? getPublicUser(initialUser) : null}>
+            <AuthProvider initialUser={initialUser}>
               <Header locale={locale} />
               <main id="main-content" className="flex-1">
                 {children}

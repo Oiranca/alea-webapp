@@ -1,124 +1,53 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
-import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import type { Role, User } from '@alea/types'
+import { createSupabaseRouteHandlerClient, createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 
-const SESSION_COOKIE_NAME = 'auth_session'
-const ONE_WEEK_SECONDS = 60 * 60 * 24 * 7
-
-type SessionPayload = {
-  userId: string
-  role: Role
-  exp: number
+export type SessionUser = {
+  id: string
+  role: 'member' | 'admin'
 }
 
-export type SessionUser = Pick<User, 'id' | 'role'>
+async function getSessionUser(client: { auth: { getUser: () => Promise<{ data: { user: { id: string } | null }, error: unknown }> } }) {
+  const { data: authData, error: authError } = await client.auth.getUser()
 
-function getSessionSecret(): string {
-  const secret = process.env.AUTH_SESSION_SECRET
-  if (!secret) {
-    throw new Error(
-      'AUTH_SESSION_SECRET environment variable is not set. Set it to a random string of at least 32 characters.',
-    )
-  }
-  return secret
-}
-
-function base64UrlEncode(value: string) {
-  return Buffer.from(value).toString('base64url')
-}
-
-function base64UrlDecode(value: string) {
-  return Buffer.from(value, 'base64url').toString('utf-8')
-}
-
-function sign(input: string) {
-  return createHmac('sha256', getSessionSecret()).update(input).digest('base64url')
-}
-
-function secureCompare(a: string, b: string) {
-  const left = Buffer.from(a)
-  const right = Buffer.from(b)
-  if (left.length !== right.length) return false
-  return timingSafeEqual(left, right)
-}
-
-function isProduction() {
-  return process.env.NODE_ENV === 'production'
-}
-
-export function createSessionToken(user: Pick<User, 'id' | 'role'>) {
-  const payload: SessionPayload = {
-    userId: user.id,
-    role: user.role,
-    exp: Math.floor(Date.now() / 1000) + ONE_WEEK_SECONDS,
-  }
-  const encodedPayload = base64UrlEncode(JSON.stringify(payload))
-  const signature = sign(encodedPayload)
-  return `${encodedPayload}.${signature}`
-}
-
-function parseSessionToken(token: string): SessionPayload | null {
-  const [encodedPayload, signature] = token.split('.')
-  if (!encodedPayload || !signature) return null
-  const expectedSignature = sign(encodedPayload)
-  if (!secureCompare(expectedSignature, signature)) return null
-
-  try {
-    const payload = JSON.parse(base64UrlDecode(encodedPayload)) as SessionPayload
-    if (!payload.userId || !payload.role || !payload.exp) return null
-    if (payload.exp < Math.floor(Date.now() / 1000)) return null
-    return payload
-  } catch {
+  if (authError || !authData.user) {
     return null
   }
+
+  const admin = createSupabaseServerAdminClient()
+  const { data: profile, error: profileError } = await admin
+    .from('profiles')
+    .select('*')
+    .eq('id', authData.user.id)
+    .maybeSingle()
+
+  if (profileError || !profile) {
+    return null
+  }
+
+  return {
+    id: profile.id,
+    role: profile.role,
+  } satisfies SessionUser
 }
 
-export function setSessionCookie(response: NextResponse, user: Pick<User, 'id' | 'role'>) {
-  response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(user), {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isProduction(),
-    path: '/',
-    maxAge: ONE_WEEK_SECONDS,
-  })
-}
-
-export function clearSessionCookie(response: NextResponse) {
-  response.cookies.set(SESSION_COOKIE_NAME, '', {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: isProduction(),
-    path: '/',
-    maxAge: 0,
-  })
-}
-
-export function getSessionFromRequest(request: NextRequest): SessionUser | null {
-  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value
-  if (!token) return null
-  const payload = parseSessionToken(token)
-  if (!payload) return null
-  return { id: payload.userId, role: payload.role }
+export async function getSessionFromRequest(request: NextRequest): Promise<SessionUser | null> {
+  const { supabase } = createSupabaseRouteHandlerClient(request)
+  return getSessionUser(supabase)
 }
 
 export async function getSessionFromServerCookies(): Promise<SessionUser | null> {
-  const cookieStore = await cookies()
-  const token = cookieStore.get(SESSION_COOKIE_NAME)?.value
-  if (!token) return null
-  const payload = parseSessionToken(token)
-  if (!payload) return null
-  return { id: payload.userId, role: payload.role }
+  const supabase = await createSupabaseServerClient()
+  return getSessionUser(supabase)
 }
 
-export function requireAuth(request: NextRequest): SessionUser | NextResponse {
-  const session = getSessionFromRequest(request)
+export async function requireAuth(request: NextRequest): Promise<SessionUser | NextResponse> {
+  const session = await getSessionFromRequest(request)
   if (!session) return NextResponse.json({ message: 'Unauthorized', statusCode: 401 }, { status: 401 })
   return session
 }
 
-export function requireAdmin(request: NextRequest): SessionUser | NextResponse {
-  const session = requireAuth(request)
+export async function requireAdmin(request: NextRequest): Promise<SessionUser | NextResponse> {
+  const session = await requireAuth(request)
   if (session instanceof NextResponse) return session
   if (session.role !== 'admin') return NextResponse.json({ message: 'Forbidden', statusCode: 403 }, { status: 403 })
   return session
@@ -129,14 +58,13 @@ export function enforceSameOriginForMutation(request: NextRequest): NextResponse
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) return null
 
   const origin = request.headers.get('origin')
-  const host = request.headers.get('host')
-  if (!origin || !host) {
+  if (!origin) {
     return NextResponse.json({ message: 'Invalid request origin', statusCode: 403 }, { status: 403 })
   }
 
   try {
-    const originHost = new URL(origin).host
-    if (originHost !== host) {
+    const requestOrigin = new URL(request.url).origin
+    if (new URL(origin).origin !== requestOrigin) {
       return NextResponse.json({ message: 'Invalid request origin', statusCode: 403 }, { status: 403 })
     }
   } catch {

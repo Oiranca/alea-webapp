@@ -1,5 +1,41 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
+
+const loginMock = vi.fn()
+const registerMock = vi.fn()
+const logoutWithClientMock = vi.fn()
+const getCurrentUserMock = vi.fn()
+const getSessionFromRequestMock = vi.fn()
+const exchangeCodeForSessionMock = vi.fn()
+
+vi.mock('@/lib/server/auth-service', () => ({
+  login: loginMock,
+  register: registerMock,
+  logoutWithClient: logoutWithClientMock,
+  getCurrentUser: getCurrentUserMock,
+}))
+
+vi.mock('@/lib/server/auth', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/server/auth')>('@/lib/server/auth')
+  return {
+    ...actual,
+    getSessionFromRequest: getSessionFromRequestMock,
+  }
+})
+
+vi.mock('@/lib/supabase/server', () => ({
+  createSupabaseRouteHandlerClient: vi.fn(() => ({
+    supabase: {
+      auth: {
+        exchangeCodeForSession: exchangeCodeForSessionMock,
+      },
+    },
+    applyCookies: (response: NextResponse) => {
+      response.cookies.set('sb-access-token', 'test-session')
+      return response
+    },
+  })),
+}))
 
 function createJsonRequest(
   path: string,
@@ -12,7 +48,7 @@ function createJsonRequest(
 ) {
   const origin = options?.origin ?? 'http://localhost:3000'
 
-  return new NextRequest(`${origin}${path}`, {
+  return new NextRequest(`http://localhost:3000${path}`, {
     method: options?.method ?? 'POST',
     headers: {
       host: 'localhost:3000',
@@ -27,11 +63,37 @@ function createJsonRequest(
 describe('auth API routes', () => {
   beforeEach(() => {
     vi.resetModules()
-    vi.unstubAllEnvs()
-    vi.stubEnv('AUTH_SESSION_SECRET', 'test-secret-with-at-least-32-chars')
+    vi.clearAllMocks()
+    loginMock.mockResolvedValue({
+      id: 'user-1',
+      memberNumber: '100001',
+      email: 'admin@alea.club',
+      role: 'admin',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    })
+    registerMock.mockResolvedValue({
+      id: 'user-2',
+      memberNumber: '100099',
+      email: 'nuevo@alea.club',
+      role: 'member',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    })
+    logoutWithClientMock.mockResolvedValue({ success: true })
+    getSessionFromRequestMock.mockResolvedValue({ id: 'user-2', role: 'member' })
+    getCurrentUserMock.mockResolvedValue({
+      id: 'user-2',
+      memberNumber: '100099',
+      email: 'nuevo@alea.club',
+      role: 'member',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
+    })
+    exchangeCodeForSessionMock.mockResolvedValue({ data: {}, error: null })
   })
 
-  it('logs in and returns the public user payload with a session cookie', async () => {
+  it('logs in and returns the public user payload with Supabase session cookies', async () => {
     const { POST } = await import('@/app/api/auth/login/route')
 
     const response = await POST(
@@ -43,11 +105,11 @@ describe('auth API routes', () => {
 
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toMatchObject({
-      id: '1',
+      id: 'user-1',
       role: 'admin',
       email: 'admin@alea.club',
     })
-    expect(response.cookies.get('auth_session')?.value).toBeTruthy()
+    expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
   })
 
   it('rejects login requests from a different origin', async () => {
@@ -67,8 +129,10 @@ describe('auth API routes', () => {
     expect(response.status).toBe(403)
   })
 
-  it('returns 401 for invalid credentials', async () => {
+  it('maps invalid credentials from the service to a 401 response', async () => {
     const { POST } = await import('@/app/api/auth/login/route')
+    const { ServiceError } = await import('@/lib/server/service-error')
+    loginMock.mockRejectedValueOnce(new ServiceError('Invalid credentials', 401))
 
     const response = await POST(
       createJsonRequest('/api/auth/login', {
@@ -81,8 +145,10 @@ describe('auth API routes', () => {
     await expect(response.json()).resolves.toMatchObject({ statusCode: 401 })
   })
 
-  it('returns 409 when registering an email that already exists', async () => {
+  it('maps duplicate registration conflicts to a 409 response', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
+    const { ServiceError } = await import('@/lib/server/service-error')
+    registerMock.mockRejectedValueOnce(new ServiceError('Email already registered', 409))
 
     const response = await POST(
       createJsonRequest('/api/auth/register', {
@@ -96,7 +162,7 @@ describe('auth API routes', () => {
     await expect(response.json()).resolves.toMatchObject({ statusCode: 409 })
   })
 
-  it('registers a user, reads it from /me, and clears the cookie on logout', async () => {
+  it('registers a user, reads it from /me, and signs out through the auth routes', async () => {
     const registerRoute = await import('@/app/api/auth/register/route')
     const meRoute = await import('@/app/api/auth/me/route')
     const logoutRoute = await import('@/app/api/auth/logout/route')
@@ -110,18 +176,9 @@ describe('auth API routes', () => {
     )
 
     expect(registerResponse.status).toBe(201)
+    expect(registerResponse.cookies.get('sb-access-token')?.value).toBe('test-session')
 
-    const sessionCookie = registerResponse.cookies.get('auth_session')
-    expect(sessionCookie?.value).toBeTruthy()
-
-    const meResponse = await meRoute.GET(
-      new NextRequest('http://localhost:3000/api/auth/me', {
-        headers: {
-          cookie: `${sessionCookie?.name}=${sessionCookie?.value}`,
-        },
-      }),
-    )
-
+    const meResponse = await meRoute.GET(new NextRequest('http://localhost:3000/api/auth/me'))
     expect(meResponse.status).toBe(200)
     await expect(meResponse.json()).resolves.toMatchObject({
       memberNumber: '100099',
@@ -129,19 +186,16 @@ describe('auth API routes', () => {
       role: 'member',
     })
 
-    const logoutResponse = await logoutRoute.POST(
-      createJsonRequest('/api/auth/logout', undefined, {
-        cookie: `${sessionCookie?.name}=${sessionCookie?.value}`,
-      }),
-    )
-
+    const logoutResponse = await logoutRoute.POST(createJsonRequest('/api/auth/logout'))
     expect(logoutResponse.status).toBe(200)
     await expect(logoutResponse.json()).resolves.toEqual({ success: true })
-    expect(logoutResponse.cookies.get('auth_session')?.value).toBe('')
   })
 
-  it('returns 401 from /me when the session cookie is missing', async () => {
+  it('returns 401 from /me when the Supabase session is missing', async () => {
     const { GET } = await import('@/app/api/auth/me/route')
+    const { ServiceError } = await import('@/lib/server/service-error')
+    getSessionFromRequestMock.mockResolvedValueOnce(null)
+    getCurrentUserMock.mockRejectedValueOnce(new ServiceError('Unauthorized', 401))
 
     const response = await GET(new NextRequest('http://localhost:3000/api/auth/me'))
 
@@ -161,13 +215,15 @@ describe('auth API routes', () => {
     expect(response.status).toBe(403)
   })
 
-  it('sanitizes callback redirects and keeps valid relative paths', async () => {
+  it('sanitizes callback redirects and exchanges the PKCE code when present', async () => {
     const { GET } = await import('@/app/api/auth/callback/route')
 
     const withCode = await GET(
       new NextRequest('http://localhost:3000/api/auth/callback?code=pkce-code&next=%2Frooms'),
     )
+    expect(exchangeCodeForSessionMock).toHaveBeenCalledWith('pkce-code')
     expect(withCode.headers.get('location')).toBe('http://localhost:3000/rooms')
+    expect(withCode.cookies.get('sb-access-token')?.value).toBe('test-session')
 
     const accepted = await GET(
       new NextRequest('http://localhost:3000/api/auth/callback?next=%2Frooms'),
@@ -183,5 +239,23 @@ describe('auth API routes', () => {
       new NextRequest('http://localhost:3000/api/auth/callback?next=%2Frooms%0Aevil'),
     )
     expect(sanitized.headers.get('location')).toBe('http://localhost:3000/')
+  })
+
+  it('returns 401 when the PKCE code exchange fails', async () => {
+    const { GET } = await import('@/app/api/auth/callback/route')
+    exchangeCodeForSessionMock.mockResolvedValueOnce({
+      data: { session: null, user: null },
+      error: { message: 'Invalid auth code' },
+    })
+
+    const response = await GET(
+      new NextRequest('http://localhost:3000/api/auth/callback?code=expired-code&next=%2Frooms'),
+    )
+
+    expect(response.status).toBe(401)
+    await expect(response.json()).resolves.toMatchObject({
+      message: 'Authentication callback failed',
+      statusCode: 401,
+    })
   })
 })
