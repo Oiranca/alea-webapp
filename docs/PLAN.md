@@ -1,7 +1,7 @@
 # Migration Execution Plan — Alea Webapp
 
-**Last updated:** 2026-04-02
-**Branch:** develop
+**Last updated:** 2026-04-04
+**Branch:** feat/next-api-m4-api-parity
 **Epic:** #3 — Next.js API migration (remove NestJS + monorepo)
 **Platform:** Supabase (dev + prod, sole DB/auth provider)
 
@@ -16,8 +16,8 @@
 | Platform — Supabase env split | #11 | Done | PR #16 + #20 (merged) |
 | QA — CI quality gates | #12 | Done | — |
 | UI — shadcn + auth foundation | #18 | Done | PR #19 (merged) |
-| M3 — Auth cutover (Supabase SSR) | #6 | Pending | — |
-| M4 — API parity | #7 | Pending | — |
+| M3 — Auth cutover (Supabase SSR) | #6 | Done | PR #22 (merged) |
+| M4 — API parity | #7 | In Progress | Branch `feat/next-api-m4-api-parity` |
 | SEC — Security hardening | #10 | Pending | — |
 | M5 — Flatten repo / remove NestJS | #8 | Pending | — |
 | M6 — Cleanup + release readiness | #9 | Pending | — |
@@ -153,10 +153,10 @@
 ## Dependency Graph
 
 ```
-#4 (M1) ✅ → #5 (M2) ✅ → #11 (Platform) ✅ ─┐
-                                                 ├→ #6 (M3 Supabase SSR) ← NEXT
-#12 (QA gates) ✅ ──────────────────────────────┤
-#18 (shadcn + auth UI) ✅ ──────────────────────┘
+#4 (M1) ✅ → #5 (M2) ✅ → #11 (Platform) ✅ → #6 (M3) ✅ ─┐
+                                                             ├→ #7 (M4 API parity) ← CURRENT
+#12 (QA gates) ✅ ───────────────────────────────────────────┤
+#18 (shadcn + auth UI) ✅ ───────────────────────────────────┘
 ```
 
 ---

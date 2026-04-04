@@ -4,7 +4,11 @@ import { createRoomEntry, listAllRooms } from '@/lib/server/rooms-service'
 import { toServiceErrorResponse } from '@/lib/server/http-error'
 
 export async function GET() {
-  return NextResponse.json(listAllRooms())
+  try {
+    return NextResponse.json(await listAllRooms())
+  } catch (error) {
+    return toServiceErrorResponse(error)
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -16,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    return admin.applyCookies(NextResponse.json(createRoomEntry(body), { status: 201 }))
+    return admin.applyCookies(NextResponse.json(await createRoomEntry(body), { status: 201 }))
   } catch (error) {
     return admin.applyCookies(toServiceErrorResponse(error))
   }
