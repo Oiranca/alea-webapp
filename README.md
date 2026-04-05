@@ -70,7 +70,7 @@ alea-webapp/
    cp .env.example .env.local
    ```
 
-   Open `.env.local` and fill in your Supabase credentials. For local development the example values work with `supabase start`.
+   Open `.env.local` and fill in your Supabase credentials. The example contains hosted-project placeholders that must be replaced. For local development, use `http://127.0.0.1:54321` for `NEXT_PUBLIC_SUPABASE_URL` and run `supabase status` to get the publishable and secret keys.
 
 4. **Start the local Supabase instance**
 

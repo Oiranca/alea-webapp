@@ -226,7 +226,9 @@ pnpm install
 
 # 2. Copy environment template
 cp .env.example .env.local
-# Edit .env.local — local Supabase values from the example work out of the box
+# Edit .env.local — the example contains hosted-project placeholders; replace with your values.
+# For local development with supabase start, use http://127.0.0.1:54321 for NEXT_PUBLIC_SUPABASE_URL
+# and run `supabase status` to get the publishable and secret keys.
 
 # 3. Start local Supabase (runs migrations automatically)
 supabase start
