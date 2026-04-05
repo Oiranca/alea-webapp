@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
-import { Check, X, Loader2, BadgeIcon, LockKeyhole } from 'lucide-react'
+import { Loader2, BadgeIcon, LockKeyhole } from 'lucide-react'
 import { registerSchema, type RegisterFormData } from '@/lib/validations/auth'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Button } from '@/components/ui/button'
@@ -15,19 +15,29 @@ import { PasswordInput } from '@/components/ui/password-input'
 
 function PasswordStrengthIndicator({ password }: { password: string }) {
   const checks = [
-    { label: 'Minimo 12 caracteres', passed: password.length >= 12 },
-    { label: 'Letras y numeros', passed: /[a-zA-Z]/.test(password) && /[0-9]/.test(password) },
-    { label: 'Simbolo especial', passed: /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(password) },
+    { label: 'Mínimo 12 caracteres', passed: password.length >= 12 },
+    { label: 'Letras y números', passed: /[a-zA-Z]/.test(password) && /[0-9]/.test(password) },
+    { label: 'Símbolo especial (!@#$%...)', passed: /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/.test(password) },
   ]
 
   return (
-    <ul className="mt-2 space-y-1" aria-label="Requisitos de contrasena">
+    <ul className="mt-2 space-y-1" aria-label="Requisitos de contraseña">
       {checks.map((check) => (
-        <li key={check.label} className="flex items-center gap-2 text-xs">
-          {check.passed
-            ? <Check className="h-3 w-3 flex-shrink-0 text-primary" aria-hidden="true" />
-            : <X className="h-3 w-3 flex-shrink-0 text-on-surface-variant" aria-hidden="true" />}
-          <span className={check.passed ? 'text-primary' : 'text-on-surface-variant'}>{check.label}</span>
+        <li
+          key={check.label}
+          className={`flex items-center gap-2 text-xs transition-all duration-200 ${
+            check.passed
+              ? 'line-through text-on-surface-variant'
+              : 'text-on-surface'
+          }`}
+        >
+          <span
+            className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+              check.passed ? 'bg-primary' : 'bg-outline'
+            }`}
+            aria-hidden="true"
+          />
+          {check.label}
           <span className="sr-only">{check.passed ? '(cumplido)' : '(pendiente)'}</span>
         </li>
       ))}

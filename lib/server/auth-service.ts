@@ -81,7 +81,7 @@ function toPublicUser(profile: PublicProfileRow): User {
     id: profile.id,
     memberNumber: profile.member_number,
     role: profile.role,
-    status: profile.status as User['status'],
+    status: (profile.status ?? 'active') as User['status'],
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
   }
@@ -121,7 +121,7 @@ export async function login(
     serviceError('Invalid credentials', 401)
   }
 
-  if (credentialProfile.status === 'suspended') {
+  if ((credentialProfile.status ?? 'active') === 'suspended') {
     serviceError('Suspended account', 403)
   }
 
