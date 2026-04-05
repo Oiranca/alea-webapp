@@ -163,23 +163,23 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,183,123,0.14),transparent_34%)]" />
       <div className="relative mx-auto max-w-7xl">
         <div className="mb-10">
-          <h1 className="font-cinzel text-5xl italic tracking-tight text-foreground">{copy.title}</h1>
+          <h1 className="font-headline text-5xl italic tracking-tight text-on-surface mb-2">{copy.title}</h1>
           <p className="mt-3 max-w-2xl text-base leading-8 text-on-surface-variant">{copy.subtitle}</p>
         </div>
 
         <div className="grid grid-cols-12 items-start gap-6">
           <section className="col-span-12 space-y-6 lg:col-span-8">
-            <div className="rounded-2xl border-l-2 border-primary bg-surface-container-low p-8">
-              <h2 className="font-cinzel text-2xl italic text-primary">{copy.newReservation}</h2>
+            <div className="rounded-lg border-l-2 border-primary bg-surface-container-low p-8">
+              <h2 className="font-headline text-2xl text-primary">{copy.newReservation}</h2>
 
               <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.room}</label>
+                    <label className="text-[11px] uppercase tracking-[0.22em] text-on-surface-variant">{copy.room}</label>
                     <select
                       value={selectedRoomId}
                       onChange={(event) => setSelectedRoomId(event.target.value)}
-                      className="flex h-12 w-full rounded-md border border-outline-variant/20 bg-background-secondary px-3 text-sm text-foreground"
+                      className="flex w-full rounded border-none bg-surface-container-lowest p-3 text-sm text-on-surface"
                     >
                       {rooms.map((room) => (
                         <option key={room.id} value={room.id}>{room.name}</option>
@@ -188,11 +188,11 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">{copy.table}</label>
+                    <label className="text-[11px] uppercase tracking-[0.22em] text-on-surface-variant">{copy.table}</label>
                     <select
                       value={selectedTableId}
                       onChange={(event) => setSelectedTableId(event.target.value)}
-                      className="flex h-12 w-full rounded-md border border-outline-variant/20 bg-background-secondary px-3 text-sm text-foreground"
+                      className="flex w-full rounded border-none bg-surface-container-lowest p-3 text-sm text-on-surface"
                     >
                       {tables.map((table) => (
                         <option key={table.id} value={table.id}>{table.name}</option>
@@ -201,7 +201,7 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                   </div>
 
                   {selectedTable?.type === 'removable_top' && (
-                    <div className="rounded-xl border border-primary/20 bg-surface-container p-4">
+                    <div className="rounded border border-primary/20 bg-surface-container p-4">
                       <div className="mb-4 flex items-center justify-between">
                         <div>
                           <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">{copy.layerConfig}</p>
@@ -228,11 +228,11 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                               type="button"
                               onClick={() => setSelectedSurface(surface)}
                               className={cn(
-                                'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-colors',
+                                'flex w-full items-center justify-between rounded border px-4 py-3 text-left transition-colors',
                                 selected ? 'border-primary bg-primary/10' : 'border-outline-variant/20 bg-background-secondary/70'
                               )}
                             >
-                              <span className="text-sm text-foreground">{label}</span>
+                              <span className="text-sm text-on-surface">{label}</span>
                               <span className={cn(
                                 'rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.18em]',
                                 available ? 'bg-primary/10 text-primary' : 'bg-destructive/10 text-destructive-foreground'
@@ -248,7 +248,7 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                 </div>
 
                 <div className="space-y-6">
-                  <div className="rounded-2xl bg-surface-container-lowest p-4">
+                  <div className="rounded bg-surface-container-lowest p-4">
                     <DayPicker
                       mode="single"
                       selected={selectedDate}
@@ -256,12 +256,12 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                       disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
                       classNames={{
                         month: 'space-y-4',
-                        caption_label: 'font-cinzel text-lg text-foreground',
-                        nav_button: 'h-8 w-8 rounded-full border border-outline-variant/20 text-foreground',
-                        weekdays: 'grid grid-cols-7 text-center text-[10px] uppercase tracking-[0.18em] text-muted-foreground',
+                        caption_label: 'font-headline text-xs font-bold text-stone-400 uppercase tracking-widest',
+                        nav_button: 'h-8 w-8 rounded-full border border-outline-variant/20 text-on-surface',
+                        weekdays: 'grid grid-cols-7 text-center text-[10px] uppercase tracking-[0.18em] text-on-surface-variant',
                         weekday: 'py-2',
                         week: 'grid grid-cols-7 gap-1',
-                        day: 'h-10 w-full rounded-md text-sm text-foreground transition-colors hover:bg-primary/10',
+                        day: 'h-10 w-full rounded text-sm text-on-surface transition-colors hover:bg-primary/10',
                         selected: 'bg-primary text-on-primary hover:bg-primary',
                         today: 'border border-primary/40',
                       }}
@@ -278,12 +278,12 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                           disabled={!slot.available}
                           onClick={() => setSelectedRange(slot)}
                           className={cn(
-                            'rounded-xl border px-3 py-4 text-left transition-colors',
+                            'border px-3 py-4 text-left transition-all',
                             !slot.available
-                              ? 'cursor-not-allowed border-outline-variant/15 bg-surface-container-lowest text-outline opacity-40'
+                              ? 'cursor-not-allowed border-stone-800 opacity-30'
                               : selected
-                                ? 'border-primary bg-primary text-on-primary'
-                                : 'border-outline-variant/15 bg-surface-container-low hover:border-primary/30'
+                                ? 'border-primary text-primary font-bold'
+                                : 'border-stone-800 hover:border-primary'
                           )}
                         >
                           <p className="text-xs uppercase tracking-[0.18em]">{slot.start} - {slot.end}</p>
@@ -305,7 +305,7 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
               </div>
 
               {error && (
-                <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground">
+                <div className="mt-4 rounded border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive-foreground">
                   {error}
                 </div>
               )}
@@ -313,8 +313,8 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
           </section>
 
           <aside className="col-span-12 space-y-6 lg:col-span-4">
-            <section className="rounded-2xl bg-surface-container-high p-8">
-              <h2 className="font-cinzel text-2xl italic text-secondary">{copy.myReservations}</h2>
+            <section className="rounded-lg bg-surface-container-high p-8">
+              <h2 className="font-headline text-2xl text-secondary">{copy.myReservations}</h2>
 
               {isLoading ? (
                 <div className="mt-6 flex items-center gap-2 text-sm text-on-surface-variant">
@@ -324,14 +324,14 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
               ) : (
                 <div className="mt-6 space-y-4">
                   {activeReservations.map((reservation) => (
-                    <article key={reservation.id} className="relative overflow-hidden rounded-xl bg-surface-container-low p-4">
+                    <article key={reservation.id} className="relative overflow-hidden bg-surface-container-low p-4 hover:bg-surface-container transition-colors">
                       <div className="absolute inset-y-0 left-0 w-1 bg-primary" />
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-[10px] uppercase tracking-[0.22em] text-primary/75">{copy.upcoming}</p>
-                          <h3 className="mt-2 font-cinzel text-lg text-foreground">{reservation.tableId}</h3>
+                          <h3 className="mt-2 font-headline text-lg text-on-surface">{reservation.tableId}</h3>
                         </div>
-                        <button type="button" onClick={() => setCancelReservationId(reservation.id)} className="text-muted-foreground transition-colors hover:text-destructive">
+                        <button type="button" onClick={() => setCancelReservationId(reservation.id)} className="text-on-surface-variant transition-colors hover:text-destructive">
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </button>
                       </div>
@@ -347,19 +347,19 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
                   ))}
 
                   {pastReservations.map((reservation) => (
-                    <article key={reservation.id} className="rounded-xl bg-surface-container-lowest p-4 opacity-70">
-                      <p className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">{copy.completed}</p>
-                      <h3 className="mt-2 font-cinzel text-lg text-stone-400">{reservation.tableId}</h3>
+                    <article key={reservation.id} className="bg-surface-container-lowest p-4 opacity-70">
+                      <p className="text-[10px] uppercase tracking-[0.22em] text-on-surface-variant">{copy.completed}</p>
+                      <h3 className="mt-2 font-headline text-lg text-stone-400">{reservation.tableId}</h3>
                     </article>
                   ))}
 
                   {reservations.length === 0 && (
-                    <div className="rounded-xl bg-surface-container-low p-6 text-sm text-on-surface-variant">
+                    <div className="bg-surface-container-low p-6 text-sm text-on-surface-variant">
                       {copy.noReservations}
                     </div>
                   )}
 
-                  <div className="relative overflow-hidden rounded-xl bg-surface-container-low p-5">
+                  <div className="relative overflow-hidden bg-surface-container-low p-5">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_right,rgba(255,183,123,0.16),transparent_38%)]" />
                     <div className="relative flex items-center gap-3 text-primary">
                       <ShieldCheck className="h-5 w-5" aria-hidden="true" />
@@ -374,9 +374,9 @@ export function MyReservationsView({ locale }: MyReservationsViewProps) {
       </div>
 
       <AlertDialog open={!!cancelReservationId} onOpenChange={(nextOpen) => !nextOpen && setCancelReservationId(null)}>
-        <AlertDialogContent className="border-outline-variant/10 bg-surface-container-low text-foreground">
+        <AlertDialogContent className="border-outline-variant/10 bg-surface-container-low text-on-surface">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-cinzel text-2xl italic">
+            <AlertDialogTitle className="font-headline text-2xl italic">
               {isSpanish ? 'Cancelar reserva' : 'Cancel reservation'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-on-surface-variant">
