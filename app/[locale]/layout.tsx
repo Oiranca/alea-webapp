@@ -37,7 +37,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
 
   return (
     <html lang={locale} className="dark">
-      <body className="min-h-screen bg-background antialiased flex flex-col">
+      <body className="min-h-screen bg-background text-on-surface antialiased flex flex-col" suppressHydrationWarning>
         <NextIntlClientProvider messages={messages}>
           <Providers>
             <AuthProvider initialUser={initialUser}>

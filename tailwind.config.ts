@@ -90,12 +90,13 @@ const config: Config = {
         'surface-container': '#201f1f',
         'surface-container-lowest': '#0e0e0e',
         'on-primary-container': '#ffdcc2',
-        'on-secondary': '#422020',
+        'on-secondary': '#412b29',
         'on-secondary-container': '#ffdad8',
         'on-tertiary': '#333200',
         'tertiary-container': '#4a4900',
         'on-tertiary-container': '#e6e58a',
         'on-error': '#690005',
+        'error-container': '#93000a',
         'on-error-container': '#ffdad6',
         'scrim': '#000000',
         'shadow': '#000000',
@@ -115,9 +116,11 @@ const config: Config = {
         'inverse-primary': '#8c4a00',
       },
       fontFamily: {
-        cinzel: ['Cinzel', 'serif'],
-        inter: ['Inter', 'sans-serif'],
-        crimson: ['Crimson Text', 'serif'],
+        headline: ['Noto Serif', 'serif'],
+        body:     ['Manrope', 'sans-serif'],
+        label:    ['Manrope', 'sans-serif'],
+        serif:    ['Noto Serif', 'serif'],
+        sans:     ['Manrope', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '0.125rem',
@@ -126,7 +129,7 @@ const config: Config = {
         lg: '0.25rem',
         xl: '0.5rem',
         '2xl': '0.75rem',
-        // full is not overridden → keeps Tailwind default (9999px)
+        full: '0.75rem',
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },
