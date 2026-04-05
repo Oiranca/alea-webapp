@@ -79,10 +79,12 @@ function createJsonRequest(
 }
 
 describe('auth API routes', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules()
     vi.clearAllMocks()
     vi.unstubAllEnvs()
+    const { resetRateLimitStoreForTests } = await import('@/lib/server/security')
+    resetRateLimitStoreForTests()
     vi.stubEnv('TRUST_PROXY_HEADERS', 'true')
     vi.stubEnv('TRUSTED_PROXY_CIDRS', '127.0.0.1/32')
     requestCounter = 0

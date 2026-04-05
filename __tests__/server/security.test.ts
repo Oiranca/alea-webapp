@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 describe('server security helpers', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules()
     vi.unstubAllEnvs()
+    const { resetRateLimitStoreForTests } = await import('@/lib/server/security')
+    resetRateLimitStoreForTests()
   })
 
   it('uses secure:false for Supabase cookies when NEXT_PUBLIC_APP_URL is http (localhost)', async () => {
