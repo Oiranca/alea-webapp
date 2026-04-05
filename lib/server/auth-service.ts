@@ -151,20 +151,9 @@ export async function login(
 }
 
 export async function register(
-  input: { memberNumber?: unknown; email?: unknown; password?: unknown },
+  _input: unknown,
   _client?: AuthClient,
 ): Promise<User> {
-  const memberNumber = String(input.memberNumber ?? '').trim()
-  const email = String(input.email ?? '').trim().toLowerCase()
-  const password = String(input.password ?? '')
-
-  if (!memberNumber || !email || !password) {
-    serviceError('Member number, email and password are required', 400)
-  }
-  if (password.length < 12) {
-    serviceError('Password must be at least 12 characters', 400)
-  }
-
   serviceError('Registration is currently unavailable', 403)
 }
 

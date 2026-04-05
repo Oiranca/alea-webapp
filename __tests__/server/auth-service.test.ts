@@ -178,47 +178,21 @@ describe('auth service', () => {
   })
 
   describe('register', () => {
-    it('blocks public self-registration during the auth cutover', async () => {
+    it('returns 403 immediately regardless of input payload shape', async () => {
       const { register } = await loadService()
 
-      await expect(
-        register({
-          memberNumber: '100099',
-          email: 'nuevo@alea.club',
-          password: 'Password1234!@#',
-        }),
-      ).rejects.toMatchObject({
+      await expect(register({ memberNumber: '100099', password: 'Password1234!@#' })).rejects.toMatchObject({
         name: 'ServiceError',
         statusCode: 403,
       })
     })
 
-    it('still validates missing registration fields with a 400 ServiceError', async () => {
+    it('returns 403 even when called with no fields at all', async () => {
       const { register } = await loadService()
 
-      await expect(
-        register({
-          email: 'admin@alea.club',
-          password: 'Password1234!@#',
-        }),
-      ).rejects.toMatchObject({
+      await expect(register({})).rejects.toMatchObject({
         name: 'ServiceError',
-        statusCode: 400,
-      })
-    })
-
-    it('enforces the minimum password length on the server', async () => {
-      const { register } = await loadService()
-
-      await expect(
-        register({
-          memberNumber: '100099',
-          email: 'nuevo@alea.club',
-          password: 'short',
-        }),
-      ).rejects.toMatchObject({
-        name: 'ServiceError',
-        statusCode: 400,
+        statusCode: 403,
       })
     })
   })
