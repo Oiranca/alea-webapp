@@ -31,10 +31,10 @@ Alea is a single Next.js 15 application at the repository root. There is no mono
 ```
 alea-webapp/
 ├── app/                        # Next.js App Router
+│   ├── api/                    # Route Handlers (server-side endpoints)
 │   └── [locale]/               # Locale-prefixed routes (/es, /en)
 │       ├── layout.tsx          # Root layout with providers
-│       ├── page.tsx            # Home / landing
-│       └── api/                # Route Handlers (server-side endpoints)
+│       └── page.tsx            # Home / landing
 ├── components/                 # Reusable React components (client + server)
 ├── lib/
 │   ├── server/                 # Server-side service layer
@@ -54,7 +54,7 @@ alea-webapp/
 │       ├── server.ts           # Server-side client (per-request, cookie-based)
 │       └── types.ts            # Generated DB types
 ├── messages/                   # i18n JSON files (es.json, en.json)
-├── middleware.ts                # Auth + i18n routing (Next.js middleware)
+├── middleware.ts                # i18n routing, auth state refresh, and CSRF cookie setup
 ├── supabase/                   # Supabase project config
 │   ├── config.toml             # Local dev config
 │   ├── migrations/             # SQL migration files (versioned)
@@ -69,7 +69,7 @@ alea-webapp/
 `lib/server/` is the application's server-side logic layer. It replaces the former NestJS backend.
 
 All modules in this layer:
-- Are imported only from Route Handlers (`app/[locale]/api/`) or Server Components.
+- Are imported only from Route Handlers (`app/api/`) or Server Components.
 - Never run in the browser.
 - Call Supabase directly using the server-side client (`lib/supabase/server.ts`).
 - Throw typed `ServiceError` or `HttpError` instances — never raw strings.

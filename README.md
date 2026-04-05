@@ -28,8 +28,8 @@ Admins can manage users, rooms, tables, and reservations through a dedicated das
 ```
 alea-webapp/
 ├── app/                    # Next.js App Router pages and layouts
-│   └── [locale]/           # Locale-prefixed routes (es, en)
-│       └── api/            # Route handlers (server-side API)
+│   ├── [locale]/           # Locale-prefixed routes (es, en)
+│   └── api/                # Route handlers (server-side API)
 ├── components/             # Reusable UI components
 ├── lib/                    # Application logic
 │   ├── server/             # Server-side service layer (auth, rooms, reservations, users)
@@ -46,6 +46,7 @@ alea-webapp/
 
 - **Node.js** 20+ (see `.nvmrc` or `engines` in `package.json`)
 - **pnpm** 9+ (`npm install -g pnpm`)
+- **Docker Desktop / Docker Engine** (required to run `supabase start` locally)
 - **Supabase CLI** (`brew install supabase/tap/supabase` or see [docs](https://supabase.com/docs/guides/cli))
 
 ## Setup
