@@ -81,7 +81,7 @@ If a migration was applied and needs to be undone locally:
 supabase db reset
 ```
 
-`supabase db reset` drops and recreates the local database, runs all migrations from scratch, and applies `supabase/seed.sql`.
+`supabase db reset` drops and recreates the local database and runs all migrations from scratch.
 
 **Note:** `supabase db reset` re-applies all migrations from `supabase/migrations/`. If the issue is caused by a broken migration, you must first remove or replace that migration file, then run `supabase db reset`.
 
