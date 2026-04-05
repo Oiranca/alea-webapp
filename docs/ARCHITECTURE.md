@@ -177,7 +177,7 @@ There are three distinct Supabase client factories in `lib/supabase/server.ts`:
 |---|---|---|---|
 | `createSupabaseServerClient()` | Anon key | Reads/writes via `next/headers` cookie store | Server Components, Server Actions |
 | `createSupabaseRouteHandlerClient(request)` | Anon key | Reads from `NextRequest`, buffers writes returned via `applyCookies()` | Route Handlers |
-| `createSupabaseServerAdminClient()` | Service role key | None (stateless) | Server-only; bypasses all RLS policies |
+| `createSupabaseServerAdminClient()` | Secret default key | None (stateless) | Server-only; bypasses all RLS policies |
 
 The browser client factory (`createSupabaseBrowserClient` in `lib/supabase/client.ts`) uses the publishable key and creates a new browser client instance per call. It must never be used in server-side code.
 
