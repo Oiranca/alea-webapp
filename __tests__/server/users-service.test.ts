@@ -151,13 +151,13 @@ describe('listPaginatedUsers', () => {
     expect(result.limit).toBe(50)
   })
 
-  it('filters by email substring case-insensitively', async () => {
+  it('filters by memberNumber substring case-insensitively', async () => {
     const { listPaginatedUsers } = await loadUsersModules()
 
     const result = await listPaginatedUsers({ page: 1, limit: 10, search: 'ADMIN' })
 
     expect(result.data.length).toBeGreaterThan(0)
-    expect(orMock).toHaveBeenCalledWith('email.ilike.%ADMIN%,member_number.ilike.%ADMIN%')
+    expect(orMock).toHaveBeenCalledWith('member_number.ilike.%ADMIN%')
   })
 
   it('filters by memberNumber substring', async () => {
@@ -167,7 +167,7 @@ describe('listPaginatedUsers', () => {
     const result = await listPaginatedUsers({ page: 1, limit: 10, search: '100002' })
 
     expect(result.data.length).toBeGreaterThan(0)
-    expect(orMock).toHaveBeenCalledWith('email.ilike.%100002%,member_number.ilike.%100002%')
+    expect(orMock).toHaveBeenCalledWith('member_number.ilike.%100002%')
   })
 
   it('returns all users when search is empty', async () => {
@@ -220,11 +220,10 @@ describe('updateUser', () => {
     } as never)
     const { updateUser } = await loadUsersModules()
 
-    const updated = await updateUser('2', { email: 'SOCIO@ALEA.CLUB', role: 'member' })
+    const updated = await updateUser('2', { role: 'member' })
 
     expect(updated.id).toBe('2')
     expect(updated.id).not.toBe('1')
-    expect(updated.email).toBe('socio@alea.club')
   })
 
   it('throws 400 when no updatable fields are provided', async () => {
