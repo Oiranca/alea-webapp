@@ -43,6 +43,10 @@ function getRateLimitStore() {
   return globalRateLimitStore[RATE_LIMIT_STORE_KEY]
 }
 
+export function resetRateLimitStoreForTests() {
+  globalRateLimitStore[RATE_LIMIT_STORE_KEY]?.clear()
+}
+
 // Determines whether cookies should have the Secure flag.
 // Based on NEXT_PUBLIC_APP_URL — not NODE_ENV — because the environment
 // is defined by which Supabase keys are configured, not Node's runtime mode.
