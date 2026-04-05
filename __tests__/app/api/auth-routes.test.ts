@@ -244,7 +244,6 @@ describe('auth API routes', () => {
     const response = await POST(
       createJsonRequest('/api/auth/register', {
         memberNumber: '100123',
-        email: 'admin@alea.club',
         password: 'Password1234!@#',
       }),
     )
