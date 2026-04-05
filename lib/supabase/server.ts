@@ -3,7 +3,8 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseCookieOptions } from '@/lib/server/security'
-import { getSupabaseUrl, getSupabasePublishableKey, getSupabaseSecretKey } from './config'
+import { getSupabaseUrl, getSupabasePublishableKey } from './config.client'
+import { getSupabaseSecretKey } from './config'
 import type { Database } from './types'
 
 export async function createSupabaseServerClient() {
