@@ -37,7 +37,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email?: string | null
+          email: string | null
           id: string
           member_number: string
           role: Database["public"]["Enums"]["role"]
