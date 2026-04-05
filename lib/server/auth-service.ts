@@ -103,11 +103,6 @@ function toPublicUser(profile: PublicProfileRow): User {
   }
 }
 
-async function getProfileById(id: string) {
-  const admin = createSupabaseServerAdminClient()
-  return getPublicProfileBy(admin, 'id', id)
-}
-
 async function getAuthCredentialByMemberNumber(memberNumber: string) {
   const admin = createSupabaseServerAdminClient()
   return getAuthCredentialProfileBy(admin, 'member_number', memberNumber)
@@ -143,6 +138,12 @@ export async function login(
   })
 
   if (error || !data.user) {
+    serviceError('Invalid credentials', 401)
+  }
+
+  if (data.user.id !== credentialProfile.id) {
+    // Guard against profile/auth drift: the authenticated Supabase user must match
+    // the profile resolved by member number.
     serviceError('Invalid credentials', 401)
   }
 
