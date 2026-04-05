@@ -1,5 +1,11 @@
-// Validated Supabase configuration — fails fast if required env vars are missing.
-// Import from this module instead of reading process.env directly in client factories.
+import 'server-only'
+
+// Server-only Supabase config getters.
+// This file is guarded by `server-only` and will throw a build error
+// if accidentally imported in a Client Component or browser bundle.
+// Only exports the secret service role key getter.
+//
+// For public-safe getters (URL and publishable key), import from ./config.client.
 
 function requiredEnv(name: string): string {
   const value = process.env[name]
@@ -7,14 +13,6 @@ function requiredEnv(name: string): string {
     throw new Error(`Missing required environment variable: ${name}`)
   }
   return value
-}
-
-export function getSupabaseUrl(): string {
-  return requiredEnv('NEXT_PUBLIC_SUPABASE_URL')
-}
-
-export function getSupabasePublishableKey(): string {
-  return requiredEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY')
 }
 
 export function getSupabaseSecretKey(): string {
