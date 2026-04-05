@@ -32,13 +32,12 @@ type AdminProfilesTableClient = {
   }
 }
 
-const PROFILE_COLUMNS = 'id, member_number, email, role, created_at, updated_at'
+const PROFILE_COLUMNS = 'id, member_number, role, created_at, updated_at'
 
 function toPublicUser(profile: ProfileRow): User {
   return {
     id: profile.id,
     memberNumber: profile.member_number,
-    email: profile.email,
     role: profile.role,
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
@@ -78,7 +77,7 @@ export async function listPaginatedUsers(input: {
     const sanitized = sanitizeSearchTerm(search)
     if (sanitized) {
       const escaped = escapeLikeWildcards(sanitized)
-      query = query.or(`email.ilike.%${escaped}%,member_number.ilike.%${escaped}%`)
+      query = query.or(`member_number.ilike.%${escaped}%`)
     }
   }
 
@@ -99,10 +98,9 @@ export async function listPaginatedUsers(input: {
   }
 }
 
-export async function updateUser(id: string, body: { memberNumber?: unknown; email?: unknown; role?: unknown }) {
+export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown }) {
   const updates: TablesUpdate<'profiles'> = {}
   if (body.memberNumber) updates.member_number = String(body.memberNumber)
-  if (body.email) updates.email = String(body.email).toLowerCase()
   if (body.role === 'admin' || body.role === 'member') updates.role = body.role
 
   if (Object.keys(updates).length === 0) {
