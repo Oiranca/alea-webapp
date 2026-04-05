@@ -15,7 +15,7 @@
   },
   "auth": {
     "login": "Iniciar Sesión", "register": "Registrarse", "logout": "Cerrar sesión",
-    "memberNumber": "Número de Socio", "email": "Correo Electrónico",
+    "memberNumber": "Número de Socio",
     "password": "Contraseña", "confirmPassword": "Confirmar contraseña",
     "memberOrEmail": "Número de socio o correo",
     "identifierPlaceholder": "ej. 1234",
@@ -29,7 +29,6 @@
     "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?",
     "errors": {
       "invalidCredentials": "Credenciales inválidas",
-      "emailRequired": "El correo es obligatorio",
       "memberOrEmailRequired": "Introduce tu número de socio o correo",
       "passwordRequired": "La contraseña es obligatoria",
       "passwordMinLength": "La contraseña debe tener al menos 12 caracteres",
@@ -37,9 +36,7 @@
       "passwordSpecialChar": "La contraseña debe contener al menos un símbolo especial (!@#$%^&*...)",
       "passwordsDoNotMatch": "Las contraseñas no coinciden",
       "memberNumberRequired": "El número de socio es obligatorio",
-      "emailInvalid": "El correo no es válido",
-      "memberNumberExists": "Este número de socio ya está registrado",
-      "emailExists": "Este correo ya está registrado"
+      "memberNumberExists": "Este número de socio ya está registrado"
     }
   },
   "rooms": {
