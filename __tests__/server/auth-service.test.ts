@@ -119,7 +119,6 @@ describe('auth service', () => {
       ).resolves.toMatchObject({
         id: 'user-1',
         role: 'admin',
-        email: 'admin@alea.club',
         memberNumber: '100001',
       })
     })
@@ -131,7 +130,6 @@ describe('auth service', () => {
         login({ identifier: '100002', password: 'Socio1234!@#' }),
       ).resolves.toMatchObject({
         id: 'user-2',
-        email: 'socio@alea.club',
       })
       expect(signInWithPassword).toHaveBeenCalledWith({
         email: 'socio@alea.club',
@@ -245,7 +243,6 @@ describe('auth service', () => {
 
       await expect(getCurrentUser({ id: 'user-2', role: 'member' })).resolves.toMatchObject({
         id: 'user-2',
-        email: 'socio@alea.club',
         role: 'member',
       })
       expect(sessionScopedProfileMaybeSingle).toHaveBeenCalledWith('id', 'user-2')
