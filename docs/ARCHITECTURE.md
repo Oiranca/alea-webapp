@@ -85,8 +85,7 @@ alea-webapp/
 ├── middleware.ts               # i18n routing, Supabase token refresh side effect, CSRF cookie setup
 ├── supabase/                   # Supabase project config
 │   ├── config.toml             # Local dev config
-│   ├── migrations/             # SQL migration files (versioned)
-│   └── seed.sql                # Development seed data
+│   └── migrations/             # SQL migration files (versioned)
 └── __tests__/                  # Integration and unit tests
 ```
 
