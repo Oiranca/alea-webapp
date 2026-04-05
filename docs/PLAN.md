@@ -3,7 +3,7 @@
 **Last updated:** 2026-04-05
 **Branch:** feat/next-api-m5-flatten-repo
 **Epic:** #3 — Next.js API migration (remove NestJS + monorepo)
-**Platform:** Supabase (dev + prod, sole DB/auth provider)
+**Platform:** Supabase (sole DB/auth provider, single unified environment)
 
 ---
 
@@ -46,7 +46,7 @@
 - Initial schema migration: `profiles`, `rooms`, `tables`, `reservations`
 - RLS policies with `WITH CHECK` on all UPDATE policies
 - Env variable structure: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_SECRET_DEFAULT_KEY`
-- `.env.example` and `.env.local.example`
+- `.env.example` (single unified environment)
 - Typed Supabase clients: SSR (`createServerClient`) + admin (`createClient` stateless)
 - Signup trigger (`handle_new_user`) for auto-creating profiles
 - GiST exclusion constraint for reservation overlap prevention

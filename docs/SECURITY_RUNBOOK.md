@@ -33,9 +33,8 @@
 
 1. Rotate `SUPABASE_SECRET_DEFAULT_KEY` immediately via Supabase Dashboard > Project Settings > API.
 2. Rotate `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` if exposure scope is uncertain.
-3. Redeploy every environment with the new secrets.
+3. Redeploy with the new secrets.
 4. Audit privileged reads and writes that could have bypassed RLS while the key was exposed.
-5. Re-check Vercel environment scoping so preview, development, and production stay isolated.
 
 ### CSRF or abuse-control bypass suspicion
 

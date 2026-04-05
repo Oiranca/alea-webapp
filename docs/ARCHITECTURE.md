@@ -225,7 +225,7 @@ The client-side architecture is organized under `lib/`:
 pnpm install
 
 # 2. Copy environment template
-cp .env.local.example .env.local
+cp .env.example .env.local
 # Edit .env.local — local Supabase values from the example work out of the box
 
 # 3. Start local Supabase (runs migrations automatically)
