@@ -125,7 +125,7 @@ Ensure these variables are correctly set in the target environment before deploy
 
 > **Security:** `SUPABASE_SECRET_DEFAULT_KEY` and `AUTH_SESSION_SECRET` must never be exposed to the browser or committed to git.
 
-For local development, copy `.env.local.example` to `.env.local`. The example values work with the local Supabase instance started via `supabase start`.
+For local development, copy `.env.example` to `.env.local`. The example values work with the local Supabase instance started via `supabase start`.
 
 ---
 
