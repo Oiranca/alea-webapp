@@ -1,8 +1,26 @@
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 
 describe('server security helpers', () => {
-  it('uses hardened cookie options with secure always enabled for Supabase sessions', async () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.unstubAllEnvs()
+  })
+
+  it('uses secure:false for Supabase cookies when NEXT_PUBLIC_APP_URL is http (localhost)', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'http://localhost:3000')
+    const security = await import('@/lib/server/security')
+
+    expect(security.getSupabaseCookieOptions()).toMatchObject({
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: false,
+      path: '/',
+    })
+  })
+
+  it('uses secure:true for Supabase cookies when NEXT_PUBLIC_APP_URL is https', async () => {
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://app.alea.club')
     const security = await import('@/lib/server/security')
 
     expect(security.getSupabaseCookieOptions()).toMatchObject({
