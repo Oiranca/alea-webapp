@@ -13,7 +13,7 @@ const handleI18nRouting = createMiddleware({
 function createMiddlewareSupabaseClient(request: NextRequest, response: NextResponse) {
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
     {
       cookieOptions: getSupabaseCookieOptions(),
       cookies: {
