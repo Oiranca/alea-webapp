@@ -31,6 +31,13 @@ function getRateLimitStore() {
   return globalRateLimitStore[RATE_LIMIT_STORE_KEY]
 }
 
+// Secure cookies when running over HTTPS.
+// Determined by NEXT_PUBLIC_APP_URL, not NODE_ENV,
+// because environment is controlled by which Supabase keys are configured.
+function isSecureContext(): boolean {
+  return (process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000').startsWith('https://')
+}
+
 function forbidden(message: string) {
   return NextResponse.json({ message, statusCode: 403 }, { status: 403 })
 }
@@ -80,7 +87,7 @@ export function getCsrfCookieOptions() {
     httpOnly: false,
     path: '/',
     sameSite: 'lax',
-    secure: true, // environment is determined by Supabase keys, not NODE_ENV
+    secure: isSecureContext(),
   } satisfies CookieOptionsWithName
 }
 
@@ -89,7 +96,7 @@ export function getSupabaseCookieOptions() {
     httpOnly: true,
     path: '/',
     sameSite: 'lax',
-    secure: true, // environment is determined by Supabase keys, not NODE_ENV
+    secure: isSecureContext(),
   } satisfies CookieOptionsWithName
 }
 
