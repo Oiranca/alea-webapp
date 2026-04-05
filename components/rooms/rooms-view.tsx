@@ -54,15 +54,15 @@ export function RoomsView() {
           <p className="text-xs uppercase tracking-[0.35em] text-primary/80">{t('title')}</p>
           <div className="flex items-center gap-3">
             <MapPin className="h-6 w-6 text-primary" aria-hidden="true" />
-            <h1 className="font-cinzel text-4xl tracking-tight text-on-surface md:text-5xl">{t('title')}</h1>
+            <h1 className="font-headline text-4xl tracking-tight text-on-surface md:text-5xl">{t('title')}</h1>
           </div>
           <p className="text-on-surface-variant">{t('subtitle')}</p>
         </div>
 
         <Tabs value={activeTab || rooms[0]?.id} onValueChange={handleTabChange}>
-          <TabsList className="h-auto flex-wrap gap-2 rounded-2xl border border-outline-variant/15 bg-surface-container-low p-1.5" aria-label="Salas de juego">
+          <TabsList className="h-auto flex-wrap gap-2 rounded-lg border border-outline-variant/15 bg-surface-container-low p-1.5" aria-label="Salas de juego">
             {rooms.map((room) => (
-              <TabsTrigger key={room.id} value={room.id} className="min-w-[120px] rounded-xl px-6 py-2.5 text-sm">
+              <TabsTrigger key={room.id} value={room.id} className="min-w-[120px] rounded px-6 py-2.5 text-sm text-stone-400 hover:text-on-surface">
                 {room.name}
               </TabsTrigger>
             ))}

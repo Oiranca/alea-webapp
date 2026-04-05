@@ -63,7 +63,7 @@ export function TableCard({ table, availability, onReserve, currentDate: _curren
       onClick={() => status !== 'reserved' && onReserve(table)}
       disabled={status === 'reserved'}
       className={cn(
-        'group relative flex min-h-[168px] w-full flex-col items-center justify-between rounded-2xl border border-outline-variant/10 bg-surface-container-low/60 p-5 text-left transition-all duration-200',
+        'group relative flex min-h-[168px] w-full flex-col items-center justify-between rounded border border-outline-variant/10 bg-surface-container-low p-5 text-left transition-all duration-200',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         selected && 'border-primary/40 bg-surface-container-high/80 shadow-[0_0_30px_rgba(255,183,123,0.12)]',
         status === 'reserved' && 'cursor-not-allowed',
@@ -75,7 +75,7 @@ export function TableCard({ table, availability, onReserve, currentDate: _curren
       <div className="mb-4 flex w-full items-center justify-between">
         <div className="flex items-center gap-2">
           <Icon className="h-5 w-5 text-primary" aria-hidden="true" />
-          <span className="font-cinzel text-sm font-semibold">{table.name}</span>
+          <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant">{table.name}</span>
         </div>
         <Badge variant={config.badgeVariant} className="px-1.5 py-0.5 text-[10px]">
           {config.label}
@@ -88,14 +88,14 @@ export function TableCard({ table, availability, onReserve, currentDate: _curren
             'relative flex items-center justify-center border-2 transition-colors',
             table.type === 'small' && 'h-24 w-24 rounded-full',
             table.type === 'large' && 'h-24 w-36 rounded-xl',
-            table.type === 'removable_top' && 'h-28 w-28 rounded-2xl ring-2 ring-primary/20',
+            table.type === 'removable_top' && 'h-28 w-28 rounded ring-2 ring-primary/20 ring-offset-4 ring-offset-background',
             config.accentClass
           )}
         >
           {table.type === 'removable_top' && (
             <div className="absolute inset-2 rounded-xl border border-dashed border-primary/25" aria-hidden="true" />
           )}
-          <span className="px-2 text-center font-cinzel text-sm" aria-hidden="true">
+          <span className="px-2 text-center text-sm" aria-hidden="true">
             {table.type === 'small' ? '2-4' : table.type === 'large' ? '6-8' : '4-6'}
           </span>
         </div>

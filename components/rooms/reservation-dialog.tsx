@@ -90,9 +90,9 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
         resetState()
       }
     }}>
-      <DialogContent className="max-w-3xl border border-outline-variant/15 bg-surface-container-high/95 p-0 shadow-2xl shadow-black/40">
+      <DialogContent className="max-w-3xl rounded-xl border border-outline-variant/15 bg-surface-container-low p-0 shadow-2xl shadow-black/40">
         <DialogHeader className="rounded-t-[1.5rem] bg-[radial-gradient(circle_at_top,_rgba(255,183,123,0.18),_transparent_48%),linear-gradient(135deg,_rgba(53,53,52,0.96),_rgba(19,19,19,0.98))] px-6 py-6 sm:px-8">
-          <DialogTitle className="font-cinzel text-3xl text-foreground">
+          <DialogTitle className="font-headline text-3xl text-foreground">
             {t('makeReservation')} · {table.name}
           </DialogTitle>
           <DialogDescription className="mt-2 text-on-surface-variant">
@@ -119,7 +119,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                   setSelectedStartTime(null)
                   setSelectedEndTime(null)
                 }}
-                className="h-14 w-full rounded-xl border border-outline-variant/20 bg-surface-container-low px-4 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-14 w-full rounded border-none bg-surface-container-lowest px-4 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               />
               <p className="text-xs text-on-surface-variant">{formatDate(selectedDate)}</p>
             </div>
@@ -147,9 +147,9 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                           setSelectedEndTime(null)
                         }}
                         className={cn(
-                          'rounded-xl border px-4 py-4 text-left transition-all',
+                          'rounded-lg border px-4 py-4 text-left transition-all',
                           selectedSurface === surface
-                            ? 'border-primary bg-primary text-on-primary'
+                            ? 'border-primary bg-gradient-to-br from-primary to-primary-container text-on-primary'
                             : 'border-outline-variant/20 bg-surface-container-low text-foreground hover:border-primary/30',
                         )}
                       >
@@ -196,12 +196,12 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                           setSelectedEndTime(endTime)
                         }}
                         className={cn(
-                          'rounded-xl border px-4 py-3 text-left transition-all',
+                          'rounded border px-4 py-3 text-left transition-all',
                           !available || index === timeSlots.length - 1
                             ? 'cursor-not-allowed border-outline-variant/15 bg-surface-container-lowest text-outline opacity-40'
                             : selected
                               ? 'border-primary bg-primary text-on-primary'
-                              : 'border-outline-variant/15 bg-surface-container-low hover:border-primary/30 hover:bg-surface-container',
+                              : 'border-stone-800 bg-surface-container-low hover:border-primary',
                         )}
                       >
                         <p className="text-xs uppercase tracking-[0.22em]">
@@ -218,7 +218,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
             </div>
           </section>
 
-          <aside className="space-y-4 rounded-[1.5rem] bg-surface-container-low p-5">
+          <aside className="space-y-4 rounded-lg bg-surface-container-low p-5">
             <div className="rounded-xl bg-surface-container p-4">
               <p className="text-[10px] uppercase tracking-[0.28em] text-primary/70">Summary</p>
               <dl className="mt-4 space-y-3 text-sm text-on-surface-variant">
