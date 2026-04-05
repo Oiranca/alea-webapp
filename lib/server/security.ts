@@ -34,20 +34,7 @@ function getRateLimitStore() {
 // Determines whether cookies should have the Secure flag.
 // Based on NEXT_PUBLIC_APP_URL — not NODE_ENV — because the environment
 // is defined by which Supabase keys are configured, not Node's runtime mode.
-// Set NEXT_PUBLIC_APP_URL=https://... for HTTPS deployments.
-function isSecureContext(): boolean {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (!appUrl) {
-    console.warn(
-      '[security] NEXT_PUBLIC_APP_URL is not set — cookies will be issued without the Secure flag.' +
-        ' Set it to your app URL (e.g. https://app.alea.club).',
-    )
-    return false
-  }
-  return appUrl.startsWith('https://')
-}
-
-// Warn at most once per process — isSecureContext() is called on every request.
+// Warn at most once per process — this is called on every request.
 let _warnedAboutMissingAppUrl = false
 
 function isSecureContext(): boolean {
