@@ -149,7 +149,7 @@ Credentials to rotate if any exposure is suspected:
 
 - `AUTH_SESSION_SECRET` — generate a new secret (min 32 chars)
 - `SUPABASE_SECRET_DEFAULT_KEY` — rotate via Supabase Dashboard > Project Settings > API
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — rotate if the anon key was abused
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` — rotate if the publishable key was abused or exposed
 
 ### Supabase secret key rotation on auth architecture rollback
 
