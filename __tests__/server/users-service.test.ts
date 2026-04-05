@@ -11,16 +11,16 @@ const profileRows = [
   {
     id: '1',
     member_number: '100001',
-    email: 'admin@alea.club',
     role: 'admin' as const,
+    status: 'active' as const,
     created_at: '2024-01-01T00:00:00.000Z',
     updated_at: '2024-01-01T00:00:00.000Z',
   },
   {
     id: '2',
     member_number: '100002',
-    email: 'socio@alea.club',
     role: 'member' as const,
+    status: 'active' as const,
     created_at: '2024-01-02T00:00:00.000Z',
     updated_at: '2024-01-02T00:00:00.000Z',
   },

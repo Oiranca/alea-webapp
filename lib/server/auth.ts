@@ -14,7 +14,7 @@ type SessionClient = {
   from: (...args: unknown[]) => {
     select: (...args: unknown[]) => {
       eq: (...args: unknown[]) => {
-        maybeSingle: () => Promise<{ data: { id: string; role: 'member' | 'admin' } | null, error: unknown }>
+        maybeSingle: () => Promise<{ data: { id: string; role: 'member' | 'admin'; status: 'active' | 'suspended' } | null, error: unknown }>
       }
     }
   }
@@ -39,11 +39,11 @@ async function getSessionUser(client: SessionClient) {
 
   const { data: profile, error: profileError } = await client
     .from('profiles')
-    .select('id, role')
+    .select('id, role, status')
     .eq('id', authData.user.id)
     .maybeSingle()
 
-  if (profileError || !profile) {
+  if (profileError || !profile || profile.status === 'suspended') {
     return null
   }
 

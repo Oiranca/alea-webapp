@@ -4,7 +4,7 @@ import { serviceError } from '@/lib/server/service-error'
 import type { Tables, TablesUpdate } from '@/lib/supabase/types'
 
 type ProfileRow = Tables<'profiles'>
-type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'role' | 'created_at' | 'updated_at'>
+type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'role' | 'status' | 'created_at' | 'updated_at'>
 type ProfilesQuery = {
   or: (filter: string) => ProfilesQuery
   order: (column: string, options: { ascending: boolean }) => {
@@ -33,13 +33,14 @@ type AdminProfilesTableClient = {
   }
 }
 
-const PROFILE_COLUMNS = 'id, member_number, role, created_at, updated_at'
+const PROFILE_COLUMNS_WITH_STATUS = 'id, member_number, role, status, created_at, updated_at'
 
 function toPublicUser(profile: PublicProfileRow): User {
   return {
     id: profile.id,
     memberNumber: profile.member_number,
     role: profile.role,
+    status: profile.status as User['status'],
     createdAt: profile.created_at,
     updatedAt: profile.updated_at,
   }
@@ -72,7 +73,7 @@ export async function listPaginatedUsers(input: {
   const supabase = await createSupabaseServerClient()
   const profiles = supabase.from('profiles') as unknown as ProfilesTableClient
   let query = profiles
-    .select(PROFILE_COLUMNS, { count: 'exact' })
+    .select(PROFILE_COLUMNS_WITH_STATUS, { count: 'exact' })
 
   if (search) {
     const sanitized = sanitizeSearchTerm(search)
@@ -99,10 +100,11 @@ export async function listPaginatedUsers(input: {
   }
 }
 
-export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown }) {
+export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown; status?: unknown }) {
   const updates: TablesUpdate<'profiles'> = {}
   if (body.memberNumber) updates.member_number = String(body.memberNumber)
   if (body.role === 'admin' || body.role === 'member') updates.role = body.role
+  if (body.status === 'active' || body.status === 'suspended') updates.status = body.status
 
   if (Object.keys(updates).length === 0) {
     serviceError('No updatable fields provided', 400)
@@ -113,7 +115,7 @@ export async function updateUser(id: string, body: { memberNumber?: unknown; rol
   const { data, error } = await profiles
     .update(updates)
     .eq('id', id)
-    .select(PROFILE_COLUMNS)
+    .select(PROFILE_COLUMNS_WITH_STATUS)
     .maybeSingle()
 
   if (error) {

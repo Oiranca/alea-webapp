@@ -35,7 +35,7 @@ function withSession(userId = 'user-1', role: 'member' | 'admin' = 'admin') {
     data: {
       id: userId,
       role,
-      email: 'admin@alea.club',
+      status: 'active',
       member_number: '100001',
       created_at: '2024-01-01T00:00:00.000Z',
       updated_at: '2024-01-01T00:00:00.000Z',

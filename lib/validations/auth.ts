@@ -11,13 +11,13 @@ export const passwordSchema = z
   .regex(PASSWORD_SPECIAL_CHARS, 'auth.errors.passwordSpecialChar')
 
 export const loginSchema = z.object({
-  identifier: z.string().min(1, 'auth.errors.memberNumberRequired'),
+  identifier: z.string().trim().min(1, 'auth.errors.memberNumberRequired'),
   password: z.string().min(1, 'auth.errors.passwordRequired').max(1024, 'auth.errors.passwordMaxLength'),
 })
 
 export const registerSchema = z
   .object({
-    memberNumber: z.string().min(1, 'auth.errors.memberNumberRequired'),
+    memberNumber: z.string().trim().min(1, 'auth.errors.memberNumberRequired'),
     password: passwordSchema,
     confirmPassword: z.string(),
   })

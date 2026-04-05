@@ -92,24 +92,29 @@ describe('auth API routes', () => {
       id: 'user-1',
       memberNumber: '100001',
       role: 'admin',
+      status: 'active',
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     })
-    registerMock.mockRejectedValue({
-      name: 'ServiceError',
-      message: 'Registration is currently unavailable',
-      statusCode: 403,
+    registerMock.mockResolvedValue({
+      id: 'user-3',
+      memberNumber: '100123',
+      role: 'member',
+      status: 'active',
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     })
     logoutWithClientMock.mockResolvedValue({ success: true })
     routeGetUserMock.mockResolvedValue({ data: { user: { id: 'user-2' } }, error: null })
     routeProfileMaybeSingleMock.mockResolvedValue({
-      data: { id: 'user-2', role: 'member' },
+      data: { id: 'user-2', role: 'member', status: 'active' },
       error: null,
     })
     getCurrentUserMock.mockResolvedValue({
       id: 'user-2',
       memberNumber: '100099',
       role: 'member',
+      status: 'active',
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     })
@@ -236,10 +241,8 @@ describe('auth API routes', () => {
     expect(blocked.headers.get('retry-after')).toBeTruthy()
   })
 
-  it('returns a generic 403 when public registration is unavailable', async () => {
+  it('creates a member account and returns a 201 response from the registration route', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
-    const { ServiceError } = await import('@/lib/server/service-error')
-    registerMock.mockRejectedValueOnce(new ServiceError('Registration is currently unavailable', 403))
 
     const response = await POST(
       createJsonRequest('/api/auth/register', {
@@ -248,8 +251,11 @@ describe('auth API routes', () => {
       }),
     )
 
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toMatchObject({ statusCode: 403 })
+    expect(response.status).toBe(201)
+    await expect(response.json()).resolves.toMatchObject({
+      memberNumber: '100123',
+      status: 'active',
+    })
   })
 
   it('reads the session from /me after login and signs out through the auth routes', async () => {
@@ -261,13 +267,14 @@ describe('auth API routes', () => {
       error: null,
     })
     routeProfileMaybeSingleMock.mockResolvedValueOnce({
-      data: { id: 'user-1', role: 'admin' },
+      data: { id: 'user-1', role: 'admin', status: 'active' },
       error: null,
     })
     getCurrentUserMock.mockResolvedValueOnce({
       id: 'user-1',
       memberNumber: '100001',
       role: 'admin',
+      status: 'active',
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     })

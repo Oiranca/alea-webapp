@@ -16,6 +16,7 @@ function createUser(overrides?: Partial<User>): User {
     id: '1',
     memberNumber: '100001',
     role: 'admin',
+    status: 'active',
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
     ...overrides,
@@ -101,7 +102,7 @@ describe('AuthProvider', () => {
     expect(result.current.user).toEqual(loggedInUser)
 
     await act(async () => {
-      await result.current.register('100099', 'nuevo@alea.club', 'Password1234!@#')
+      await result.current.register('100099', 'Password1234!@#')
     })
 
     expect(result.current.user).toEqual(registeredUser)
