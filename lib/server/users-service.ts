@@ -117,7 +117,7 @@ export async function updateUser(id: string, body: { memberNumber?: unknown; rol
     serviceError('No updatable fields provided', 400)
   }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const profiles = supabase.from('profiles') as unknown as ProfilesTableClient
   const { data, error } = await profiles
     .update(updates)

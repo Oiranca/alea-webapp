@@ -86,6 +86,13 @@ vi.mock('@/lib/supabase/server', () => ({
           maybeSingle: maybeSingleMock,
         })),
       })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
+        })),
+      })),
     })),
     auth: {
       admin: {
@@ -204,18 +211,12 @@ describe('updateUser', () => {
       return { data: row, error: null }
     })
     vi.mocked(
-      (await import('@/lib/supabase/server')).createSupabaseServerClient
-    ).mockResolvedValue({
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
       from: vi.fn(() => ({
-        select: vi.fn((columns: string, options?: { count?: 'exact' }) => {
-          if (options?.count === 'exact') {
-            return { order: orderMock, or: orMock }
-          }
-          return {
-            eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
-            maybeSingle: maybeSingleMock,
-          }
-        }),
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
+        })),
         update: vi.fn(() => ({
           eq: vi.fn((_col: string, val: string) => {
             capturedId = val
@@ -227,6 +228,11 @@ describe('updateUser', () => {
           }),
         })),
       })),
+      auth: {
+        admin: {
+          deleteUser: deleteUserMock,
+        },
+      },
     } as never)
     const { updateUser } = await loadUsersModules()
 

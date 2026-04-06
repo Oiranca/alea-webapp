@@ -133,6 +133,10 @@ export async function login(
     serviceError('Invalid credentials', 401)
   }
 
+  if (credentialProfile.status === 'suspended') {
+    serviceError('Account suspended', 403)
+  }
+
   const supabase = client ?? await createSupabaseServerClient()
   const { data, error } = await supabase.auth.signInWithPassword({
     email: credentialProfile.email,
