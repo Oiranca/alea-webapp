@@ -90,6 +90,35 @@ alea-webapp/
 
    The app is available at [http://localhost:3000](http://localhost:3000).
 
+## Local CI Hook
+
+The repository uses a local `pre-push` hook to run the core validation checks before a push. The hook is not installed automatically after cloning.
+
+1. Install the hook:
+
+   ```bash
+   pnpm hooks:install
+   ```
+
+   On Windows, this command requires Bash or WSL. If Bash is not available, the script exits without modifying your environment.
+
+2. Push as usual:
+
+   ```bash
+   git push
+   ```
+
+   To skip the hook for a single push, use `git push --no-verify`.
+
+The hook currently runs:
+
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm test`
+- `pnpm build`
+
+It does not replace the checks that used to run only in GitHub Actions, such as coverage, dependency audit, SAST, or integration validation. Treat it as the local fast-fail gate for the main development path, not as a full CI substitute.
+
 ## Available Scripts
 
 | Command | Description |
@@ -99,6 +128,7 @@ alea-webapp/
 | `pnpm test` | Run the full test suite (Vitest) |
 | `pnpm lint` | ESLint via Next.js |
 | `pnpm typecheck` | TypeScript type-check (no emit) |
+| `pnpm hooks:install` | Install the local `pre-push` hook |
 
 ## Key Business Rules
 
