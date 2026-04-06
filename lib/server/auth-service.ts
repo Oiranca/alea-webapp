@@ -3,6 +3,7 @@ import type { SessionUser } from '@/lib/server/auth'
 import { serviceError } from '@/lib/server/service-error'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Tables } from '@/lib/supabase/types'
+import { registerServerSchema } from '@/lib/validations/auth'
 
 type ProfileRow = Tables<'profiles'>
 type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'role' | 'is_active' | 'created_at' | 'updated_at'>
@@ -50,6 +51,7 @@ type AuthClient = {
     signOut: () => Promise<{ error: { message: string } | null }>
   }
 }
+
 
 function getProfilesTable(client: ProfileLookupClient) {
   return client.from('profiles') as PublicProfilesTableClient
@@ -157,10 +159,79 @@ export async function login(
 }
 
 export async function register(
-  _input: unknown,
-  _client?: AuthClient,
+  input: unknown,
+  sessionClient?: AuthClient,
 ): Promise<User> {
-  serviceError('Registration is currently unavailable', 403)
+  const parsed = registerServerSchema.safeParse(input)
+  if (!parsed.success) {
+    serviceError('Invalid registration details', 400)
+  }
+
+  const { memberNumber, password } = parsed.data
+
+  // Use the full admin client (ReturnType<typeof createSupabaseServerAdminClient>) so
+  // both auth.admin and .from('profiles') are available without unsafe casts.
+  const adminClient = createSupabaseServerAdminClient()
+
+  // Check whether the member number is already taken by an existing profile.
+  const existing = await getAuthCredentialProfileBy(adminClient, 'member_number', memberNumber)
+  if (existing) {
+    serviceError('This member number is already registered', 409)
+  }
+
+  // Derive a deterministic internal email from the member number so Supabase Auth
+  // can work with email/password credentials without exposing real emails.
+  const email = `${memberNumber}@members.alea.internal`
+
+  // Create the Supabase Auth user. The on_auth_user_created trigger will immediately
+  // INSERT a profiles row with a placeholder member_number.
+  const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  })
+
+  if (authError || !authData.user) {
+    serviceError('Failed to create account', 500)
+  }
+
+  const userId = authData.user.id
+
+  // UPDATE the trigger-created profile row with the real values.
+  // We use update() instead of insert() because the on_auth_user_created trigger
+  // already inserted a row for this user id with a placeholder member_number.
+  const { data: profileData, error: profileError } = await adminClient
+    .from('profiles')
+    .update({ member_number: memberNumber, email, role: 'member', is_active: true })
+    .eq('id', userId)
+    .select(PUBLIC_PROFILE_COLUMNS)
+    .maybeSingle()
+
+  if (profileError) {
+    // Unique constraint violation on member_number — concurrent registration with the
+    // same member number; clean up the orphaned auth user.
+    if ((profileError as { code?: string }).code === '23505') {
+      await adminClient.auth.admin.deleteUser(userId)
+      serviceError('This member number is already registered', 409)
+    }
+    await adminClient.auth.admin.deleteUser(userId)
+    serviceError('Failed to create user profile', 500)
+  }
+
+  if (!profileData) {
+    await adminClient.auth.admin.deleteUser(userId)
+    serviceError('Failed to create user profile', 500)
+  }
+
+  // Sign the user in to establish a session. Registration succeeded regardless of
+  // whether auto-login works — the user can always log in manually.
+  const supabase = sessionClient ?? await createSupabaseServerClient()
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+  if (signInError) {
+    // Non-fatal: profile was created successfully. User can log in separately.
+  }
+
+  return toPublicUser(profileData)
 }
 
 async function getSessionScopedProfile(id: string, client?: ProfileLookupClient) {
