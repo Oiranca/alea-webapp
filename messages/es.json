@@ -77,7 +77,18 @@
     "createTable": "Crear mesa", "editUser": "Editar usuario", "deleteUser": "Eliminar usuario",
     "deleteUserConfirm": "Estas seguro de que deseas eliminar este usuario? Esta accion no se puede deshacer.",
     "role": "Rol", "member": "Socio", "admin": "Administrador", "joinDate": "Fecha de registro",
-    "searchUsers": "Buscar usuarios...", "noUsers": "No se encontraron usuarios"
+    "searchUsers": "Buscar usuarios...", "noUsers": "No se encontraron usuarios",
+    "cancelReservation": "Cancelar reserva",
+    "cancelReservationConfirm": "Estas seguro de que deseas cancelar esta reserva?",
+    "noReservations": "No hay reservas",
+    "user": "Usuario", "room": "Sala", "table": "Mesa",
+    "editRoom": "Editar sala", "roomName": "Nombre de sala", "roomDescription": "Descripcion",
+    "tableName": "Nombre de mesa", "tableType": "Tipo de mesa",
+    "noRooms": "No hay salas", "noTables": "No hay mesas en esta sala",
+    "selectRoom": "Seleccionar sala",
+    "tableCount": "Numero de mesas",
+    "saving": "Guardando...", "creating": "Creando...", "deleting": "Eliminando...",
+    "memberNumber": "Numero de socio"
   },
   "home": {
     "heroTitle": "Tu Aventura Comienza Aquí",
