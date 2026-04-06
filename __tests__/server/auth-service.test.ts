@@ -196,7 +196,7 @@ describe('auth service', () => {
       ).rejects.toMatchObject({
         name: 'ServiceError',
         statusCode: 403,
-        message: 'Tu cuenta está suspendida. Ponte en contacto con el administrador para reactivarla.',
+        message: 'Your account is suspended. Contact an administrator to reactivate it.',
       })
       expect(signInWithPassword).not.toHaveBeenCalled()
     })

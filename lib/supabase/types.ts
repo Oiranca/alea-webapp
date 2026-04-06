@@ -42,7 +42,6 @@ export type Database = {
           is_active: boolean
           member_number: string
           role: Database["public"]["Enums"]["role"]
-          status: string
           updated_at: string
         }
         Insert: {
@@ -52,7 +51,6 @@ export type Database = {
           is_active?: boolean
           member_number: string
           role?: Database["public"]["Enums"]["role"]
-          status?: string
           updated_at?: string
         }
         Update: {
@@ -62,7 +60,6 @@ export type Database = {
           is_active?: boolean
           member_number?: string
           role?: Database["public"]["Enums"]["role"]
-          status?: string
           updated_at?: string
         }
         Relationships: []

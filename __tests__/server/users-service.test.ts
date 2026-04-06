@@ -74,13 +74,6 @@ vi.mock('@/lib/supabase/server', () => ({
           maybeSingle: maybeSingleMock,
         }
       }),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          select: vi.fn(() => ({
-            maybeSingle: maybeSingleMock,
-          })),
-        })),
-      })),
     })),
   })),
   createSupabaseServerAdminClient: vi.fn(() => ({
@@ -88,6 +81,13 @@ vi.mock('@/lib/supabase/server', () => ({
       select: vi.fn(() => ({
         eq: vi.fn(() => ({
           maybeSingle: maybeSingleMock,
+        })),
+      })),
+      update: vi.fn(() => ({
+        eq: vi.fn(() => ({
+          select: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
         })),
       })),
     })),
@@ -208,18 +208,13 @@ describe('updateUser', () => {
       return { data: row, error: null }
     })
     vi.mocked(
-      (await import('@/lib/supabase/server')).createSupabaseServerClient
-    ).mockResolvedValue({
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
       from: vi.fn(() => ({
-        select: vi.fn((columns: string, options?: { count?: 'exact' }) => {
-          if (options?.count === 'exact') {
-            return { order: orderMock, or: orMock }
-          }
-          return {
-            eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
-            maybeSingle: maybeSingleMock,
-          }
-        }),
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
+          maybeSingle: maybeSingleMock,
+        })),
         update: vi.fn(() => ({
           eq: vi.fn((_col: string, val: string) => {
             capturedId = val
@@ -231,6 +226,7 @@ describe('updateUser', () => {
           }),
         })),
       })),
+      auth: { admin: { deleteUser: deleteUserMock } },
     } as never)
     const { updateUser } = await loadUsersModules()
 
@@ -249,11 +245,26 @@ describe('updateUser', () => {
     })
   })
 
+  it('throws 400 when memberNumber exceeds 20 characters', async () => {
+    const { updateUser } = await loadUsersModules()
+
+    await expect(updateUser('1', { memberNumber: 'A'.repeat(21) })).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 400,
+    })
+  })
+
+  it('accepts memberNumber of exactly 20 characters', async () => {
+    const { updateUser } = await loadUsersModules()
+
+    await expect(updateUser('1', { memberNumber: 'A'.repeat(20) })).resolves.toBeDefined()
+  })
+
   it('accepts is_active boolean and includes it in the update', async () => {
     let capturedUpdates: Record<string, unknown> | undefined
     vi.mocked(
-      (await import('@/lib/supabase/server')).createSupabaseServerClient
-    ).mockResolvedValue({
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
       from: vi.fn(() => ({
         select: vi.fn(() => ({
           eq: vi.fn(() => ({ maybeSingle: maybeSingleMock })),
@@ -270,6 +281,7 @@ describe('updateUser', () => {
           }
         }),
       })),
+      auth: { admin: { deleteUser: deleteUserMock } },
     } as never)
     const { updateUser } = await loadUsersModules()
 

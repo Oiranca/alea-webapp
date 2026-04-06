@@ -232,6 +232,11 @@ export async function createTableEntry(
     .maybeSingle()
 
   if (error) {
+    const pgError = error as { code?: string }
+    if (pgError.code === '23503') {
+      // Foreign-key violation: the provided roomId does not reference an existing room.
+      serviceError('Invalid room ID', 400)
+    }
     serviceError('Internal server error', 500)
   }
   if (!data) {

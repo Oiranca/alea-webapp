@@ -1,5 +1,4 @@
-ALTER TABLE public.profiles
-  ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active'
-  CHECK (status IN ('active', 'suspended'));
-
-COMMENT ON COLUMN public.profiles.status IS 'active | suspended — managed by admin';
+-- This migration was superseded by 20260406000001_profiles_is_active.sql before it was applied.
+-- The intermediate `status TEXT` column was never deployed to production.
+-- The canonical column added to profiles is `is_active BOOLEAN` (see next migration).
+-- This file is intentionally a no-op to preserve the migration sequence.

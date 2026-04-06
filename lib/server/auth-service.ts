@@ -10,7 +10,7 @@ type AuthCredentialRow = Pick<ProfileRow, 'id' | 'member_number' | 'email' | 'ro
 const PUBLIC_PROFILE_COLUMNS = 'id, member_number, role, is_active, created_at, updated_at' as const
 
 // Auth-only columns: email is needed solely to resolve Supabase Auth credentials.
-// It is not part of the application profile model (issue #39).
+// It is not part of the public user model (issue #39) but IS included for admin-facing user data.
 const AUTH_CREDENTIAL_COLUMNS = 'id, member_number, email, role, is_active, created_at, updated_at' as const
 
 type PublicProfileLookupColumn = 'id' | 'member_number'
@@ -134,7 +134,7 @@ export async function login(
 
   if (credentialProfile.is_active === false) {
     // Suspended users cannot sign in.
-    serviceError('Tu cuenta está suspendida. Ponte en contacto con el administrador para reactivarla.', 403)
+    serviceError('Your account is suspended. Contact an administrator to reactivate it.', 403)
   }
 
   const supabase = client ?? await createSupabaseServerClient()

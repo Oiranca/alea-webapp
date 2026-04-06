@@ -153,7 +153,7 @@ The admin dashboard is located at `/{locale}/admin`. Access is restricted to aut
 
 ### User Status
 
-The `profiles` table now includes a `status` column (`TEXT NOT NULL DEFAULT 'active'`, `CHECK (status IN ('active', 'suspended'))`). Suspended users cannot log in. Status changes are managed through the admin dashboard.
+The `profiles` table includes an `is_active` column (`BOOLEAN NOT NULL DEFAULT true`). When `is_active` is `false` the user is considered suspended and cannot log in. Status changes are managed through the admin dashboard.
 
 ### Supabase Admin Client
 
@@ -163,7 +163,7 @@ All admin write operations (user creation, deletion, status changes, etc.) use t
 
 ## Data Model (key entities)
 
-- **User** (maps to `profiles` table) — `id`, `memberNumber`, `role` (`admin` | `member`), `status` (`active` | `suspended`), `createdAt`, `updatedAt`. Suspended users cannot log in. The `email` column is intentionally absent from the application profile model in v1 (issue #39 — Stitch UI redesign). The column is retained in the database as nullable to allow re-introduction in a future milestone without a breaking migration. Supabase Auth continues to own the canonical email in `auth.users`.
+- **User** (maps to `profiles` table) — `id`, `memberNumber`, `role` (`admin` | `member`), `isActive` (`boolean`), `createdAt`, `updatedAt`. Suspended users (`isActive = false`) cannot log in. The `email` field is not part of the public user model (issue #39) but is included in admin-facing user data to display and manage members. Supabase Auth continues to own the canonical email in `auth.users`; the `profiles.email` column mirrors it for admin reads.
 - **Room** — `id`, `name`, `tableCount`, `description`, `createdAt`
 - **GameTable** (maps to `tables` table) — `id`, `roomId`, `name`, `type` (`small` | `large` | `removable_top`), `qrCode`, `posX`, `posY` (two separate nullable integer columns)
 - **Reservation** — `id`, `tableId`, `userId`, `date`, `startTime`, `endTime`, `status` (`active` | `cancelled` | `completed`), `surface` (`top` | `bottom` | null)

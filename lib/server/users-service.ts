@@ -105,7 +105,13 @@ export async function listPaginatedUsers(input: {
 
 export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown; is_active?: unknown }) {
   const updates: TablesUpdate<'profiles'> = {}
-  if (body.memberNumber) updates.member_number = String(body.memberNumber)
+  if (body.memberNumber) {
+    const memberNumber = String(body.memberNumber)
+    if (memberNumber.length > 20) {
+      serviceError('memberNumber must be at most 20 characters', 400)
+    }
+    updates.member_number = memberNumber
+  }
   if (body.role === 'admin' || body.role === 'member') updates.role = body.role
   if (typeof body.is_active === 'boolean') updates.is_active = body.is_active
 
@@ -113,7 +119,7 @@ export async function updateUser(id: string, body: { memberNumber?: unknown; rol
     serviceError('No updatable fields provided', 400)
   }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const profiles = supabase.from('profiles') as unknown as ProfilesTableClient
   const { data, error } = await profiles
     .update(updates)
