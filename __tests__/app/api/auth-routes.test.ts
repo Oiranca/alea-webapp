@@ -10,6 +10,7 @@ const getCurrentUserMock = vi.fn()
 const exchangeCodeForSessionMock = vi.fn()
 const routeGetUserMock = vi.fn()
 const routeProfileMaybeSingleMock = vi.fn()
+const routeSignInWithPasswordMock = vi.fn()
 
 vi.mock('@/lib/server/auth-service', () => ({
   login: loginMock,
@@ -24,6 +25,7 @@ vi.mock('@/lib/supabase/server', () => ({
       auth: {
         exchangeCodeForSession: exchangeCodeForSessionMock,
         getUser: routeGetUserMock,
+        signInWithPassword: routeSignInWithPasswordMock,
       },
       from: vi.fn(() => ({
         select: vi.fn(() => ({
@@ -117,6 +119,7 @@ describe('auth API routes', () => {
       updatedAt: '2024-01-01T00:00:00.000Z',
     })
     exchangeCodeForSessionMock.mockResolvedValue({ data: {}, error: null })
+    routeSignInWithPasswordMock.mockResolvedValue({ data: { user: { id: 'new-user-id' } }, error: null })
   })
 
   it('logs in and returns the public user payload with Supabase session cookies', async () => {
@@ -239,7 +242,7 @@ describe('auth API routes', () => {
     expect(blocked.headers.get('retry-after')).toBeTruthy()
   })
 
-  it('registers a new user and returns 201 with the public user payload', async () => {
+  it('registers a new user and returns 201 with the public user payload and session cookie', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
 
     const response = await POST(
@@ -256,6 +259,10 @@ describe('auth API routes', () => {
       role: 'member',
     })
     expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
+    // The route must pass the session-scoped supabase client as the second argument
+    // so register() can call signInWithPassword and establish a session.
+    const [, sessionClientArg] = registerMock.mock.calls[0]
+    expect(typeof sessionClientArg?.auth?.signInWithPassword).toBe('function')
   })
 
   it('returns 409 when the member number is already registered', async () => {
