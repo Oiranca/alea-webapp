@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Local CI — runs before every git push (via .git/hooks/pre-push)
+# Local CI — runs before git push only if the pre-push hook was installed (for example via `pnpm hooks:install`)
 # Skip with: git push --no-verify
 
 set -euo pipefail
