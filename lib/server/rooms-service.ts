@@ -31,6 +31,13 @@ type TablesByRoomClient = {
     }
   }
 }
+type TablesInsertClient = {
+  insert: (values: TablesInsert<'tables'>) => {
+    select: (columns: string) => {
+      maybeSingle: () => Promise<{ data: TableRow | null; error: unknown }>
+    }
+  }
+}
 type ReservationsByTableClient = {
   select: (columns: string) => {
     eq: (column: 'date', value: string) => {
@@ -193,4 +200,43 @@ export async function getRoomTablesAvailability(roomId: string, date?: string | 
     acc[table.id] = buildAvailability(table, effectiveDate, reservationsByTable.get(table.id) ?? [])
     return acc
   }, {})
+}
+
+export async function createTableEntry(
+  roomId: string,
+  body: { name?: unknown; type?: unknown },
+) {
+  const name = String(body.name ?? '').trim()
+  if (!name) {
+    serviceError('Table name is required', 400)
+  }
+
+  const rawType = String(body.type ?? 'small')
+  const validTypes = ['small', 'large', 'removable_top'] as const
+  type ValidType = typeof validTypes[number]
+  if (!validTypes.includes(rawType as ValidType)) {
+    serviceError('Invalid table type. Must be small, large, or removable_top', 400)
+  }
+  const type = rawType as ValidType
+
+  const supabase = await createSupabaseServerClient()
+  const insert: TablesInsert<'tables'> = {
+    room_id: roomId,
+    name,
+    type,
+  }
+  const tables = supabase.from('tables') as unknown as TablesInsertClient
+  const { data, error } = await tables
+    .insert(insert)
+    .select(TABLE_COLUMNS)
+    .maybeSingle()
+
+  if (error) {
+    serviceError('Internal server error', 500)
+  }
+  if (!data) {
+    serviceError('Internal server error', 500)
+  }
+
+  return toGameTable(data as TableRow)
 }
