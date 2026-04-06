@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { User } from '@/lib/types'
 
 interface UsersSectionProps {
-  users: User[]
+  users?: User[]
   onUpdateUser?: (id: string, payload: { role?: 'member' | 'admin'; is_active?: boolean }) => Promise<void>
   onDeleteUser?: (id: string) => Promise<void>
 }
@@ -13,13 +13,13 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   if (isActive) {
     return (
       <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-        Activo
+        Activa
       </span>
     )
   }
   return (
     <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800">
-      Suspendido
+      Suspendida
     </span>
   )
 }
@@ -55,13 +55,13 @@ function ActiveToggle({ isActive, onChange, disabled }: ActiveToggleProps) {
         />
       </div>
       <span className="text-sm text-muted-foreground">
-        {isActive ? 'Activo' : 'Suspendido'}
+        {isActive ? 'Activa' : 'Suspendida'}
       </span>
     </label>
   )
 }
 
-export function UsersSection({ users, onUpdateUser, onDeleteUser }: UsersSectionProps) {
+export function UsersSection({ users = [], onUpdateUser, onDeleteUser }: UsersSectionProps) {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [editRole, setEditRole] = useState<'member' | 'admin'>('member')
   const [editIsActive, setEditIsActive] = useState<boolean>(true)
@@ -98,7 +98,7 @@ export function UsersSection({ users, onUpdateUser, onDeleteUser }: UsersSection
           <tr className="border-b text-left text-muted-foreground">
             <th className="pb-2 pr-4 font-medium">Socio</th>
             <th className="pb-2 pr-4 font-medium">Rol</th>
-            <th className="pb-2 pr-4 font-medium">Estado</th>
+            <th className="pb-2 pr-4 font-medium">Estado de cuenta</th>
             <th className="pb-2 font-medium">Acciones</th>
           </tr>
         </thead>
@@ -153,7 +153,7 @@ export function UsersSection({ users, onUpdateUser, onDeleteUser }: UsersSection
             </div>
 
             <div className="mb-6 space-y-2">
-              <label className="block text-sm font-medium">Estado</label>
+              <label className="block text-sm font-medium">Estado de cuenta</label>
               <ActiveToggle
                 isActive={editIsActive}
                 onChange={setEditIsActive}

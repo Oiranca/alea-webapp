@@ -78,7 +78,7 @@
     "deleteUserConfirm": "Estas seguro de que deseas eliminar este usuario? Esta accion no se puede deshacer.",
     "role": "Rol", "member": "Socio", "admin": "Administrador", "joinDate": "Fecha de registro",
     "searchUsers": "Buscar usuarios...", "noUsers": "No se encontraron usuarios",
-    "status": "Estado", "active": "Activo", "suspended": "Suspendido",
+    "status": "Estado de cuenta", "active": "Activa", "suspended": "Suspendida",
     "memberNumber": "Numero de Socio", "editUserTitle": "Editar Usuario"
   },
   "home": {

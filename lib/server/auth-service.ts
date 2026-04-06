@@ -134,7 +134,7 @@ export async function login(
 
   if (credentialProfile.is_active === false) {
     // Suspended users cannot sign in.
-    serviceError('Account suspended', 403)
+    serviceError('Tu cuenta está suspendida. Ponte en contacto con el administrador para reactivarla.', 403)
   }
 
   const supabase = client ?? await createSupabaseServerClient()
