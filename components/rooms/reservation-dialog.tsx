@@ -40,7 +40,14 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   )
   const createReservation = useCreateReservation()
 
-  const timeSlots = generateTimeSlots('09:00', '22:00', 60)
+  const allTimeSlots = generateTimeSlots('09:00', '22:00', 60)
+  const timeSlots = selectedDate === today
+    ? allTimeSlots.filter((slot) => {
+        const now = new Date()
+        const [slotH, slotM] = slot.split(':').map(Number)
+        return slotH * 60 + slotM > now.getHours() * 60 + now.getMinutes()
+      })
+    : allTimeSlots
 
   function isSlotAvailable(time: string, surface?: TableSurface): boolean {
     if (!availability) return true
@@ -226,7 +233,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                                 isInRange && 'bg-primary/20 border-primary/40',
                                 !isStart && !isEnd && !isInRange && 'border-emerald/40 bg-emerald-dark/20 text-emerald-light'
                               )
-                            : 'border border-crimson/40 bg-crimson-dark/20 text-crimson-light/60 cursor-not-allowed line-through'
+                            : 'border border-crimson/40 bg-crimson-dark/30 text-destructive/70 cursor-not-allowed line-through'
                         )}
                         aria-label={`${time} — ${available ? 'disponible' : 'ocupado'}`}
                         aria-pressed={isStart || isEnd || !!isInRange}
@@ -253,7 +260,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
           )}
 
           {error && (
-            <div role="alert" className="rounded-md bg-destructive/15 border border-destructive/30 px-3 py-2 text-sm text-destructive-foreground">
+            <div role="alert" className="rounded-md bg-destructive/15 border border-destructive/30 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}

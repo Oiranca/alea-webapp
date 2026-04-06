@@ -156,12 +156,25 @@ describe('updateRoom', () => {
     })
   })
 
-  it('throws ServiceError with status 400 when tableCount is defined', async () => {
+  it('succeeds when tableCount is a valid non-negative integer', async () => {
+    maybeSingleMock.mockResolvedValue({
+      data: { id: '1', name: 'Sala Mirkwood', table_count: 5, description: 'Sala principal' },
+      error: null,
+    })
+    const { updateRoom } = await loadRoomsModules()
+
+    const updated = await updateRoom('1', { tableCount: 5 })
+
+    expect(updated).not.toBeNull()
+    expect(updated?.tableCount).toBe(5)
+  })
+
+  it('throws ServiceError with status 400 when tableCount is not a non-negative integer', async () => {
     const { updateRoom } = await loadRoomsModules()
 
     let caught: ServiceError | undefined
     try {
-      await updateRoom('1', { tableCount: 5 })
+      await updateRoom('1', { tableCount: -1 })
     } catch (err) {
       caught = err as ServiceError
     }

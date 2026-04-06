@@ -34,11 +34,9 @@ export function ReservationsSection() {
     completed: 'outline',
   }
 
-  const sorted = [...(reservations ?? [])].sort((a, b) => {
-    if (a.status === 'active' && b.status !== 'active') return -1
-    if (a.status !== 'active' && b.status === 'active') return 1
-    return a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
-  })
+  const sorted = [...(reservations ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
+  )
 
   return (
     <section aria-labelledby="reservations-heading" className="space-y-5">
@@ -111,12 +109,14 @@ export function ReservationsSection() {
                 >
                   <td className="px-4 py-3.5">
                     <span className="font-mono text-xs text-foreground font-medium">
-                      #{r.userId.slice(0, 8)}
+                      {r.memberNumber ? `#${r.memberNumber}` : `#${r.userId.slice(0, 8)}`}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 hidden md:table-cell">
-                    <span className="font-mono text-xs text-muted-foreground">
-                      {r.tableId.slice(0, 8)}&hellip;
+                    <span className="text-xs text-muted-foreground">
+                      {r.roomName && r.tableName
+                        ? `${r.roomName} · ${r.tableName}`
+                        : r.tableId.slice(0, 8) + '\u2026'}
                     </span>
                   </td>
                   <td className="px-4 py-3.5">
