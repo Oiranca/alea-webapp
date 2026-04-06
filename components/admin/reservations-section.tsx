@@ -141,7 +141,7 @@ export function ReservationsSection() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="border-crimson/30 text-crimson-light bg-crimson-dark/10 hover:bg-crimson-dark/30 hover:border-crimson/60 transition-colors opacity-70 group-hover:opacity-100"
+                        className="border-crimson/30 text-destructive bg-crimson-dark/10 hover:bg-crimson-dark/30 hover:border-crimson/60 transition-colors opacity-70 group-hover:opacity-100"
                         onClick={() => setCancelingId(r.id)}
                       >
                         <Ban className="h-3 w-3 mr-1" aria-hidden="true" />
@@ -164,7 +164,7 @@ export function ReservationsSection() {
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
               <div className="flex items-center justify-center w-10 h-10 rounded-full bg-crimson-dark/20 border border-crimson/30">
-                <Ban className="h-5 w-5 text-crimson-light" aria-hidden="true" />
+                <Ban className="h-5 w-5 text-destructive" aria-hidden="true" />
               </div>
               <DialogTitle className="font-cinzel text-foreground">{t('cancelReservation')}</DialogTitle>
             </div>

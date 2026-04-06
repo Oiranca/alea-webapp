@@ -242,7 +242,14 @@ export async function listVisibleReservations(input: {
     serviceError('Internal server error', 500)
   }
 
-  return (data ?? []).map(mapEnrichedReservation)
+  const isAdmin = input.session.role === 'admin'
+  return (data ?? []).map((row) => {
+    const reservation = mapEnrichedReservation(row)
+    if (!isAdmin) {
+      reservation.memberNumber = undefined
+    }
+    return reservation
+  })
 }
 
 export async function createReservationForSession(
