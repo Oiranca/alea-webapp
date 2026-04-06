@@ -110,18 +110,12 @@ export function ReservationsSection() {
                   className={`hover:bg-primary/5 transition-colors group ${idx % 2 === 0 ? '' : 'bg-background-secondary/30'}`}
                 >
                   <td className="px-4 py-3.5">
-                    <span
-                      className="font-mono text-xs text-foreground font-medium"
-                      title={r.userId}
-                    >
+                    <span className="font-mono text-xs text-foreground font-medium">
                       #{r.userId.slice(0, 8)}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 hidden md:table-cell">
-                    <span
-                      className="font-mono text-xs text-muted-foreground"
-                      title={r.tableId}
-                    >
+                    <span className="font-mono text-xs text-muted-foreground">
                       {r.tableId.slice(0, 8)}&hellip;
                     </span>
                   </td>

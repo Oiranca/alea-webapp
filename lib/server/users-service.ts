@@ -101,7 +101,13 @@ export async function listPaginatedUsers(input: {
 
 export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown }) {
   const updates: TablesUpdate<'profiles'> = {}
-  if (body.memberNumber) updates.member_number = String(body.memberNumber)
+  if (body.memberNumber) {
+    const memberNumberStr = String(body.memberNumber)
+    if (memberNumberStr.length > 20) {
+      serviceError('memberNumber must be 20 characters or fewer', 400)
+    }
+    updates.member_number = memberNumberStr
+  }
   if (body.role === 'admin' || body.role === 'member') updates.role = body.role
 
   if (Object.keys(updates).length === 0) {
