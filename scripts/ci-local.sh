@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# Local CI — runs before every git push (via .git/hooks/pre-push)
+# Skip with: git push --no-verify
+
+set -euo pipefail
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+pass() { echo -e "${GREEN}✓${NC} $1"; }
+fail() { echo -e "${RED}✗${NC} $1"; exit 1; }
+step() { echo -e "\n${YELLOW}▶${NC} $1"; }
+
+echo -e "\n${YELLOW}━━━ CI local — Alea Webapp ━━━${NC}"
+
+step "Typecheck"
+pnpm typecheck && pass "typecheck" || fail "typecheck falló"
+
+step "Lint"
+pnpm lint && pass "lint" || fail "lint falló"
+
+step "Tests unitarios"
+pnpm test && pass "tests" || fail "tests fallaron"
+
+step "Build"
+pnpm build && pass "build" || fail "build falló"
+
+echo -e "\n${GREEN}━━━ CI local pasado ✓ ━━━${NC}\n"
