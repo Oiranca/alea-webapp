@@ -112,7 +112,7 @@ export async function createRoomEntry(body: { name?: unknown; tableCount?: unkno
     serviceError('tableCount must be a non-negative integer', 400)
   }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const insert: TablesInsert<'rooms'> = {
     name,
     table_count: tableCount,
@@ -139,7 +139,7 @@ export async function updateRoom(id: string, body: { name?: unknown; description
     serviceError('Updating tableCount is not supported', 400)
   }
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const updates: TablesUpdate<'rooms'> = {
     name: body.name ? String(body.name) : undefined,
     description:
@@ -219,7 +219,7 @@ export async function createTableEntry(
   }
   const type = rawType as ValidType
 
-  const supabase = await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const insert: TablesInsert<'tables'> = {
     room_id: roomId,
     name,
