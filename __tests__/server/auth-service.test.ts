@@ -19,6 +19,8 @@ const adminState = {
 const signInWithPassword = vi.fn()
 const signOut = vi.fn()
 const sessionScopedProfileMaybeSingle = vi.fn()
+const adminCreateUser = vi.fn()
+const adminInsertProfile = vi.fn()
 
 function makeProfile(overrides?: Partial<ProfileRow>): ProfileRow {
   return {
@@ -56,7 +58,7 @@ vi.mock('@/lib/supabase/server', () => ({
   createSupabaseServerAdminClient: vi.fn(() => ({
     auth: {
       admin: {
-        createUser: vi.fn(),
+        createUser: adminCreateUser,
         deleteUser: vi.fn(),
       },
     },
@@ -75,6 +77,11 @@ vi.mock('@/lib/supabase/server', () => ({
             }
             return { data: null, error: null }
           }),
+        })),
+      })),
+      insert: vi.fn(() => ({
+        select: vi.fn(() => ({
+          maybeSingle: adminInsertProfile,
         })),
       })),
       update: vi.fn(),
@@ -100,6 +107,18 @@ describe('auth service', () => {
     })
     signOut.mockResolvedValue({ error: null })
     sessionScopedProfileMaybeSingle.mockReset()
+    adminCreateUser.mockResolvedValue({ data: { user: { id: 'new-user-id' } }, error: null })
+    adminInsertProfile.mockResolvedValue({
+      data: {
+        id: 'new-user-id',
+        member_number: '100099',
+        role: 'member',
+        is_active: true,
+        created_at: '2024-01-01T00:00:00.000Z',
+        updated_at: '2024-01-01T00:00:00.000Z',
+      },
+      error: null,
+    })
 
     const admin = makeProfile()
     const member = makeProfile({
@@ -203,21 +222,76 @@ describe('auth service', () => {
   })
 
   describe('register', () => {
-    it('returns 403 immediately regardless of input payload shape', async () => {
+    it('creates a Supabase Auth user and profile row, then returns the public user', async () => {
       const { register } = await loadService()
 
-      await expect(register({ memberNumber: '100099', password: 'Password1234!@#' })).rejects.toMatchObject({
-        name: 'ServiceError',
-        statusCode: 403,
+      const result = await register({ memberNumber: '100099', password: 'Password1234!@#' })
+
+      expect(adminCreateUser).toHaveBeenCalledWith({
+        email: '100099@members.alea.internal',
+        password: 'Password1234!@#',
+        email_confirm: true,
+      })
+      expect(result).toMatchObject({
+        id: 'new-user-id',
+        memberNumber: '100099',
+        role: 'member',
+        isActive: true,
       })
     })
 
-    it('returns 403 even when called with no fields at all', async () => {
+    it('rejects with 409 when the member number is already taken', async () => {
       const { register } = await loadService()
 
-      await expect(register({})).rejects.toMatchObject({
+      // member number '100001' is already in adminState
+      await expect(register({ memberNumber: '100001', password: 'Password1234!@#' })).rejects.toMatchObject({
         name: 'ServiceError',
-        statusCode: 403,
+        statusCode: 409,
+      })
+      expect(adminCreateUser).not.toHaveBeenCalled()
+    })
+
+    it('rejects with 400 when member number is missing', async () => {
+      const { register } = await loadService()
+
+      await expect(register({ password: 'Password1234!@#' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
+
+    it('rejects with 400 when password is missing', async () => {
+      const { register } = await loadService()
+
+      await expect(register({ memberNumber: '100099' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+      })
+    })
+
+    it('rejects with 500 when Supabase Auth user creation fails', async () => {
+      const { register } = await loadService()
+      adminCreateUser.mockResolvedValueOnce({
+        data: { user: null },
+        error: { message: 'Auth creation failed' },
+      })
+
+      await expect(register({ memberNumber: '100099', password: 'Password1234!@#' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 500,
+      })
+    })
+
+    it('rejects with 500 when the profile insert fails', async () => {
+      const { register } = await loadService()
+      adminInsertProfile.mockResolvedValueOnce({
+        data: null,
+        error: { message: 'insert failed' },
+      })
+
+      await expect(register({ memberNumber: '100099', password: 'Password1234!@#' })).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 500,
       })
     })
   })

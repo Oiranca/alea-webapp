@@ -95,10 +95,13 @@ describe('auth API routes', () => {
       createdAt: '2024-01-01T00:00:00.000Z',
       updatedAt: '2024-01-01T00:00:00.000Z',
     })
-    registerMock.mockRejectedValue({
-      name: 'ServiceError',
-      message: 'Registration is currently unavailable',
-      statusCode: 403,
+    registerMock.mockResolvedValue({
+      id: 'new-user-id',
+      memberNumber: '100099',
+      role: 'member',
+      isActive: true,
+      createdAt: '2024-01-01T00:00:00.000Z',
+      updatedAt: '2024-01-01T00:00:00.000Z',
     })
     logoutWithClientMock.mockResolvedValue({ success: true })
     routeGetUserMock.mockResolvedValue({ data: { user: { id: 'user-2' } }, error: null })
@@ -236,20 +239,39 @@ describe('auth API routes', () => {
     expect(blocked.headers.get('retry-after')).toBeTruthy()
   })
 
-  it('returns a generic 403 when public registration is unavailable', async () => {
+  it('registers a new user and returns 201 with the public user payload', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
-    const { ServiceError } = await import('@/lib/server/service-error')
-    registerMock.mockRejectedValueOnce(new ServiceError('Registration is currently unavailable', 403))
 
     const response = await POST(
       createJsonRequest('/api/auth/register', {
-        memberNumber: '100123',
+        memberNumber: '100099',
         password: 'Password1234!@#',
       }),
     )
 
-    expect(response.status).toBe(403)
-    await expect(response.json()).resolves.toMatchObject({ statusCode: 403 })
+    expect(response.status).toBe(201)
+    await expect(response.json()).resolves.toMatchObject({
+      id: 'new-user-id',
+      memberNumber: '100099',
+      role: 'member',
+    })
+    expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
+  })
+
+  it('returns 409 when the member number is already registered', async () => {
+    const { POST } = await import('@/app/api/auth/register/route')
+    const { ServiceError } = await import('@/lib/server/service-error')
+    registerMock.mockRejectedValueOnce(new ServiceError('This member number is already registered', 409))
+
+    const response = await POST(
+      createJsonRequest('/api/auth/register', {
+        memberNumber: '100001',
+        password: 'Password1234!@#',
+      }),
+    )
+
+    expect(response.status).toBe(409)
+    await expect(response.json()).resolves.toMatchObject({ statusCode: 409 })
   })
 
   it('reads the session from /me after login and signs out through the auth routes', async () => {
