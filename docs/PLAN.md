@@ -73,6 +73,8 @@
 **Branch:** `feat/qa-next-api-gates`
 **Status:** Done. CI expanded with auth coverage thresholds, Supabase local validation, Semgrep, and production dependency audit. Next.js upgraded to `15.5.14` to clear the current production advisories identified by `pnpm audit`.
 
+**Current usage note:** core developer checks also run locally through the `pre-push` hook installed with `pnpm hooks:install`, but the extra gates from the previous GitHub Actions pipeline are not replaced by the hook.
+
 **Deliverables completed:**
 - CI job matrix for `lint`, `typecheck`, `test`, `build`
 - Auth-critical coverage thresholds enforced in Vitest
