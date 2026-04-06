@@ -7,7 +7,8 @@
     "status": "Status", "date": "Date", "time": "Time", "name": "Name",
     "email": "Email", "page": "Page", "of": "of", "previous": "Previous",
     "next": "Next", "showing": "Showing", "results": "results",
-    "noResults": "No results found"
+    "noResults": "No results found",
+    "clear": "Clear", "clearSearch": "Clear search"
   },
   "nav": {
     "rooms": "Rooms", "reservations": "My Reservations",
@@ -69,7 +70,8 @@
     }
   },
   "admin": {
-    "dashboard": "Admin Dashboard", "users": "Users", "rooms": "Rooms",
+    "dashboard": "Admin Dashboard", "dashboardSubtitle": "Manage users, reservations, and rooms",
+    "users": "Users", "rooms": "Rooms",
     "tables": "Tables", "reservations": "Reservations", "totalUsers": "Total users",
     "todayReservations": "Today's reservations", "occupancyRate": "Occupancy rate",
     "activeRooms": "Active rooms", "userManagement": "User management",

@@ -7,7 +7,8 @@
     "status": "Estado", "date": "Fecha", "time": "Hora", "name": "Nombre",
     "email": "Email", "page": "Pagina", "of": "de", "previous": "Anterior",
     "next": "Siguiente", "showing": "Mostrando", "results": "resultados",
-    "noResults": "No se encontraron resultados"
+    "noResults": "No se encontraron resultados",
+    "clear": "Limpiar", "clearSearch": "Limpiar busqueda"
   },
   "nav": {
     "rooms": "Salas", "reservations": "Mis Reservas",
@@ -69,7 +70,8 @@
     }
   },
   "admin": {
-    "dashboard": "Panel de Administracion", "users": "Usuarios", "rooms": "Salas",
+    "dashboard": "Panel de Administracion", "dashboardSubtitle": "Gestiona usuarios, reservas y salas",
+    "users": "Usuarios", "rooms": "Salas",
     "tables": "Mesas", "reservations": "Reservas", "totalUsers": "Total usuarios",
     "todayReservations": "Reservas hoy", "occupancyRate": "Ocupacion", "activeRooms": "Salas activas",
     "userManagement": "Gestion de usuarios", "roomManagement": "Gestion de salas",
