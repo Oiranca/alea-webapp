@@ -164,7 +164,7 @@ export async function register(
 ): Promise<User> {
   const parsed = registerServerSchema.safeParse(input)
   if (!parsed.success) {
-    serviceError(parsed.error.errors[0]?.message ?? 'Invalid input', 400)
+    serviceError('Invalid registration details', 400)
   }
 
   const { memberNumber, password } = parsed.data
