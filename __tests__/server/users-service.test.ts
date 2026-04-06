@@ -6,6 +6,12 @@ const orderMock = vi.fn()
 const orMock = vi.fn()
 const deleteUserMock = vi.fn()
 let capturedOrFilter: string | undefined
+const eqMock = vi.fn()
+const listQuery = {
+  order: orderMock,
+  or: orMock,
+  eq: eqMock,
+}
 
 const profileRows = [
   {
@@ -34,8 +40,10 @@ function resetQueryMocks() {
   orderMock.mockReset()
   orMock.mockReset()
   deleteUserMock.mockReset()
+  eqMock.mockReset()
 
   capturedOrFilter = undefined
+  eqMock.mockImplementation(() => listQuery)
   orMock.mockImplementation((filter: string) => {
     capturedOrFilter = filter
     const match = filter.match(/ilike\.%(.+)%/)
@@ -60,11 +68,6 @@ vi.mock('@/lib/supabase/server', () => ({
     from: vi.fn(() => ({
       select: vi.fn((columns: string, options?: { count?: 'exact' }) => {
         if (options?.count === 'exact') {
-          const listQuery = {
-            order: orderMock,
-            or: orMock,
-            eq: vi.fn(() => listQuery),
-          }
           return listQuery
         }
         return {
@@ -191,6 +194,14 @@ describe('listPaginatedUsers', () => {
     const withEmpty = await listPaginatedUsers({ page: 1, limit: 100, search: '' })
 
     expect(withEmpty.total).toBe(all.total)
+  })
+
+  it('does not filter out suspended users from the admin listing', async () => {
+    const { listPaginatedUsers } = await loadUsersModules()
+
+    await listPaginatedUsers({ page: 1, limit: 10 })
+
+    expect(eqMock).not.toHaveBeenCalledWith('is_active', true)
   })
 })
 

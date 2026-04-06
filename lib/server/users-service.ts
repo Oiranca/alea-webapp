@@ -74,9 +74,7 @@ export async function listPaginatedUsers(input: {
   const search = input.search?.trim() ?? ''
   const supabase = await createSupabaseServerClient()
   const profiles = supabase.from('profiles') as unknown as ProfilesTableClient
-  let query = profiles
-    .select(PROFILE_COLUMNS, { count: 'exact' })
-    .eq('is_active', true)
+  let query = profiles.select(PROFILE_COLUMNS, { count: 'exact' })
 
   if (search) {
     const sanitized = sanitizeSearchTerm(search)

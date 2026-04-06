@@ -77,7 +77,7 @@ function RoomTablesPanel({ room }: { room: Room }) {
                 <span className="text-sm font-medium text-foreground">{table.name}</span>
               </div>
               <Badge variant={tableTypeBadge[table.type] ?? 'outline'} className="text-xs">
-                {table.type.replace('_', ' ')}
+                {tt(table.type)}
               </Badge>
             </div>
           ))}
