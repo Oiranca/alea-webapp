@@ -16,6 +16,7 @@ step() { echo -e "\n${YELLOW}▶${NC} $1"; }
 echo -e "\n${YELLOW}━━━ CI local — Alea Webapp ━━━${NC}"
 
 step "Typecheck"
+rm -rf .next/types .next/cache/.tsbuildinfo
 pnpm typecheck && pass "typecheck" || fail "typecheck falló"
 
 step "Lint"
