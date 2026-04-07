@@ -117,7 +117,12 @@ export function RegisterForm({ locale }: RegisterFormProps) {
         disabled={isSubmitting || !allPasswordChecksPassed}
       >
         {isSubmitting
-          ? <><DiceLoader size="sm" className="mr-2" />{t('register')}...</>
+          ? (
+            <span className="inline-flex items-center gap-2">
+              <DiceLoader size="sm" />
+              <span>{t('register')}...</span>
+            </span>
+          )
           : t('register')}
       </Button>
     </form>

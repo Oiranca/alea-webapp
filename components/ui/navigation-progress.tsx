@@ -8,26 +8,27 @@ function NavigationProgressBar() {
   const searchParams = useSearchParams()
   const [width, setWidth] = useState(0)
   const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef = useRef<Array<ReturnType<typeof setTimeout>>>([])
 
   useEffect(() => {
     // Start progress animation
     setVisible(true)
     setWidth(0)
 
-    const t1 = setTimeout(() => setWidth(80), 50)
-    const t2 = setTimeout(() => {
-      setWidth(100)
-    }, 450)
-    const t3 = setTimeout(() => {
-      setVisible(false)
-      setWidth(0)
-    }, 700)
+    timerRef.current = [
+      setTimeout(() => setWidth(80), 50),
+      setTimeout(() => {
+        setWidth(100)
+      }, 450),
+      setTimeout(() => {
+        setVisible(false)
+        setWidth(0)
+      }, 700),
+    ]
 
     return () => {
-      clearTimeout(t1)
-      clearTimeout(t2)
-      clearTimeout(t3)
+      timerRef.current.forEach((timer) => clearTimeout(timer))
+      timerRef.current = []
     }
   }, [pathname, searchParams])
 

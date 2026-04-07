@@ -95,7 +95,12 @@ export function LoginForm({ locale }: LoginFormProps) {
 
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting
-            ? <><DiceLoader size="sm" />{t('login')}...</>
+            ? (
+              <span className="inline-flex items-center gap-2">
+                <DiceLoader size="sm" />
+                <span>{t('login')}...</span>
+              </span>
+            )
             : t('login')}
         </Button>
       </form>

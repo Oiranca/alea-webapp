@@ -285,7 +285,12 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
             }
           >
             {createReservation.isPending
-              ? <><DiceLoader size="sm" />Reservando...</>
+              ? (
+                <span className="inline-flex items-center gap-2">
+                  <DiceLoader size="sm" />
+                  <span>Reservando...</span>
+                </span>
+              )
               : t('makeReservation')}
           </Button>
         </DialogFooter>
