@@ -12,7 +12,9 @@
   },
   "nav": {
     "rooms": "Salas", "reservations": "Mis Reservas",
-    "admin": "Administracion", "logout": "Cerrar Sesion", "profile": "Mi Perfil"
+    "admin": "Administracion", "logout": "Cerrar Sesion", "profile": "Mi Perfil",
+    "mainNavAriaLabel": "Navegación principal",
+    "mobileNavAriaLabel": "Navegación móvil"
   },
   "auth": {
     "login": "Iniciar Sesión", "register": "Registrarse", "logout": "Cerrar sesión",

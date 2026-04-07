@@ -26,7 +26,7 @@ export function Header({ locale }: HeaderProps) {
           <span className="font-cinzel text-xl font-bold text-gradient-gold">ALEA</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6" aria-label="Navegacion principal">
+        <nav className="hidden md:flex items-center gap-6" aria-label={t('nav.mainNavAriaLabel')}>
           {isAuthenticated && (
             <>
               <Link href={`/${locale}/rooms`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1">
@@ -77,7 +77,7 @@ export function Header({ locale }: HeaderProps) {
       </div>
 
       {mobileMenuOpen && isAuthenticated && (
-        <nav id="mobile-menu" className="md:hidden border-t border-border bg-background/95 px-4 py-3 space-y-2" aria-label="Navegacion movil">
+        <nav id="mobile-menu" className="md:hidden border-t border-border bg-background/95 px-4 py-3 space-y-2" aria-label={t('nav.mobileNavAriaLabel')}>
           <Link href={`/${locale}/rooms`} className="block py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>{t('nav.rooms')}</Link>
           <Link href={`/${locale}/reservations`} className="block py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>{t('nav.reservations')}</Link>
           {user?.role === 'admin' && (

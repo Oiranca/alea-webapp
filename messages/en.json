@@ -12,7 +12,9 @@
   },
   "nav": {
     "rooms": "Rooms", "reservations": "My Reservations",
-    "admin": "Administration", "logout": "Sign Out", "profile": "My Profile"
+    "admin": "Administration", "logout": "Sign Out", "profile": "My Profile",
+    "mainNavAriaLabel": "Main navigation",
+    "mobileNavAriaLabel": "Mobile navigation"
   },
   "auth": {
     "login": "Sign In", "register": "Register", "logout": "Sign out",
