@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CalendarDays, Clock, MapPin, Layers, Loader2, AlertCircle } from 'lucide-react'
+import { CalendarDays, Clock, MapPin, Layers, AlertCircle } from 'lucide-react'
+import { DiceLoader } from '@/components/ui/dice-loader'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useMyReservations, useCancelReservation } from '@/lib/hooks/use-reservations'
 import { formatDate, formatTime } from '@/lib/utils'
@@ -153,7 +154,7 @@ export function MyReservationsView() {
               disabled={cancelReservation.isPending}
             >
               {cancelReservation.isPending
-                ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Cancelando...</>
+                ? <><DiceLoader size="sm" />Cancelando...</>
                 : 'Si, cancelar'}
             </Button>
           </DialogFooter>

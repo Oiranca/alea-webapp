@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { CalendarDays, Clock, Loader2, Ban } from 'lucide-react'
+import { CalendarDays, Clock, Ban } from 'lucide-react'
+import { DiceLoader } from '@/components/ui/dice-loader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -182,7 +183,7 @@ export function ReservationsSection() {
               className="bg-crimson hover:bg-crimson-light text-white border-0 min-w-[100px]"
             >
               {cancelReservation.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />{t('saving')}</>
+                <><DiceLoader size="sm" />{t('saving')}</>
               ) : tc('confirm')}
             </Button>
           </DialogFooter>
