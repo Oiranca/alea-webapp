@@ -1,0 +1,143 @@
+{
+  "common": {
+    "save": "Guardar", "cancel": "Cancelar", "delete": "Eliminar",
+    "edit": "Editar", "search": "Buscar", "loading": "Cargando...",
+    "error": "Ha ocurrido un error", "confirm": "Confirmar", "back": "Volver",
+    "close": "Cerrar", "yes": "Si", "no": "No", "actions": "Acciones",
+    "status": "Estado", "date": "Fecha", "time": "Hora", "name": "Nombre",
+    "email": "Email", "page": "Pagina", "of": "de", "previous": "Anterior",
+    "next": "Siguiente", "showing": "Mostrando", "results": "resultados",
+    "noResults": "No se encontraron resultados",
+    "loadingPage": "Cargando página..."
+  },
+  "nav": {
+    "rooms": "Salas", "reservations": "Mis Reservas",
+    "admin": "Administracion", "logout": "Cerrar Sesion", "profile": "Mi Perfil",
+    "mainNavAriaLabel": "Navegación principal",
+    "mobileNavAriaLabel": "Navegación móvil",
+    "skipToContent": "Ir al contenido principal",
+    "logoAriaLabel": "Alea - Inicio",
+    "menuAriaLabel": "Menú"
+  },
+  "auth": {
+    "login": "Iniciar Sesión", "register": "Registrarse", "logout": "Cerrar sesión",
+    "memberNumber": "Número de Socio",
+    "password": "Contraseña", "confirmPassword": "Confirmar contraseña",
+    "identifierPlaceholder": "ej. 1234",
+    "loginSubtitle": "Bienvenido a la Asociación Cultural Alea",
+    "registerSubtitle": "Únete a nuestra comunidad de jugadores",
+    "registerUnavailableTitle": "El registro está temporalmente deshabilitado",
+    "registerUnavailableBody": "Hemos pausado el autoregistro mientras terminamos la migración de autenticación. Inicia sesión con una cuenta existente o contacta con la asociación para solicitar acceso.",
+    "noAccount": "No tienes cuenta?", "hasAccount": "Ya tienes cuenta?",
+    "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña",
+    "showConfirmation": "Mostrar confirmación", "hideConfirmation": "Ocultar confirmación",
+    "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?", "verifyingSession": "Verificando sesión...",
+    "passwordRequirements": {
+      "title": "Requisitos de contraseña",
+      "minLength": "Mínimo 12 caracteres",
+      "letter": "Al menos una letra",
+      "number": "Al menos un número",
+      "specialChar": "Al menos un carácter especial (!@#$%^&*...)",
+      "met": "(cumplido)",
+      "pending": "(pendiente)"
+    },
+    "errors": {
+      "invalidCredentials": "Credenciales inválidas",
+      "passwordRequired": "La contraseña es obligatoria",
+      "passwordMinLength": "La contraseña debe tener al menos 12 caracteres",
+      "passwordAlphanumeric": "La contraseña debe contener letras y números",
+      "passwordSpecialChar": "La contraseña debe contener al menos un símbolo especial (!@#$%^&*...)",
+      "passwordsDoNotMatch": "Las contraseñas no coinciden",
+      "memberNumberRequired": "El número de socio es obligatorio",
+      "memberNumberExists": "Este número de socio ya está registrado"
+    }
+  },
+  "rooms": {
+    "title": "Salas de Juego", "subtitle": "Explora nuestras salas y reserva tu mesa",
+    "available": "Disponible", "reserved": "Reservada", "partial": "Parcialmente ocupada",
+    "selectRoom": "Seleccionar sala", "tables": "mesas", "noTables": "Esta sala no tiene mesas todavia",
+    "reserveTable": "Reservar esta mesa", "viewAvailability": "Ver disponibilidad"
+  },
+  "tables": {
+    "small": "Mesa Pequena", "large": "Mesa Grande", "removable_top": "Mesa con Tapa Removible",
+    "surface": "Superficie", "surfaceTop": "Superior (tapa puesta)",
+    "surfaceBottom": "Inferior (tablero de juego)",
+    "surfaceConflict": "Esta mesa ya tiene la otra superficie reservada en este horario",
+    "selectSurface": "Que superficie deseas reservar?",
+    "qrCode": "Codigo QR", "position": "Posicion"
+  },
+  "reservations": {
+    "title": "Mis Reservas", "subtitle": "Gestiona tus reservas de mesas",
+    "makeReservation": "Nueva Reserva", "selectDate": "Seleccionar fecha",
+    "selectTime": "Seleccionar hora", "startTime": "Hora de inicio", "endTime": "Hora de fin",
+    "selectRoom": "Seleccionar sala", "selectTable": "Seleccionar mesa",
+    "active": "Activa", "cancelled": "Cancelada", "completed": "Completada",
+    "cancel": "Cancelar reserva",
+    "cancelConfirm": "Estas seguro de que deseas cancelar esta reserva?",
+    "noReservations": "No tienes reservas activas", "available": "Disponible",
+    "occupied": "Ocupado", "myReservation": "Mi reserva",
+    "calendar": "Calendario de disponibilidad",
+    "canceling": "Cancelando...", "confirmCancel": "Sí, cancelar", "submitting": "Reservando...",
+    "errors": {
+      "conflictTime": "Ya existe una reserva en ese horario",
+      "pastDate": "No puedes reservar en fechas pasadas",
+      "invalidTime": "La hora de fin debe ser posterior a la de inicio"
+    }
+  },
+  "admin": {
+    "dashboard": "Panel de Administracion", "users": "Usuarios", "rooms": "Salas",
+    "tables": "Mesas", "reservations": "Reservas", "totalUsers": "Total usuarios",
+    "todayReservations": "Reservas hoy", "occupancyRate": "Ocupacion", "activeRooms": "Salas activas",
+    "userManagement": "Gestion de usuarios", "roomManagement": "Gestion de salas",
+    "reservationManagement": "Gestion de reservas", "createRoom": "Crear sala",
+    "createTable": "Crear mesa", "editUser": "Editar usuario", "deleteUser": "Eliminar usuario",
+    "deleteUserConfirm": "¿Estás seguro de que deseas eliminar este usuario? Esta acción no se puede deshacer.",
+    "role": "Rol", "member": "Socio", "admin": "Administrador", "joinDate": "Fecha de registro",
+    "searchUsers": "Buscar usuarios...", "noUsers": "No se encontraron usuarios",
+    "status": "Estado de cuenta", "active": "Activa", "suspended": "Suspendida",
+    "memberNumber": "Número de Socio", "editUserTitle": "Editar Usuario",
+    "dashboardSubtitle": "Gestiona usuarios, reservas y salas",
+    "saving": "Guardando...", "creating": "Creando...",
+    "editRoom": "Editar sala", "noRooms": "No hay salas",
+    "noTables": "No hay mesas en esta sala",
+    "roomName": "Nombre de sala", "roomDescription": "Descripción",
+    "tableCount": "Número de mesas", "tableName": "Nombre de mesa", "tableType": "Tipo de mesa",
+    "cancelReservation": "Cancelar reserva",
+    "cancelReservationConfirm": "¿Estás seguro de que deseas cancelar esta reserva? Esta acción no se puede deshacer.",
+    "noReservations": "No hay reservas",
+    "table": "Mesa", "user": "Usuario"
+  },
+  "home": {
+    "heroTitle": "Tu Aventura Comienza Aquí",
+    "heroSubtitle": "La Asociación Cultural Alea — el espacio de referencia para el juego de rol, los juegos de mesa y la cultura lúdica en nuestra ciudad.",
+    "heroCtaRegister": "Únete a la asociación",
+    "heroCtaLearnMore": "Conoce la asociación",
+    "heroCtaExplore": "Explorar salas",
+    "featuresTitle": "¿Qué puedes hacer aquí?",
+    "featuresSubtitle": "Esta plataforma es tu centro de control para gestionar mesas, reservas y más.",
+    "feature1Title": "Reserva tu mesa",
+    "feature1Desc": "Consulta la disponibilidad en tiempo real de las 6 salas y reserva tu mesa para la sesión de juego que prefieras.",
+    "feature2Title": "Escanea el QR",
+    "feature2Desc": "Cada mesa tiene su propio código QR. Escanéalo para activar tu reserva o comprobar el estado en cualquier momento.",
+    "feature3Title": "Gestiona tus partidas",
+    "feature3Desc": "Accede a tu historial de reservas, cancela cuando no puedas asistir y organiza tus sesiones con facilidad.",
+    "feature4Title": "6 salas temáticas",
+    "feature4Desc": "Desde mesas pequeñas para partidas íntimas hasta mesas de tapa removible para wargames y mazmorras en relieve.",
+    "ctaTitle": "¿Listo para jugar?",
+    "ctaSubtitle": "Crea tu cuenta con tu número de socio y empieza a reservar.",
+    "ctaButton": "Registrarse ahora",
+    "ctaLoginText": "¿Ya eres socio?",
+    "ctaLoginLink": "Inicia sesión"
+  },
+  "footer": {
+    "tagline": "El espacio de juego de la comunidad",
+    "links": "Navegación",
+    "home": "Inicio",
+    "rooms": "Salas",
+    "reservations": "Mis Reservas",
+    "association": "Web de la Asociación",
+    "contact": "Contacto",
+    "rights": "Todos los derechos reservados.",
+    "madeWithLove": "Hecho con amor para la comunidad jugadora"
+  }
+}
