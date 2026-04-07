@@ -18,10 +18,10 @@ export function Header({ locale }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <a href="#main-content" className="skip-link">
-        {locale === 'es' ? 'Ir al contenido principal' : 'Skip to main content'}
+        {t('nav.skipToContent')}
       </a>
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <Link href={`/${locale}`} className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md" aria-label="Alea - Inicio">
+        <Link href={`/${locale}`} className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md" aria-label={t('nav.logoAriaLabel')}>
           <Sword className="h-6 w-6 text-primary" aria-hidden="true" />
           <span className="font-cinzel text-xl font-bold text-gradient-gold">ALEA</span>
         </Link>
@@ -70,7 +70,7 @@ export function Header({ locale }: HeaderProps) {
             </Link>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu" aria-label="Menu">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu" aria-label={t('nav.menuAriaLabel')}>
             <Menu className="h-5 w-5" aria-hidden="true" />
           </Button>
         </div>

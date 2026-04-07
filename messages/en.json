@@ -14,7 +14,10 @@
     "rooms": "Rooms", "reservations": "My Reservations",
     "admin": "Administration", "logout": "Sign Out", "profile": "My Profile",
     "mainNavAriaLabel": "Main navigation",
-    "mobileNavAriaLabel": "Mobile navigation"
+    "mobileNavAriaLabel": "Mobile navigation",
+    "skipToContent": "Skip to main content",
+    "logoAriaLabel": "Alea - Home",
+    "menuAriaLabel": "Menu"
   },
   "auth": {
     "login": "Sign In", "register": "Register", "logout": "Sign out",

@@ -14,7 +14,10 @@
     "rooms": "Salas", "reservations": "Mis Reservas",
     "admin": "Administracion", "logout": "Cerrar Sesion", "profile": "Mi Perfil",
     "mainNavAriaLabel": "Navegación principal",
-    "mobileNavAriaLabel": "Navegación móvil"
+    "mobileNavAriaLabel": "Navegación móvil",
+    "skipToContent": "Ir al contenido principal",
+    "logoAriaLabel": "Alea - Inicio",
+    "menuAriaLabel": "Menú"
   },
   "auth": {
     "login": "Iniciar Sesión", "register": "Registrarse", "logout": "Cerrar sesión",
