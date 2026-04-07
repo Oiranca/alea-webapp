@@ -18,15 +18,15 @@ export function Header({ locale }: HeaderProps) {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <a href="#main-content" className="skip-link">
-        {locale === 'es' ? 'Ir al contenido principal' : 'Skip to main content'}
+        {t('nav.skipToContent')}
       </a>
       <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
-        <Link href={`/${locale}`} className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md" aria-label="Alea - Inicio">
+        <Link href={`/${locale}`} className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md" aria-label={t('nav.logoAriaLabel')}>
           <Sword className="h-6 w-6 text-primary" aria-hidden="true" />
           <span className="font-cinzel text-xl font-bold text-gradient-gold">ALEA</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-6" aria-label="Navegacion principal">
+        <nav className="hidden md:flex items-center gap-6" aria-label={t('nav.mainNavAriaLabel')}>
           {isAuthenticated && (
             <>
               <Link href={`/${locale}/rooms`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1">
@@ -70,14 +70,14 @@ export function Header({ locale }: HeaderProps) {
             </Link>
           )}
 
-          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu" aria-label="Menu">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setMobileMenuOpen(!mobileMenuOpen)} aria-expanded={mobileMenuOpen} aria-controls="mobile-menu" aria-label={t('nav.menuAriaLabel')}>
             <Menu className="h-5 w-5" aria-hidden="true" />
           </Button>
         </div>
       </div>
 
       {mobileMenuOpen && isAuthenticated && (
-        <nav id="mobile-menu" className="md:hidden border-t border-border bg-background/95 px-4 py-3 space-y-2" aria-label="Navegacion movil">
+        <nav id="mobile-menu" className="md:hidden border-t border-border bg-background/95 px-4 py-3 space-y-2" aria-label={t('nav.mobileNavAriaLabel')}>
           <Link href={`/${locale}/rooms`} className="block py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>{t('nav.rooms')}</Link>
           <Link href={`/${locale}/reservations`} className="block py-2 text-sm font-medium" onClick={() => setMobileMenuOpen(false)}>{t('nav.reservations')}</Link>
           {user?.role === 'admin' && (
