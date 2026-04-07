@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const { id } = await params
     const body = await request.json()
+    // Privilege check (admin-only for 'completed' status) is enforced in updateReservationForSession
     return auth.applyCookies(NextResponse.json(await updateReservationForSession(auth.session, id, body)))
   } catch (error) {
     return auth.applyCookies(toServiceErrorResponse(error))
