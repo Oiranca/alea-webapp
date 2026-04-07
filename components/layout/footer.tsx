@@ -12,7 +12,7 @@ export function Footer({ locale }: FooterProps) {
   const t = useTranslations('footer')
   const tAuth = useTranslations('auth')
 
-  const associationUrl = process.env.NEXT_PUBLIC_ASSOCIATION_URL ?? '#'
+  const associationUrl = process.env.NEXT_PUBLIC_ASSOCIATION_URL || null
 
   return (
     <footer className="border-t border-border bg-background-secondary mt-auto" role="contentinfo">
@@ -62,13 +62,12 @@ export function Footer({ locale }: FooterProps) {
               </li>
               <li>
                 <a
-                  href={associationUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={associationUrl ?? '#'}
+                  {...(associationUrl ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
                 >
                   {t('association')}
-                  <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  {associationUrl && <ExternalLink className="h-3 w-3" aria-hidden="true" />}
                 </a>
               </li>
             </ul>
