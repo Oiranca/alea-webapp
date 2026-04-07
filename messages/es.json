@@ -26,7 +26,7 @@
     "noAccount": "No tienes cuenta?", "hasAccount": "Ya tienes cuenta?",
     "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña",
     "showConfirmation": "Mostrar confirmación", "hideConfirmation": "Ocultar confirmación",
-    "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?",
+    "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?", "verifyingSession": "Verificando sesión...",
     "passwordRequirements": {
       "title": "Requisitos de contraseña",
       "minLength": "Mínimo 12 caracteres",

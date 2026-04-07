@@ -26,7 +26,7 @@
     "noAccount": "Don't have an account?", "hasAccount": "Already have an account?",
     "showPassword": "Show password", "hidePassword": "Hide password",
     "showConfirmation": "Show confirmation", "hideConfirmation": "Hide confirmation",
-    "rememberMe": "Remember me", "forgotPassword": "Forgot password?",
+    "rememberMe": "Remember me", "forgotPassword": "Forgot password?", "verifyingSession": "Verifying session...",
     "passwordRequirements": {
       "title": "Password requirements",
       "minLength": "At least 12 characters",
