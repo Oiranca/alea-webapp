@@ -37,6 +37,8 @@ export function MyReservationsView() {
     active: 'available',
     cancelled: 'reserved',
     completed: 'outline',
+    pending: 'outline',
+    no_show: 'reserved',
   }
 
   function ReservationCard({ reservation }: { reservation: Reservation }) {
