@@ -17,6 +17,7 @@ type TablesLookupClient = {
 type AdminReservationsQuery = {
   eq: (column: 'id' | 'table_id' | 'date' | 'status', value: string) => AdminReservationsQuery
   neq: (column: 'id', value: string) => AdminReservationsQuery
+  in: (column: 'status', values: string[]) => AdminReservationsQuery
   maybeSingle: () => Promise<{ data: ReservationRow | null; error: unknown }>
   then: Promise<{ data: ReservationRow[] | null; error: unknown }>['then']
 }
@@ -164,7 +165,7 @@ async function listActiveReservationsForConflict(input: {
     .select(RESERVATION_COLUMNS)
     .eq('table_id', input.tableId)
     .eq('date', input.date)
-    .eq('status', 'active')
+    .in('status', ['active', 'pending'])
 
   const result = input.ignoreReservationId
     ? await query.neq('id', input.ignoreReservationId)
