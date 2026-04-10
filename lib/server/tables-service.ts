@@ -1,3 +1,4 @@
+import qrcode from 'qrcode'
 import type { GameTable } from '@/lib/types'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import { serviceError } from '@/lib/server/service-error'
@@ -7,7 +8,7 @@ import type { Tables } from '@/lib/supabase/types'
 type TableRow = Tables<'tables'>
 type ReservationRow = Tables<'reservations'>
 
-const TABLE_COLUMNS = 'id, room_id, name, type, qr_code, pos_x, pos_y'
+const TABLE_COLUMNS = 'id, room_id, name, type, qr_code, qr_code_inf, pos_x, pos_y'
 
 function toGameTable(row: TableRow): GameTable {
   return {
@@ -18,6 +19,49 @@ function toGameTable(row: TableRow): GameTable {
     qrCode: row.qr_code ?? '',
     position: row.pos_x == null || row.pos_y == null ? undefined : { x: row.pos_x, y: row.pos_y },
   }
+}
+
+export async function generateTableQrCode(tableId: string): Promise<string> {
+  const url = `/check-in/${tableId}`
+  return qrcode.toDataURL(url, { errorCorrectionLevel: 'M', width: 400 })
+}
+
+export async function regenerateQrCodes(tableId: string): Promise<{ qr_code: string; qr_code_inf: string | null }> {
+  const admin = createSupabaseServerAdminClient()
+
+  const { data: table, error: fetchError } = await admin
+    .from('tables')
+    .select('id, type')
+    .eq('id', tableId)
+    .maybeSingle()
+
+  if (fetchError) {
+    serviceError('Internal server error', 500)
+  }
+  if (!table) {
+    serviceError('Table not found', 404)
+  }
+
+  const qr_code = await generateTableQrCode(tableId)
+  const qr_code_inf = table!.type === 'removable_top'
+    ? await qrcode.toDataURL(`/check-in/${tableId}?side=inf`, { errorCorrectionLevel: 'M', width: 400 })
+    : null
+
+  const updatePayload: { qr_code: string; qr_code_inf?: string | null } = { qr_code }
+  if (table!.type === 'removable_top') {
+    updatePayload.qr_code_inf = qr_code_inf
+  }
+
+  const { error: updateError } = await admin
+    .from('tables')
+    .update(updatePayload)
+    .eq('id', tableId)
+
+  if (updateError) {
+    serviceError('Internal server error', 500)
+  }
+
+  return { qr_code, qr_code_inf }
 }
 
 export async function getTableAvailability(tableId: string, date?: string | null) {
