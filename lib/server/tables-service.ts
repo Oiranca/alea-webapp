@@ -22,7 +22,8 @@ function toGameTable(row: TableRow): GameTable {
 }
 
 export async function generateTableQrCode(tableId: string): Promise<string> {
-  const url = `/check-in/${tableId}`
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const url = `${baseUrl}/check-in/${tableId}`
   return qrcode.toDataURL(url, { errorCorrectionLevel: 'M', width: 400 })
 }
 
@@ -42,9 +43,10 @@ export async function regenerateQrCodes(tableId: string): Promise<{ qr_code: str
     serviceError('Table not found', 404)
   }
 
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
   const qr_code = await generateTableQrCode(tableId)
   const qr_code_inf = table!.type === 'removable_top'
-    ? await qrcode.toDataURL(`/check-in/${tableId}?side=inf`, { errorCorrectionLevel: 'M', width: 400 })
+    ? await qrcode.toDataURL(`${baseUrl}/check-in/${tableId}?side=inf`, { errorCorrectionLevel: 'M', width: 400 })
     : null
 
   const updatePayload: { qr_code: string; qr_code_inf?: string | null } = { qr_code }
