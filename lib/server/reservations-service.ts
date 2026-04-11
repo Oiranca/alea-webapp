@@ -382,6 +382,14 @@ export async function updateReservationForSession(
     serviceError('Only admins can mark a reservation as completed or no_show', 403)
   }
 
+  if (nextStatus === 'cancelled' && session.role !== 'admin') {
+    const reservationStart = new Date(`${existingReservation.date}T${existingReservation.start_time}`)
+    const now = new Date()
+    if (reservationStart.getTime() - now.getTime() < 60 * 60 * 1000) {
+      serviceError('CANCELLATION_CUTOFF', 403)
+    }
+  }
+
   const nextStartTime = body.startTime == null
     ? normalizeTime(existingReservation.start_time)
     : parseHHMM(String(body.startTime))
