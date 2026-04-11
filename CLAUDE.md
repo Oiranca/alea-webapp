@@ -17,6 +17,18 @@ All process rules (language, agent pipeline, worktrees, git, documentation disci
 
 ---
 
+## GitHub communication language
+
+All GitHub-facing text **must be written in English** — this includes:
+- PR comment replies
+- Inline review responses
+- Issue comments
+- Commit messages
+
+The user may write prompts in any language; replies to the user are in their language. All GitHub artifacts are in English.
+
+---
+
 ## Key conventions
 
 - Admin write operations use `createSupabaseServerAdminClient()` (bypasses RLS)
