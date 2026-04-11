@@ -54,8 +54,10 @@ export function CheckInResult({ status }: CheckInResultProps) {
         return t('tooLate')
       case 'no_reservation':
         return t('noReservation')
+      case 'error':
+        return t('error')
       default:
-        return t('tooLate')
+        return t('error')
     }
   }
 

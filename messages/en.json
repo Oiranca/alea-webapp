@@ -140,6 +140,7 @@
     "tooLate": "The check-in window has closed. Your reservation has expired.",
     "noReservation": "No reservation found for this table.",
     "loading": "Checking your reservation...",
+    "error": "Something went wrong. Please try again.",
     "tryAgain": "Try again",
     "backToReservations": "Back to my reservations"
   },

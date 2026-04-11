@@ -397,6 +397,7 @@ export async function updateReservationForSession(
 
 type ActivationAdminQuery = {
   eq: (column: 'table_id' | 'date' | 'status' | 'user_id' | 'surface' | 'id', value: string) => ActivationAdminQuery
+  or: (filter: string) => ActivationAdminQuery
   maybeSingle: () => Promise<{ data: ReservationRow | null; error: unknown }>
   select: (columns: string) => ActivationAdminQuery
   update: (values: TablesUpdate<'reservations'>) => ActivationAdminQuery
@@ -408,6 +409,11 @@ export async function activateReservationByTable(
   userId: string,
   side?: 'inf',
 ): Promise<Reservation> {
+  // NOTE: We use today's local wall-clock date as a string anchor only for the
+  // initial DB query. The time-window check below uses the reservation's own
+  // stored date so the logic is self-consistent even if the request arrives
+  // near midnight. A full timezone fix should pass an IANA zone from the
+  // client or club config and use a proper date library (e.g. date-fns-tz).
   const today = new Date().toISOString().slice(0, 10)
 
   const admin = createSupabaseServerAdminClient()
@@ -422,7 +428,9 @@ export async function activateReservationByTable(
   if (side === 'inf') {
     pendingQuery = pendingQuery.eq('surface', 'bottom')
   } else {
-    pendingQuery = pendingQuery.eq('surface', 'top')
+    // Non-removable (single-surface) tables store surface = null;
+    // removable tables store surface = 'top' for the superior side.
+    pendingQuery = pendingQuery.or('surface.eq.top,surface.is.null')
   }
 
   const { data: pendingData, error: pendingError } = await pendingQuery.maybeSingle()
@@ -442,7 +450,7 @@ export async function activateReservationByTable(
     if (side === 'inf') {
       activeQuery = activeQuery.eq('surface', 'bottom')
     } else {
-      activeQuery = activeQuery.eq('surface', 'top')
+      activeQuery = activeQuery.or('surface.eq.top,surface.is.null')
     }
 
     const { data: activeData } = await activeQuery.maybeSingle()
@@ -458,7 +466,9 @@ export async function activateReservationByTable(
 
   const now = new Date()
   const startTimeParts = normalizeTime(reservation.start_time).split(':')
-  const reservationStart = new Date(today)
+  // Anchor on the reservation's own stored date (not the UTC "today" computed
+  // at request time) so the window calculation is self-consistent.
+  const reservationStart = new Date(reservation.date)
   reservationStart.setHours(parseInt(startTimeParts[0], 10), parseInt(startTimeParts[1], 10), 0, 0)
 
   const windowEnd = new Date(reservationStart.getTime() + 20 * 60 * 1000)

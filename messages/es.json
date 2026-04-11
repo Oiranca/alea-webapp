@@ -139,6 +139,7 @@
     "tooLate": "La ventana de registro ha cerrado. Tu reserva ha expirado.",
     "noReservation": "No se ha encontrado ninguna reserva para esta mesa.",
     "loading": "Verificando tu reserva...",
+    "error": "Algo salió mal. Por favor, inténtalo de nuevo.",
     "tryAgain": "Intentar de nuevo",
     "backToReservations": "Volver a mis reservas"
   },
