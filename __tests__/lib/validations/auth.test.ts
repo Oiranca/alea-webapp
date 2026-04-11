@@ -196,6 +196,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
     it('uses errors.* prefix instead of auth.errors.* prefix for all validation errors', () => {
       // Test loginSchema
       const loginResult = loginSchema.safeParse({ identifier: '', password: '' })
+      expect(loginResult.success).toBe(false)
       if (!loginResult.success) {
         loginResult.error.issues.forEach(issue => {
           expect(issue.message).toMatch(/^errors\./)
@@ -209,6 +210,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         password: '',
         confirmPassword: ''
       })
+      expect(registerResult.success).toBe(false)
       if (!registerResult.success) {
         registerResult.error.issues.forEach(issue => {
           expect(issue.message).toMatch(/^errors\./)
