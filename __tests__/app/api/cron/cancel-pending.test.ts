@@ -7,9 +7,9 @@ vi.mock('@/lib/server/reservations-service', () => ({
   cancelExpiredPendingReservations: cancelExpiredPendingReservationsMock,
 }))
 
-function createRequest(path: string, options?: { authorization?: string }) {
+function createRequest(path: string, options?: { method?: string; authorization?: string }) {
   return new NextRequest(`http://localhost:3000${path}`, {
-    method: 'POST',
+    method: options?.method ?? 'POST',
     headers: {
       host: 'localhost:3000',
       ...(options?.authorization ? { authorization: options.authorization } : {}),
@@ -17,7 +17,7 @@ function createRequest(path: string, options?: { authorization?: string }) {
   })
 }
 
-describe('POST /api/cron/cancel-pending', () => {
+describe('/api/cron/cancel-pending', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.unstubAllEnvs()
@@ -27,55 +27,114 @@ describe('POST /api/cron/cancel-pending', () => {
     vi.unstubAllEnvs()
   })
 
-  it('returns 401 when Authorization header is missing', async () => {
-    vi.stubEnv('CRON_SECRET', 'test-secret')
-    const { POST } = await import('@/app/api/cron/cancel-pending/route')
+  describe('POST method', () => {
+    it('returns 401 when Authorization header is missing', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      const { POST } = await import('@/app/api/cron/cancel-pending/route')
 
-    const request = createRequest('/api/cron/cancel-pending')
-    const response = await POST(request)
+      const request = createRequest('/api/cron/cancel-pending')
+      const response = await POST(request)
 
-    expect(response.status).toBe(401)
-    expect(await response.json()).toEqual({ error: 'Unauthorized' })
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'Unauthorized' })
+    })
+
+    it('returns 401 when Authorization header has wrong value', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      const { POST } = await import('@/app/api/cron/cancel-pending/route')
+
+      const request = createRequest('/api/cron/cancel-pending', {
+        authorization: 'Bearer wrong-secret',
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'Unauthorized' })
+    })
+
+    it('returns 200 with cancelled count when Authorization header is correct', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      cancelExpiredPendingReservationsMock.mockResolvedValueOnce(5)
+
+      const { POST } = await import('@/app/api/cron/cancel-pending/route')
+
+      const request = createRequest('/api/cron/cancel-pending', {
+        authorization: 'Bearer test-secret',
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ cancelled: 5 })
+      expect(cancelExpiredPendingReservationsMock).toHaveBeenCalledOnce()
+    })
+
+    it('returns 401 when CRON_SECRET is not set', async () => {
+      // CRON_SECRET not stubbed - tests default behavior
+      const { POST } = await import('@/app/api/cron/cancel-pending/route')
+
+      const request = createRequest('/api/cron/cancel-pending', {
+        authorization: 'Bearer any-secret',
+      })
+      const response = await POST(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 
-  it('returns 401 when Authorization header has wrong value', async () => {
-    vi.stubEnv('CRON_SECRET', 'test-secret')
-    const { POST } = await import('@/app/api/cron/cancel-pending/route')
+  describe('GET method', () => {
+    it('returns 401 when Authorization header is missing', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      const { GET } = await import('@/app/api/cron/cancel-pending/route')
 
-    const request = createRequest('/api/cron/cancel-pending', {
-      authorization: 'Bearer wrong-secret',
+      const request = createRequest('/api/cron/cancel-pending', { method: 'GET' })
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'Unauthorized' })
     })
-    const response = await POST(request)
 
-    expect(response.status).toBe(401)
-    expect(await response.json()).toEqual({ error: 'Unauthorized' })
-  })
+    it('returns 401 when Authorization header has wrong value', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      const { GET } = await import('@/app/api/cron/cancel-pending/route')
 
-  it('returns 200 with cancelled count when Authorization header is correct', async () => {
-    vi.stubEnv('CRON_SECRET', 'test-secret')
-    cancelExpiredPendingReservationsMock.mockResolvedValueOnce(5)
+      const request = createRequest('/api/cron/cancel-pending', {
+        method: 'GET',
+        authorization: 'Bearer wrong-secret',
+      })
+      const response = await GET(request)
 
-    const { POST } = await import('@/app/api/cron/cancel-pending/route')
-
-    const request = createRequest('/api/cron/cancel-pending', {
-      authorization: 'Bearer test-secret',
+      expect(response.status).toBe(401)
+      expect(await response.json()).toEqual({ error: 'Unauthorized' })
     })
-    const response = await POST(request)
 
-    expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ cancelled: 5 })
-    expect(cancelExpiredPendingReservationsMock).toHaveBeenCalledOnce()
-  })
+    it('returns 200 with cancelled count when Authorization header is correct', async () => {
+      vi.stubEnv('CRON_SECRET', 'test-secret')
+      cancelExpiredPendingReservationsMock.mockResolvedValueOnce(3)
 
-  it('returns 401 when CRON_SECRET is not set', async () => {
-    // CRON_SECRET not stubbed - tests default behavior
-    const { POST } = await import('@/app/api/cron/cancel-pending/route')
+      const { GET } = await import('@/app/api/cron/cancel-pending/route')
 
-    const request = createRequest('/api/cron/cancel-pending', {
-      authorization: 'Bearer any-secret',
+      const request = createRequest('/api/cron/cancel-pending', {
+        method: 'GET',
+        authorization: 'Bearer test-secret',
+      })
+      const response = await GET(request)
+
+      expect(response.status).toBe(200)
+      expect(await response.json()).toEqual({ cancelled: 3 })
+      expect(cancelExpiredPendingReservationsMock).toHaveBeenCalledOnce()
     })
-    const response = await POST(request)
 
-    expect(response.status).toBe(401)
+    it('returns 401 when CRON_SECRET is not set', async () => {
+      // CRON_SECRET not stubbed - tests default behavior
+      const { GET } = await import('@/app/api/cron/cancel-pending/route')
+
+      const request = createRequest('/api/cron/cancel-pending', {
+        method: 'GET',
+        authorization: 'Bearer any-secret',
+      })
+      const response = await GET(request)
+
+      expect(response.status).toBe(401)
+    })
   })
 })

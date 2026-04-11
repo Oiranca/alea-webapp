@@ -1,7 +1,7 @@
 -- Migration: add function to cancel pending reservations not activated within 20 minutes
 --
--- start_time is stored as VARCHAR in 'HH:MM' format (e.g. '14:00').
--- Casting 'HH:MM'::time gives a PostgreSQL TIME value which can be added to a DATE
+-- start_time is stored as TIME NOT NULL in 'HH:MM:SS' format (e.g. '14:00:00').
+-- Casting start_time::time gives a PostgreSQL TIME value which can be added to a DATE
 -- to produce a TIMESTAMP. Adding the 20-minute grace period and comparing with NOW()
 -- identifies reservations that should be marked as no_show.
 
@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION public.cancel_expired_pending_reservations()
 RETURNS integer
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = public, pg_catalog
 AS $$
 DECLARE
   updated_count integer;

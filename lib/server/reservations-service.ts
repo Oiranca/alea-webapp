@@ -425,6 +425,8 @@ export async function activateReservationByTable(
   // stored date so the logic is self-consistent even if the request arrives
   // near midnight. A full timezone fix should pass an IANA zone from the
   // client or club config and use a proper date library (e.g. date-fns-tz).
+  // TODO(timezone): use venue local timezone instead of UTC — UTC may be off by
+  // 1-2 hours relative to the venue's wall-clock date near midnight.
   const today = new Date().toISOString().slice(0, 10)
 
   const admin = createSupabaseServerAdminClient()

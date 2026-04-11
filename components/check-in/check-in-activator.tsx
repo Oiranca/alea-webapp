@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { CheckInResult } from '@/components/check-in/check-in-result'
 import type { CheckInStatus } from '@/components/check-in/check-in-result'
+import { apiClient } from '@/lib/api/client'
 
 interface CheckInActivatorProps {
   tableId: string
@@ -15,17 +16,17 @@ export function CheckInActivator({ tableId, side }: CheckInActivatorProps) {
   const [status, setStatus] = useState<CheckInStatus | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    const url = `/api/tables/${encodeURIComponent(tableId)}/activate${side === 'inf' ? '?side=inf' : ''}`
+    let cancelled = false
 
-    fetch(url, { method: 'POST', signal: controller.signal })
-      .then(async (res) => {
-        if (res.ok) {
-          setStatus('activated')
-          return
-        }
-        const body = await res.json().catch(() => ({}))
-        const msg: string = body?.message ?? ''
+    const path = `/api/tables/${encodeURIComponent(tableId)}/activate${side === 'inf' ? '?side=inf' : ''}`
+
+    apiClient.post(path, { side })
+      .then(() => {
+        if (!cancelled) setStatus('activated')
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const msg: string = (err as { message?: string })?.message ?? ''
         switch (msg) {
           case 'CHECK_IN_ALREADY_ACTIVE':
             setStatus('already_active')
@@ -43,12 +44,8 @@ export function CheckInActivator({ tableId, side }: CheckInActivatorProps) {
             setStatus('error')
         }
       })
-      .catch((err: unknown) => {
-        if (err instanceof DOMException && err.name === 'AbortError') return
-        setStatus('error')
-      })
 
-    return () => controller.abort()
+    return () => { cancelled = true }
   }, [tableId, side])
 
   if (status === null) {
