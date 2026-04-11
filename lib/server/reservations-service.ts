@@ -283,7 +283,7 @@ async function checkUserSlotOverlap(
     .select('id')
     .eq('user_id', userId)
     .eq('date', date)
-    .not('status', 'in', '("cancelled","no_show","completed")')
+    .in('status', ['pending', 'active'])
     .lt('start_time', endTime)
     .gt('end_time', startTime)
 
