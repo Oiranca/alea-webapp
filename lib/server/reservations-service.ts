@@ -31,9 +31,9 @@ type SessionReservationsQuery = {
 }
 type UserSlotOverlapQuery = {
   eq: (column: 'user_id' | 'date', value: string) => UserSlotOverlapQuery
-  in: (column: string, values: string[]) => UserSlotOverlapQuery
-  lt: (column: string, value: string) => UserSlotOverlapQuery
-  gt: (column: string, value: string) => UserSlotOverlapQuery
+  in: (column: 'status', values: string[]) => UserSlotOverlapQuery
+  lt: (column: 'start_time' | 'end_time', value: string) => UserSlotOverlapQuery
+  gt: (column: 'start_time' | 'end_time', value: string) => UserSlotOverlapQuery
   limit: (count: number) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>
   then: Promise<{ data: ReservationRow[] | null; error: unknown }>['then']
 }
