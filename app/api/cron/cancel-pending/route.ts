@@ -17,12 +17,16 @@ async function handleCronRequest(request: NextRequest) {
     )
     return NextResponse.json({ cancelled })
   } catch (err) {
-    console.error('cron/cancel-pending failed', {
-      error: err instanceof Error ? err.name : 'UnknownError',
-      ...(process.env.NODE_ENV !== 'production' && {
-        detail: err instanceof Error ? err.message : String(err),
+    console.error(
+      JSON.stringify({
+        event: 'cron.cancel_expired_pending_reservations.error',
+        timestamp: new Date().toISOString(),
+        error: err instanceof Error ? err.name : 'UnknownError',
+        ...(process.env.NODE_ENV !== 'production' && {
+          detail: err instanceof Error ? err.message : String(err),
+        }),
       }),
-    })
+    )
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
