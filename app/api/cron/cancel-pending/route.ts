@@ -8,6 +8,13 @@ async function handleCronRequest(request: Request) {
   }
   try {
     const cancelled = await cancelExpiredPendingReservations()
+    console.log(
+      JSON.stringify({
+        event: 'cron.cancel_expired_pending_reservations',
+        timestamp: new Date().toISOString(),
+        cancelled,
+      }),
+    )
     return NextResponse.json({ cancelled })
   } catch (err) {
     console.error('cron/cancel-pending failed', {
