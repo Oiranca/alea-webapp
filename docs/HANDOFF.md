@@ -12,12 +12,12 @@
 ## Current branch
 `develop`
 
-## Open PRs
+## Open PRs — awaiting manual merge
 | PR | Branch | Issues | Status |
 |---|---|---|---|
-| [#79](https://github.com/KimoxStudio/alea-webapp/pull/79) | `feat/cancellation-cutoff` | KIM-331, KIM-340, KIM-342 | Open — awaiting merge. Mark issues Done after merge. |
-| [#80](https://github.com/KimoxStudio/alea-webapp/pull/80) | `chore/seed-data` | KIM-306 | Open — awaiting merge. Mark KIM-306 Done after merge. |
-| [#81](https://github.com/KimoxStudio/alea-webapp/pull/81) | `feat/overlap-ui-feedback` | KIM-337 | Open — awaiting merge. Mark KIM-337 Done after merge. |
+| [#79](https://github.com/KimoxStudio/alea-webapp/pull/79) | `feat/cancellation-cutoff` | KIM-331, KIM-340, KIM-342 | Ready — all Copilot comments resolved |
+| [#80](https://github.com/KimoxStudio/alea-webapp/pull/80) | `chore/seed-data` | KIM-306 | Ready — all Copilot comments resolved |
+| [#81](https://github.com/KimoxStudio/alea-webapp/pull/81) | `feat/overlap-ui-feedback` | KIM-337 | Ready — no pending comments |
 
 ## Merged this session
 | PR | Branch | Issues |
@@ -32,16 +32,16 @@
 
 ### ✅ Done
 - **KIM-327** (M2) — auto-cancel grace period — merged PR #76
-- **KIM-330 + KIM-338** (M3) — overlap restriction backend — merged PR #77
-- **KIM-358** — toGameTable mapper — already in develop (no PR needed)
+- **KIM-330 + KIM-338** (M3) — overlap restriction — merged PR #77
 - **KIM-325** — auth i18n double-namespace — merged PR #78
+- **KIM-358** — toGameTable mapper — already in develop (no PR needed)
 
 ### 🟡 Awaiting merge
-- **KIM-331 + KIM-340 + KIM-342** (M5) — cancellation cutoff backend + tests — PR #79
-- **KIM-306** — seed data — PR #80
-- **KIM-337** — overlap UI feedback — PR #81
+- **KIM-331 + KIM-340 + KIM-342** (M5) — cancellation cutoff backend + tests — PR #79 ✅ all comments resolved
+- **KIM-306** — seed data — PR #80 ✅ all comments resolved
+- **KIM-337** — overlap UI feedback — PR #81 ✅ clean
 
-### 🔴 Next after M5 merged: KIM-341 — Cancellation Cutoff UI
+### 🔴 Next after PR #79 merges: KIM-341 — Cancellation Cutoff UI
 **Branch:** `feat/cancellation-cutoff-ui` from `develop` (after PR #79 merges)
 **Files:** `components/reservations/my-reservations-view.tsx`, `messages/en.json`, `messages/es.json`
 **Skill:** `frontend-design`
@@ -70,17 +70,18 @@ Nothing else MVP-critical is blocked. Sunday work:
 ## Recommended execution order for MVP weekend
 
 ```
-Saturday (done):
+Saturday (completed):
   ✅ Merge #76 (KIM-327)
   ✅ Merge #77 (KIM-330, KIM-338)
   ✅ Merge #78 (KIM-325)
-  → Open PRs #79 (M5), #80 (seed), #81 (overlap UI) — all open ✅
+  ✅ Open PR #79 (M5 — KIM-331+340+342) — all comments resolved
+  ✅ Open PR #80 (KIM-306 seed) — all comments resolved
+  ✅ Open PR #81 (KIM-337 overlap UI) — clean
 
 Sunday:
-  → Merge #79 (M5) → start feat/cancellation-cutoff-ui (KIM-341)
-  → Merge #80 (seed) → ready for manual QA
-  → Merge #81 (overlap UI)
-  → feat/cancellation-cutoff-ui PR → merge → Final smoke tests
+  → Merge #79, #80, #81
+  → feat/cancellation-cutoff-ui (KIM-341) — after M5 merged
+  → Final smoke tests
 
 Monday: Launch
 ```
