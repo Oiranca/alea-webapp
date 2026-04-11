@@ -395,15 +395,11 @@ export async function updateReservationForSession(
   return mapReservation(data as ReservationRow)
 }
 
-type AdminRpcClient = {
-  rpc: (fn: string) => Promise<{ data: unknown; error: { message: string } | null }>
-}
-
 export async function cancelExpiredPendingReservations(): Promise<number> {
-  const admin = createSupabaseServerAdminClient() as unknown as AdminRpcClient
+  const admin = createSupabaseServerAdminClient()
   const { data, error } = await admin.rpc('cancel_expired_pending_reservations')
   if (error) serviceError('Internal server error', 500)
-  return (data as number) ?? 0
+  return (data as number | null) ?? 0
 }
 
 type ActivationAdminQuery = {

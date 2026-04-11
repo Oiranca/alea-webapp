@@ -17,6 +17,7 @@ function toGameTable(row: TableRow): GameTable {
     name: row.name,
     type: row.type,
     qrCode: row.qr_code ?? '',
+    qrCodeInf: row.qr_code_inf ?? null,
     position: row.pos_x == null || row.pos_y == null ? undefined : { x: row.pos_x, y: row.pos_y },
   }
 }
@@ -123,7 +124,7 @@ export async function getTableAvailability(tableId: string, date?: string | null
     .select('id, table_id, date, start_time, end_time, status, surface, user_id, created_at')
     .eq('table_id', tableId)
     .eq('date', effectiveDate)
-    .eq('status', 'active')
+    .in('status', ['active', 'pending'])
   const reservations = (reservationsResult.data ?? []) as ReservationRow[]
   const reservationsError = reservationsResult.error
 

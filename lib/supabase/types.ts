@@ -184,6 +184,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_expired_pending_reservations: { Args: Record<PropertyKey, never>; Returns: number }
       is_admin: { Args: never; Returns: boolean }
     }
     Enums: {

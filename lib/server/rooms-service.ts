@@ -42,7 +42,7 @@ type TablesInsertClient = {
 type ReservationsByTableClient = {
   select: (columns: string) => {
     eq: (column: 'date', value: string) => {
-      eq: (column: 'status', value: 'active') => {
+      in: (column: 'status', values: string[]) => {
         in: (column: 'table_id', values: string[]) => Promise<{ data: ReservationRow[] | null; error: unknown }>
       }
     }
@@ -190,7 +190,7 @@ export async function getRoomTablesAvailability(roomId: string, date?: string | 
   const { data, error } = await reservations
     .select('id, table_id, date, start_time, end_time, status, surface, user_id, created_at')
     .eq('date', effectiveDate)
-    .eq('status', 'active')
+    .in('status', ['active', 'pending'])
     .in('table_id', tables.map((table) => table.id))
 
   if (error) {
