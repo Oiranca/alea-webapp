@@ -24,10 +24,12 @@
 
 ## M2 — What was implemented
 
-- `GRACE_PERIOD_MINUTES = 20` constant exported from `lib/server/reservations-service.ts`
-- Structured audit logging in `/api/cron/cancel-pending` (success + error paths)
+- `export const GRACE_PERIOD_MINUTES = 20` in `lib/server/reservations-service.ts` — shared by activation window and RPC call
+- `cancelExpiredPendingReservations()` passes `{ grace_minutes: GRACE_PERIOD_MINUTES }` to the RPC
+- Migration `20260411000003`: parameterized SQL function + DROP of legacy 0-arg overload
+- Structured audit logging in `/api/cron/cancel-pending` (success + error paths with sanitized error logging)
 - 2 new error-path tests in `__tests__/app/api/cron/cancel-pending.test.ts`
-- 4 boundary tests updated to use constant in `__tests__/server/reservations-service.test.ts`
+- Test uses `GRACE_PERIOD_MINUTES` constant for the RPC assertion
 - Total: 239 tests passing
 
 ## Next milestone after M2 merge: M3 / M5 / M8 / M10 (all parallel-safe from develop)

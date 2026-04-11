@@ -852,10 +852,10 @@ describe('reservations service', () => {
         createSupabaseServerClient: vi.fn(async () => ({ from: vi.fn() })),
       }))
       
-      const { cancelExpiredPendingReservations } = await import('@/lib/server/reservations-service')
+      const { cancelExpiredPendingReservations, GRACE_PERIOD_MINUTES } = await import('@/lib/server/reservations-service')
       const result = await cancelExpiredPendingReservations()
 
-      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations', { grace_minutes: 20 })
+      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations', { grace_minutes: GRACE_PERIOD_MINUTES })
       expect(result).toBe(3)
     })
 

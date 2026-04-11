@@ -59,7 +59,7 @@ type EnrichedReservationsTableClient = {
   select: (columns: string) => EnrichedReservationsQuery
 }
 
-const GRACE_PERIOD_MINUTES = 20
+export const GRACE_PERIOD_MINUTES = 20
 
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at'
 const RESERVATION_ENRICHED_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at, profiles(member_number), tables(name, rooms(name))'

@@ -8,6 +8,11 @@
 -- Casting start_time::time gives a PostgreSQL TIME value which can be added to a DATE
 -- to produce a TIMESTAMP. Adding the grace period and comparing with NOW()
 -- identifies reservations that should be marked as no_show.
+--
+-- DROP the 0-arg overload first: CREATE OR REPLACE with a new signature creates
+-- a NEW overloaded function; it does NOT replace the existing no-arg version.
+-- Without this DROP, no-arg callers would still hit the old hardcoded function.
+DROP FUNCTION IF EXISTS public.cancel_expired_pending_reservations();
 
 CREATE OR REPLACE FUNCTION public.cancel_expired_pending_reservations(grace_minutes INTEGER DEFAULT 20)
 RETURNS integer
