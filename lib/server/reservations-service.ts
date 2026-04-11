@@ -402,7 +402,7 @@ type AdminRpcClient = {
 export async function cancelExpiredPendingReservations(): Promise<number> {
   const admin = createSupabaseServerAdminClient() as unknown as AdminRpcClient
   const { data, error } = await admin.rpc('cancel_expired_pending_reservations')
-  if (error) serviceError(error.message, 500)
+  if (error) serviceError('Internal server error', 500)
   return (data as number) ?? 0
 }
 

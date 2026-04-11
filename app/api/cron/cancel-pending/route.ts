@@ -14,8 +14,3 @@ async function handleCronRequest(request: Request) {
 export async function GET(request: Request) {
   return handleCronRequest(request)
 }
-
-// POST is retained for manual triggers (e.g. curl, admin tooling).
-export async function POST(request: Request) {
-  return handleCronRequest(request)
-}

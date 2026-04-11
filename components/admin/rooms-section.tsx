@@ -34,7 +34,7 @@ const tableTypeBadge: Record<string, 'outline' | 'partial' | 'available'> = {
 }
 
 // Sub-component: QR code display and management for a single table
-function TableQrPanel({ table }: { table: GameTable }) {
+function TableQrPanel({ table, roomId }: { table: GameTable; roomId: string }) {
   const t = useTranslations('admin')
   const tt = useTranslations('tables')
   const tc = useTranslations('common')
@@ -43,7 +43,7 @@ function TableQrPanel({ table }: { table: GameTable }) {
   const [qrCodeInf, setQrCodeInf] = useState<string | null | undefined>(table.qrCodeInf)
 
   async function handleRegenerate() {
-    const result = await regenerateQr.mutateAsync(table.id)
+    const result = await regenerateQr.mutateAsync({ tableId: table.id, roomId })
     setQrCode(result.qr_code)
     setQrCodeInf(result.qr_code_inf)
   }
@@ -137,7 +137,7 @@ function TableQrPanel({ table }: { table: GameTable }) {
 }
 
 // Sub-component: single table row with QR toggle
-function TableRow({ table }: { table: GameTable }) {
+function TableRow({ table, roomId }: { table: GameTable; roomId: string }) {
   const tt = useTranslations('tables')
   const [showQr, setShowQr] = useState(false)
 
@@ -163,7 +163,7 @@ function TableRow({ table }: { table: GameTable }) {
           </button>
         </div>
       </div>
-      {showQr && <TableQrPanel table={table} />}
+      {showQr && <TableQrPanel table={table} roomId={roomId} />}
     </div>
   )
 }
@@ -206,7 +206,7 @@ function RoomTablesPanel({ room }: { room: Room }) {
       ) : (
         <div className="space-y-1">
           {(tables as GameTable[]).map((table) => (
-            <TableRow key={table.id} table={table} />
+            <TableRow key={table.id} table={table} roomId={room.id} />
           ))}
         </div>
       )}

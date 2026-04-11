@@ -20,7 +20,7 @@ export function CheckInActivator({ tableId, side }: CheckInActivatorProps) {
 
     const path = `/api/tables/${encodeURIComponent(tableId)}/activate${side === 'inf' ? '?side=inf' : ''}`
 
-    apiClient.post(path, { side })
+    apiClient.post(path)
       .then(() => {
         if (!cancelled) setStatus('activated')
       })

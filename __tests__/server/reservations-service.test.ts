@@ -876,7 +876,7 @@ describe('reservations service', () => {
       await expect(cancelExpiredPendingReservations()).rejects.toMatchObject({
         name: 'ServiceError',
         statusCode: 500,
-        message: 'DB error',
+        message: 'Internal server error',
       })
     })
   })
