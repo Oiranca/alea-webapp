@@ -85,13 +85,20 @@ export function MyReservationsView() {
   const { data: reservations, isLoading } = useMyReservations(user?.id ?? null)
   const cancelReservation = useCancelReservation()
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
 
   const activeReservations = reservations?.filter(r => r.status === 'active') ?? []
   const pastReservations = reservations?.filter(r => r.status !== 'active') ?? []
 
   async function handleCancel(id: string) {
+    setCancelError(null)
     try {
       await cancelReservation.mutateAsync(id)
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : ''
+      if (msg === 'CANCELLATION_CUTOFF' || (error as { statusCode?: number })?.statusCode === 403) {
+        setCancelError(t('errors.cancellationCutoff'))
+      }
     } finally {
       setCancelingId(null)
     }
@@ -147,14 +154,17 @@ export function MyReservationsView() {
       )}
 
       {/* Cancel confirmation dialog */}
-      <Dialog open={!!cancelingId} onOpenChange={() => setCancelingId(null)}>
+      <Dialog open={!!cancelingId} onOpenChange={() => { setCancelingId(null); setCancelError(null) }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-cinzel">{t('cancel')}</DialogTitle>
             <DialogDescription>{t('cancelConfirm')}</DialogDescription>
           </DialogHeader>
+          {cancelError && (
+            <p className="text-sm text-destructive mt-2">{cancelError}</p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelingId(null)}>
+            <Button variant="outline" onClick={() => { setCancelingId(null); setCancelError(null) }}>
               No
             </Button>
             <Button

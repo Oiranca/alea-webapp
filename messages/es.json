@@ -86,7 +86,9 @@
       "conflictTime": "Ya existe una reserva en ese horario",
       "pastDate": "No puedes reservar en fechas pasadas",
       "invalidTime": "La hora de fin debe ser posterior a la de inicio",
-      "userSlotConflict": "Ya tienes una reserva en este horario"
+      "userSlotConflict": "Ya tienes una reserva en este horario",
+      "cancellationCutoff": "Esta reserva no se puede cancelar: comienza en menos de 60 minutos.",
+      "generic": "Algo salió mal. Por favor, inténtalo de nuevo."
     }
   },
   "admin": {
