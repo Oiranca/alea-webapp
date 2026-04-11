@@ -3,6 +3,7 @@ import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/l
 import { serviceError } from '@/lib/server/service-error'
 import { resolveDate, buildAvailability } from '@/lib/server/availability'
 import type { Tables, TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import { regenerateQrCodes } from '@/lib/server/tables-service'
 
 type RoomRow = Tables<'rooms'>
 type TableRow = Tables<'tables'>
@@ -250,5 +251,21 @@ export async function createTableEntry(
     serviceError('Internal server error', 500)
   }
 
-  return toGameTable(data as TableRow)
+  const tableRow = data as TableRow
+
+  // Generate QR codes after table creation. If QR generation fails (e.g. missing
+  // NEXT_PUBLIC_APP_URL), log the error and return the table without QR — the admin
+  // can regenerate later via the dashboard.
+  try {
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
+    if (appUrl) {
+      const { qr_code, qr_code_inf } = await regenerateQrCodes(tableRow.id)
+      tableRow.qr_code = qr_code
+      if (qr_code_inf != null) tableRow.qr_code_inf = qr_code_inf
+    }
+  } catch (qrErr) {
+    console.error('[createTableEntry] QR generation failed — table created without QR code:', qrErr)
+  }
+
+  return toGameTable(tableRow)
 }

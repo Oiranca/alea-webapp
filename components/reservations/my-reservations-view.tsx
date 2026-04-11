@@ -30,6 +30,7 @@ interface ReservationCardProps {
 
 function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
   const t = useTranslations('reservations')
+  const tt = useTranslations('tables')
   return (
     <div className="rpg-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -44,7 +45,7 @@ function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
             {reservation.surface && (
               <span className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Layers className="h-3 w-3" aria-hidden="true" />
-                {reservation.surface === 'top' ? 'Superior' : 'Inferior'}
+                {reservation.surface === 'top' ? tt('surfaceTop') : tt('surfaceBottom')}
               </span>
             )}
           </div>

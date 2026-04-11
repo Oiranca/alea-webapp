@@ -18,7 +18,7 @@ export function CheckInActivator({ tableId, side }: CheckInActivatorProps) {
   useEffect(() => {
     let cancelled = false
 
-    const path = `/api/tables/${encodeURIComponent(tableId)}/activate${side === 'inf' ? '?side=inf' : ''}`
+    const path = `/tables/${encodeURIComponent(tableId)}/activate${side === 'inf' ? '?side=inf' : ''}`
 
     apiClient.post(path)
       .then(() => {
