@@ -43,6 +43,9 @@ async function uploadQrCodeToStorage(
 }
 
 export async function generateTableQrCode(tableId: string): Promise<string> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tableId)) {
+    serviceError('Invalid table ID', 400)
+  }
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
   if (!baseUrl) serviceError('NEXT_PUBLIC_APP_URL is not set — cannot generate QR code URL', 500)
   const url = `${baseUrl}/check-in/${tableId}`
@@ -51,6 +54,9 @@ export async function generateTableQrCode(tableId: string): Promise<string> {
 }
 
 export async function regenerateQrCodes(tableId: string): Promise<{ qr_code: string; qr_code_inf: string | null }> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tableId)) {
+    serviceError('Invalid table ID', 400)
+  }
   const admin = createSupabaseServerAdminClient()
 
   const { data: table, error: fetchError } = await admin
@@ -69,10 +75,12 @@ export async function regenerateQrCodes(tableId: string): Promise<{ qr_code: str
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
   if (!baseUrl) serviceError('NEXT_PUBLIC_APP_URL is not set — cannot generate QR code URL', 500)
 
-  const qr_code = await uploadQrCodeToStorage(admin, `${baseUrl}/check-in/${tableId}`, `${tableId}.png`)
-  const qr_code_inf = table!.type === 'removable_top'
-    ? await uploadQrCodeToStorage(admin, `${baseUrl}/check-in/${tableId}?side=inf`, `${tableId}-inf.png`)
-    : null
+  const [qr_code, qr_code_inf] = await Promise.all([
+    uploadQrCodeToStorage(admin, `${baseUrl}/check-in/${tableId}`, `${tableId}.png`),
+    table!.type === 'removable_top'
+      ? uploadQrCodeToStorage(admin, `${baseUrl}/check-in/${tableId}?side=inf`, `${tableId}-inf.png`)
+      : Promise.resolve(null),
+  ])
 
   const updatePayload: { qr_code: string; qr_code_inf?: string | null } = { qr_code }
   if (table!.type === 'removable_top') {

@@ -17,12 +17,12 @@ CREATE POLICY IF NOT EXISTS "qr_codes_public_read"
 -- Allow service role to upload/update/delete QR images
 CREATE POLICY IF NOT EXISTS "qr_codes_service_write"
   ON storage.objects FOR INSERT
-  WITH CHECK (bucket_id = 'table-qr-codes');
+  WITH CHECK (bucket_id = 'table-qr-codes' AND auth.role() = 'service_role');
 
 CREATE POLICY IF NOT EXISTS "qr_codes_service_update"
   ON storage.objects FOR UPDATE
-  USING (bucket_id = 'table-qr-codes');
+  USING (bucket_id = 'table-qr-codes' AND auth.role() = 'service_role');
 
 CREATE POLICY IF NOT EXISTS "qr_codes_service_delete"
   ON storage.objects FOR DELETE
-  USING (bucket_id = 'table-qr-codes');
+  USING (bucket_id = 'table-qr-codes' AND auth.role() = 'service_role');
