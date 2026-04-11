@@ -71,6 +71,7 @@ type EnrichedReservationsTableClient = {
 }
 
 export const GRACE_PERIOD_MINUTES = 20
+const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
 
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at'
 const RESERVATION_ENRICHED_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at, profiles(member_number), tables(name, rooms(name))'
@@ -380,6 +381,18 @@ export async function updateReservationForSession(
   }
   if ((nextStatus === 'completed' || nextStatus === 'no_show') && session.role !== 'admin') {
     serviceError('Only admins can mark a reservation as completed or no_show', 403)
+  }
+
+  if (nextStatus === 'cancelled' && session.role !== 'admin' && existingReservation.status !== 'cancelled') {
+    // Date parsed as local time — intentional: reservation times match venue timezone.
+    const reservationStart = new Date(`${existingReservation.date}T${normalizeTime(existingReservation.start_time)}`)
+    if (isNaN(reservationStart.getTime())) {
+      serviceError('Invalid reservation time format', 500)
+    }
+    const now = new Date()
+    if (reservationStart.getTime() - now.getTime() < CANCELLATION_CUTOFF_MS) {
+      serviceError('CANCELLATION_CUTOFF', 403)
+    }
   }
 
   const nextStartTime = body.startTime == null

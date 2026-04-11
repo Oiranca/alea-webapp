@@ -740,6 +740,121 @@ describe('reservations service', () => {
       expect(updated.startTime).toBe('16:30')
       expect(updated.endTime).toBe('17:30')
     })
+
+    describe('cancellation cutoff (60-minute restriction)', () => {
+      beforeEach(() => {
+        vi.useFakeTimers()
+      })
+
+      afterEach(() => {
+        vi.useRealTimers()
+      })
+
+      it('member cancels reservation > 60 min in future → allowed', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 14:00:00 local time
+        vi.setSystemTime(new Date(2026, 3, 4, 14, 0, 0))
+
+        // Reservation starts at 16:00 (120 minutes from now)
+        // Difference = 120 * 60 * 1000 = 7200000 ms
+        // 7200000 < 3600000 = false, so allowed
+        const updated = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+
+        expect(updated.status).toBe('cancelled')
+      })
+
+      it('member cancels reservation exactly 60 min away → allowed (at boundary)', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 15:00:00 local time (exactly 60 minutes before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 0, 0))
+
+        // Reservation starts at 16:00
+        // Difference = 3600000 ms (exactly 60 min)
+        // 3600000 < 3600000 = false, so allowed
+        const updated = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+
+        expect(updated.status).toBe('cancelled')
+      })
+
+      it('member cancels reservation within 60 min → blocked with CANCELLATION_CUTOFF', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 15:30:00 local time (30 minutes before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 30, 0))
+
+        // Reservation starts at 16:00
+        // Difference = 1800000 ms (30 min)
+        // 1800000 < 3600000 = true, so blocked
+        await expect(updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })).rejects.toMatchObject({
+          name: 'ServiceError',
+          statusCode: 403,
+          message: expect.stringContaining('CANCELLATION_CUTOFF'),
+        })
+      })
+
+      it('member cancels reservation after start time → blocked with CANCELLATION_CUTOFF', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 16:00:00 local time (reservation start, now in progress)
+        vi.setSystemTime(new Date(2026, 3, 4, 16, 0, 0))
+
+        // Reservation starts at 16:00 (in the past)
+        // Difference is negative, definitely < 3600000, so blocked
+        await expect(updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })).rejects.toMatchObject({
+          name: 'ServiceError',
+          statusCode: 403,
+          message: expect.stringContaining('CANCELLATION_CUTOFF'),
+        })
+      })
+
+      it('admin cancels reservation within 60 min → allowed (bypass)', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 15:30:00 local time (30 min before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 30, 0))
+
+        // Admin should be able to cancel even within 60 min
+        const adminReservation = makeReservation({ id: 'r-admin', user_id: '1', table_id: 't2' })
+        reservationsState.push(adminReservation)
+
+        const updated = await updateReservationForSession(adminSession, 'r-admin', { status: 'cancelled' })
+
+        expect(updated.status).toBe('cancelled')
+      })
+
+      it('member changes status to pending within 60 min → cutoff does NOT fire', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // Set current time to 2026-04-04 15:30:00 local time (30 min before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 30, 0))
+
+        // Change status to 'pending' (not 'cancelled'), so cutoff should not apply
+        const updated = await updateReservationForSession(memberSession, 'r1', { status: 'pending' })
+
+        expect(updated.status).toBe('pending')
+      })
+
+      it('member re-cancels already-cancelled reservation within 60 min → idempotent (no CANCELLATION_CUTOFF)', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // First, cancel the reservation when > 60 min away (succeeds)
+        vi.setSystemTime(new Date(2026, 3, 4, 14, 0, 0))  // 14:00, 120 min before 16:00
+        const cancelled = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+        expect(cancelled.status).toBe('cancelled')
+
+        // Now move time to within 60 min of the start (30 min before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 30, 0))
+
+        // Try to cancel again within 60 min window - should succeed (idempotent)
+        // because the guard checks: existingReservation.status !== 'cancelled'
+        const reCancelled = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+
+        expect(reCancelled.status).toBe('cancelled')
+      })
+
+    })
   })
 
   describe('checkReservationAccess', () => {
