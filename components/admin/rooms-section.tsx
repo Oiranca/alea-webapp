@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import { Pencil, Plus, ChevronDown, ChevronRight, DoorOpen, Table2, QrCode, Download, RefreshCw } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
@@ -57,10 +58,13 @@ function TableQrPanel({ table }: { table: GameTable }) {
           </p>
           {qrCode ? (
             <div className="flex flex-col gap-2">
-              <img
+              <Image
                 src={qrCode}
                 alt={`QR ${table.name}`}
-                className="w-32 h-32 rounded-md border border-border/50 bg-white"
+                width={128}
+                height={128}
+                className="w-32 h-32 rounded-md border border-border/50 bg-white object-cover"
+                unoptimized
               />
               <a
                 href={qrCode}
@@ -86,10 +90,13 @@ function TableQrPanel({ table }: { table: GameTable }) {
             </p>
             {qrCodeInf ? (
               <div className="flex flex-col gap-2">
-                <img
+                <Image
                   src={qrCodeInf}
                   alt={`QR ${table.name} INF`}
-                  className="w-32 h-32 rounded-md border border-border/50 bg-white"
+                  width={128}
+                  height={128}
+                  className="w-32 h-32 rounded-md border border-border/50 bg-white object-cover"
+                  unoptimized
                 />
                 <a
                   href={qrCodeInf}
