@@ -709,7 +709,7 @@ describe('reservations service', () => {
       return `${hh}:${mm}:00`
     }
 
-    it('succeeds within the 20-minute activation window', async () => {
+    it('succeeds within the grace period activation window', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
       seedPendingReservation({ start_time: makeStartTime(10) })
@@ -813,7 +813,7 @@ describe('reservations service', () => {
       expect(result.status).toBe('active')
     })
 
-    it('boundary: called at start_time+19min succeeds (still within window)', async () => {
+    it('boundary: called at start_time + (19) min succeeds', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
       seedPendingReservation({ start_time: makeStartTime(19) })
@@ -823,7 +823,7 @@ describe('reservations service', () => {
       expect(result.status).toBe('active')
     })
 
-    it('boundary: called at start_time+21min throws CHECK_IN_TOO_LATE', async () => {
+    it('boundary: called at start_time + (21) min throws CHECK_IN_TOO_LATE', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
       seedPendingReservation({ start_time: makeStartTime(21) })
@@ -852,10 +852,10 @@ describe('reservations service', () => {
         createSupabaseServerClient: vi.fn(async () => ({ from: vi.fn() })),
       }))
       
-      const { cancelExpiredPendingReservations } = await import('@/lib/server/reservations-service')
+      const { cancelExpiredPendingReservations, GRACE_PERIOD_MINUTES } = await import('@/lib/server/reservations-service')
       const result = await cancelExpiredPendingReservations()
 
-      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations')
+      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations', { grace_minutes: GRACE_PERIOD_MINUTES })
       expect(result).toBe(3)
     })
 

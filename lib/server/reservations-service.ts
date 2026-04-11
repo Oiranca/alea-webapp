@@ -59,6 +59,8 @@ type EnrichedReservationsTableClient = {
   select: (columns: string) => EnrichedReservationsQuery
 }
 
+export const GRACE_PERIOD_MINUTES = 20
+
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at'
 const RESERVATION_ENRICHED_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at, profiles(member_number), tables(name, rooms(name))'
 
@@ -397,7 +399,7 @@ export async function updateReservationForSession(
 
 export async function cancelExpiredPendingReservations(): Promise<number> {
   const admin = createSupabaseServerAdminClient()
-  const { data, error } = await admin.rpc('cancel_expired_pending_reservations')
+  const { data, error } = await admin.rpc('cancel_expired_pending_reservations', { grace_minutes: GRACE_PERIOD_MINUTES })
   if (error) serviceError('Internal server error', 500)
   return (data as number | null) ?? 0
 }
@@ -480,7 +482,7 @@ export async function activateReservationByTable(
   const reservationStart = new Date(reservation.date)
   reservationStart.setHours(parseInt(startTimeParts[0], 10), parseInt(startTimeParts[1], 10), 0, 0)
 
-  const windowEnd = new Date(reservationStart.getTime() + 20 * 60 * 1000)
+  const windowEnd = new Date(reservationStart.getTime() + GRACE_PERIOD_MINUTES * 60 * 1000)
 
   if (now < reservationStart) {
     serviceError('CHECK_IN_TOO_EARLY', 400)
