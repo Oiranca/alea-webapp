@@ -835,6 +835,25 @@ describe('reservations service', () => {
 
         expect(updated.status).toBe('pending')
       })
+
+      it('member re-cancels already-cancelled reservation within 60 min → idempotent (no CANCELLATION_CUTOFF)', async () => {
+        const { updateReservationForSession } = await loadReservationModules()
+
+        // First, cancel the reservation when > 60 min away (succeeds)
+        vi.setSystemTime(new Date(2026, 3, 4, 14, 0, 0))  // 14:00, 120 min before 16:00
+        const cancelled = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+        expect(cancelled.status).toBe('cancelled')
+
+        // Now move time to within 60 min of the start (30 min before 16:00)
+        vi.setSystemTime(new Date(2026, 3, 4, 15, 30, 0))
+
+        // Try to cancel again within 60 min window - should succeed (idempotent)
+        // because the guard checks: existingReservation.status !== 'cancelled'
+        const reCancelled = await updateReservationForSession(memberSession, 'r1', { status: 'cancelled' })
+
+        expect(reCancelled.status).toBe('cancelled')
+      })
+
     })
   })
 
