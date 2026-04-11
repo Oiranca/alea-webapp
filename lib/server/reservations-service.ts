@@ -384,7 +384,10 @@ export async function updateReservationForSession(
 
   if (nextStatus === 'cancelled' && session.role !== 'admin') {
     // Date parsed as local time — intentional: reservation times match venue timezone.
-    const reservationStart = new Date(`${existingReservation.date}T${existingReservation.start_time}`)
+    const reservationStart = new Date(`${existingReservation.date}T${normalizeTime(existingReservation.start_time)}`)
+    if (isNaN(reservationStart.getTime())) {
+      serviceError('Invalid reservation time format', 500)
+    }
     const now = new Date()
     if (reservationStart.getTime() - now.getTime() < 60 * 60 * 1000) {
       serviceError('CANCELLATION_CUTOFF', 403)
