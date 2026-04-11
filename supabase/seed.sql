@@ -298,13 +298,16 @@ ON CONFLICT (id) DO UPDATE
 -- ============================================================
 -- Reservations (10 sample reservations)
 --
--- Dates relative to 2026-04-11 (today):
---   Past (completed/cancelled): 2026-03-28, 2026-04-01, 2026-04-05, 2026-04-08
---   Future (active/pending):    2026-04-12, 2026-04-14, 2026-04-18, 2026-04-20
+-- Dates are relative to CURRENT_DATE so the seed stays valid
+-- regardless of when it is applied:
+--   Past  (completed/cancelled/no_show): CURRENT_DATE - 14d, -10d, -6d, -3d
+--   Future (active/pending):             CURRENT_DATE +  1d,  +3d,  +7d,  +9d
 --
 -- NOTE: The exclusion constraint only fires for status='active'.
 -- Active reservations on the same table must not overlap in time.
 -- All active entries below use distinct tables or non-overlapping times.
+--
+-- NOTE: surface must be NULL for table types other than 'removable_top'.
 -- ============================================================
 
 INSERT INTO public.reservations (id, table_id, user_id, date, start_time, end_time, surface, status, activated_at)
@@ -314,27 +317,27 @@ VALUES
     '50000000-0000-0000-0000-000000000001'::uuid,
     '30000000-0000-0000-0000-000000000001'::uuid,
     '10000000-0000-0000-0000-000000000002'::uuid,
-    '2026-03-28', '10:00', '12:00',
+    CURRENT_DATE - INTERVAL '14 days', '10:00', '12:00',
     NULL,
     'completed',
-    '2026-03-28 10:05:00+00'
+    (CURRENT_DATE - INTERVAL '14 days')::timestamp + INTERVAL '10 hours 5 minutes'
   ),
   -- Past: completed (member2, Biblioteca Arcana, Mesa del Archivist)
   (
     '50000000-0000-0000-0000-000000000002'::uuid,
     '30000000-0000-0000-0000-000000000005'::uuid,
     '10000000-0000-0000-0000-000000000003'::uuid,
-    '2026-04-01', '16:00', '18:00',
+    CURRENT_DATE - INTERVAL '10 days', '16:00', '18:00',
     NULL,
     'completed',
-    '2026-04-01 16:03:00+00'
+    (CURRENT_DATE - INTERVAL '10 days')::timestamp + INTERVAL '16 hours 3 minutes'
   ),
   -- Past: cancelled (member3, Forja de Goblins, Mesa del Artesano)
   (
     '50000000-0000-0000-0000-000000000003'::uuid,
     '30000000-0000-0000-0000-000000000009'::uuid,
     '10000000-0000-0000-0000-000000000004'::uuid,
-    '2026-04-05', '11:00', '13:00',
+    CURRENT_DATE - INTERVAL '6 days', '11:00', '13:00',
     NULL,
     'cancelled',
     NULL
@@ -344,7 +347,7 @@ VALUES
     '50000000-0000-0000-0000-000000000004'::uuid,
     '30000000-0000-0000-0000-000000000013'::uuid,
     '10000000-0000-0000-0000-000000000005'::uuid,
-    '2026-04-08', '18:00', '20:00',
+    CURRENT_DATE - INTERVAL '3 days', '18:00', '20:00',
     NULL,
     'no_show',
     NULL
@@ -354,7 +357,7 @@ VALUES
     '50000000-0000-0000-0000-000000000005'::uuid,
     '30000000-0000-0000-0000-000000000017'::uuid,
     '10000000-0000-0000-0000-000000000002'::uuid,
-    '2026-04-08', '14:00', '16:00',
+    CURRENT_DATE - INTERVAL '3 days', '14:00', '16:00',
     NULL,
     'cancelled',
     NULL
@@ -364,49 +367,49 @@ VALUES
     '50000000-0000-0000-0000-000000000006'::uuid,
     '30000000-0000-0000-0000-000000000002'::uuid,
     '10000000-0000-0000-0000-000000000002'::uuid,
-    '2026-04-12', '10:00', '13:00',
+    CURRENT_DATE + INTERVAL '1 day', '10:00', '13:00',
     NULL,
     'active',
-    '2026-04-12 10:05:00+00'
+    (CURRENT_DATE + INTERVAL '1 day')::timestamp + INTERVAL '10 hours 5 minutes'
   ),
   -- Future: pending (member2, Biblioteca Arcana, Mesa del Escriba)
   (
     '50000000-0000-0000-0000-000000000007'::uuid,
     '30000000-0000-0000-0000-000000000006'::uuid,
     '10000000-0000-0000-0000-000000000003'::uuid,
-    '2026-04-14', '17:00', '19:00',
+    CURRENT_DATE + INTERVAL '3 days', '17:00', '19:00',
     NULL,
     'pending',
     NULL
   ),
-  -- Future: active (member3, Cripta de los Muertos, Mesa del Nigromante — surface=top)
+  -- Future: active (member3, Cripta de los Muertos, Mesa del Nigromante — small table, no surface)
   (
     '50000000-0000-0000-0000-000000000008'::uuid,
     '30000000-0000-0000-0000-000000000021'::uuid,
     '10000000-0000-0000-0000-000000000004'::uuid,
-    '2026-04-18', '11:00', '14:00',
-    'top',
+    CURRENT_DATE + INTERVAL '7 days', '11:00', '14:00',
+    NULL,
     'active',
-    '2026-04-18 11:05:00+00'
+    (CURRENT_DATE + INTERVAL '7 days')::timestamp + INTERVAL '11 hours 5 minutes'
   ),
   -- Future: pending (member4, Torre del Mago, Mesa del Hechicero — large table)
   (
     '50000000-0000-0000-0000-000000000009'::uuid,
     '30000000-0000-0000-0000-000000000018'::uuid,
     '10000000-0000-0000-0000-000000000005'::uuid,
-    '2026-04-20', '15:00', '17:00',
+    CURRENT_DATE + INTERVAL '9 days', '15:00', '17:00',
     NULL,
     'pending',
     NULL
   ),
-  -- Future: active (admin, Forja de Goblins, Mesa del Herrero — large, surface=bottom)
+  -- Future: active (admin, Forja de Goblins, Mesa del Herrero — large table, no surface)
   (
     '50000000-0000-0000-0000-000000000010'::uuid,
     '30000000-0000-0000-0000-000000000010'::uuid,
     '10000000-0000-0000-0000-000000000001'::uuid,
-    '2026-04-20', '10:00', '12:00',
-    'bottom',
+    CURRENT_DATE + INTERVAL '9 days', '10:00', '12:00',
+    NULL,
     'active',
-    '2026-04-20 10:05:00+00'
+    (CURRENT_DATE + INTERVAL '9 days')::timestamp + INTERVAL '10 hours 5 minutes'
   )
 ON CONFLICT (id) DO NOTHING;
