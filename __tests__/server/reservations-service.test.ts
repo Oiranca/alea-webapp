@@ -246,6 +246,7 @@ vi.mock('@/lib/supabase/server', () => ({
         })),
       }
     }),
+    rpc: vi.fn(),
   })),
 }))
 
@@ -831,6 +832,51 @@ describe('reservations service', () => {
         name: 'ServiceError',
         statusCode: 400,
         message: expect.stringContaining('CHECK_IN_TOO_LATE'),
+      })
+    })
+  })
+
+  describe('cancelExpiredPendingReservations', () => {
+    it('calls admin.rpc with cancel_expired_pending_reservations and returns count', async () => {
+      // The mock setup is done at the top of the file with vi.mock
+      // Here we just need to configure the rpc mock behavior
+      const mockRpc = vi.fn(async () => ({ data: 3, error: null }))
+      
+      // Reset modules to get a fresh import with our configured mock
+      vi.resetModules()
+      const createAdminMock = vi.fn(() => ({
+        rpc: mockRpc,
+      }))
+      vi.doMock('@/lib/supabase/server', () => ({
+        createSupabaseServerAdminClient: createAdminMock,
+        createSupabaseServerClient: vi.fn(async () => ({ from: vi.fn() })),
+      }))
+      
+      const { cancelExpiredPendingReservations } = await import('@/lib/server/reservations-service')
+      const result = await cancelExpiredPendingReservations()
+
+      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations')
+      expect(result).toBe(3)
+    })
+
+    it('throws serviceError when rpc returns error', async () => {
+      const mockRpc = vi.fn(async () => ({ data: null, error: { message: 'DB error' } }))
+      
+      vi.resetModules()
+      const createAdminMock = vi.fn(() => ({
+        rpc: mockRpc,
+      }))
+      vi.doMock('@/lib/supabase/server', () => ({
+        createSupabaseServerAdminClient: createAdminMock,
+        createSupabaseServerClient: vi.fn(async () => ({ from: vi.fn() })),
+      }))
+      
+      const { cancelExpiredPendingReservations } = await import('@/lib/server/reservations-service')
+
+      await expect(cancelExpiredPendingReservations()).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 500,
+        message: 'DB error',
       })
     })
   })
