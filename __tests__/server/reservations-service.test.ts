@@ -143,6 +143,10 @@ function buildSelectChain<T>(rows: T[]) {
       })
       return this
     },
+    or(condition: string) {
+      // OR filtering is handled by the actual Supabase client; mock just returns this for chaining
+      return this
+    },
     then<TResult1 = { data: T[]; error: null }, TResult2 = never>(
       onfulfilled?: ((value: { data: T[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
