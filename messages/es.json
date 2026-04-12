@@ -81,7 +81,6 @@
     "noReservations": "No tienes reservas activas", "available": "Disponible",
     "occupied": "Ocupado", "myReservation": "Mi reserva",
     "calendar": "Calendario de disponibilidad",
-    "noSlotsToday": "No hay horarios disponibles para hoy. Selecciona una fecha futura.",
     "canceling": "Cancelando...", "confirmCancel": "Sí, cancelar", "submitting": "Reservando...",
     "errors": {
       "conflictTime": "Ya existe una reserva en ese horario",

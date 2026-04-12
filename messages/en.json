@@ -81,7 +81,6 @@
     "noReservations": "You have no active reservations", "available": "Available",
     "occupied": "Occupied", "myReservation": "My reservation",
     "calendar": "Availability calendar",
-    "noSlotsToday": "No time slots available for today. Please select a future date.",
     "canceling": "Canceling...", "confirmCancel": "Yes, cancel", "submitting": "Submitting...",
     "errors": {
       "conflictTime": "A reservation already exists at that time",

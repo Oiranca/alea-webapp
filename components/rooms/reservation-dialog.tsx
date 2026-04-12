@@ -27,8 +27,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   const tCommon = useTranslations('common')
   const { user } = useAuth()
 
-  const now = new Date()
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const today = new Date().toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null)
   const [selectedEndTime, setSelectedEndTime] = useState<string | null>(null)
@@ -42,13 +41,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   )
   const createReservation = useCreateReservation()
 
-  const allTimeSlots = generateTimeSlots('09:00', '22:00', 60)
-  const timeSlots = selectedDate === today
-    ? allTimeSlots.filter((slot) => {
-        const [slotH, slotM] = slot.split(':').map(Number)
-        return slotH * 60 + slotM > now.getHours() * 60 + now.getMinutes()
-      })
-    : allTimeSlots
+  const timeSlots = generateTimeSlots('09:00', '22:00', 60)
 
   function isSlotAvailable(time: string, surface?: TableSurface): boolean {
     if (!availability) return true
@@ -201,10 +194,6 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                   <DiceLoader size="sm" />
                   <span>{tCommon('loading')}</span>
                 </div>
-              ) : timeSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-2">
-                  {t('noSlotsToday')}
-                </p>
               ) : (
                 <div
                   className="grid grid-cols-5 gap-1.5"
