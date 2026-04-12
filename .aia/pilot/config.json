@@ -1,8 +1,0 @@
-{
-	"objective": "Follow docs/ALEA-EXECUTION-PLAN.md strictly. Read the file to find the next incomplete milestone in sequence. Implement it exactly as described (files, acceptance criteria). Create a feature branch off develop, run pnpm typecheck && pnpm build && pnpm test, open PR targeting develop. Then move to the next milestone. Test files in __tests__/ are exclusively owned by the tester agent — developer must never touch them. Never merge into develop — only open PRs.",
-	"priority": "features",
-	"excludeAreas": [],
-	"projectPath": "/Users/samuelromeroarbelo/Projects/Alea/alea-webapp",
-	"provider": "claude",
-	"canAskQuestions": false
-}
