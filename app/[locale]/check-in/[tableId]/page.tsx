@@ -20,6 +20,11 @@ export default async function CheckInPage({ params, searchParams }: CheckInPageP
   const { locale, tableId } = await params
   const { side: sideParam } = await searchParams
 
+  const VALID_LOCALES = ['en', 'es']
+  if (!VALID_LOCALES.includes(locale)) {
+    redirect('/rooms')
+  }
+
   if (!UUID_REGEX.test(tableId)) {
     redirect(`/${locale}/rooms`)
   }

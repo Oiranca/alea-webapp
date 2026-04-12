@@ -473,12 +473,23 @@ export async function activateReservationByTable(
   // Anchor "today" in the club's local timezone so near-midnight requests on
   // DST transition days resolve to the correct calendar date.
   const clubTimezone = process.env.CLUB_TIMEZONE ?? 'Europe/Madrid'
-  const today = new Intl.DateTimeFormat('en-CA', {
-    timeZone: clubTimezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date()) // produces YYYY-MM-DD
+  let today: string
+  try {
+    today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: clubTimezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+  } catch {
+    console.error(`[activateReservationByTable] Invalid CLUB_TIMEZONE: "${clubTimezone}", falling back to Europe/Madrid`)
+    today = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Madrid',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date())
+  }
 
   // Look up the table via the session-scoped client to decide whether to apply
   // a surface filter. removable_top tables store surface='top'/'bottom'; all
