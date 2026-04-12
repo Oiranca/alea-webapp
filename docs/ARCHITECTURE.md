@@ -251,7 +251,7 @@ pnpm install
 cp .env.example .env.local
 # Edit .env.local with your Supabase Cloud credentials:
 # - NEXT_PUBLIC_SUPABASE_URL
-# - NEXT_PUBLIC_SUPABASE_ANON_KEY
+# - NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY
 # - SUPABASE_SECRET_DEFAULT_KEY
 
 # 3. Start dev server
