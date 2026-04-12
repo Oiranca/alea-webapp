@@ -201,6 +201,10 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                   <DiceLoader size="sm" />
                   <span>{tCommon('loading')}</span>
                 </div>
+              ) : timeSlots.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  {t('noSlotsToday')}
+                </p>
               ) : (
                 <div
                   className="grid grid-cols-5 gap-1.5"
