@@ -139,8 +139,16 @@ export async function updateUser(id: string, body: { memberNumber?: unknown; rol
 }
 
 export async function resetNoShows(id: string) {
-  const supabase = createSupabaseServerAdminClient()
-  const { error } = await supabase
+  const admin = createSupabaseServerAdminClient()
+  const profiles = admin.from('profiles') as unknown as AdminProfilesTableClient
+  const { data: existing, error: selectError } = await profiles
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+  if (selectError) serviceError('Internal server error', 500)
+  if (!existing) serviceError('User not found', 404)
+
+  const { error } = await admin
     .from('profiles')
     .update({ no_show_count: 0, blocked_until: null })
     .eq('id', id)
@@ -148,8 +156,16 @@ export async function resetNoShows(id: string) {
 }
 
 export async function unblockUser(id: string) {
-  const supabase = createSupabaseServerAdminClient()
-  const { error } = await supabase
+  const admin = createSupabaseServerAdminClient()
+  const profiles = admin.from('profiles') as unknown as AdminProfilesTableClient
+  const { data: existing, error: selectError } = await profiles
+    .select('id')
+    .eq('id', id)
+    .maybeSingle()
+  if (selectError) serviceError('Internal server error', 500)
+  if (!existing) serviceError('User not found', 404)
+
+  const { error } = await admin
     .from('profiles')
     .update({ blocked_until: null })
     .eq('id', id)

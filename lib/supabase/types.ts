@@ -267,7 +267,7 @@ export type Database = {
     Functions: {
       cancel_expired_pending_reservations: { Args: { grace_minutes?: number }; Returns: number }
       is_admin: { Args: never; Returns: boolean }
-      mark_no_show_reservations: { Args: Record<string, never>; Returns: number }
+      mark_no_show_reservations: { Args: never; Returns: number }
     }
     Enums: {
       reservation_status: "active" | "cancelled" | "completed" | "pending" | "no_show"
