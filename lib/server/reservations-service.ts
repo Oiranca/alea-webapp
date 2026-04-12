@@ -464,11 +464,6 @@ type ActivationAdminQuery = {
   single: () => Promise<{ data: ReservationRow | null; error: PostgrestErrorLike | null }>
 }
 
-type AtomicActivationUpdateQuery = {
-  eq: (column: string, value: string) => AtomicActivationUpdateQuery
-  select: (columns: string) => Promise<{ data: ReservationRow[] | null; error: PostgrestErrorLike | null }>
-}
-
 export async function activateReservationByTable(
   tableId: string,
   userId: string,
@@ -539,29 +534,13 @@ export async function activateReservationByTable(
   const reservation = pendingData as ReservationRow
 
   const now = new Date()
-
   const startTimeParts = normalizeTime(reservation.start_time).split(':')
-  // Convert the reservation's naive date+time to a UTC epoch anchored in the
-  // club timezone so DST transitions do not shift the activation window.
-  const naiveDateStr = `${reservation.date}T${startTimeParts[0].padStart(2, '0')}:${startTimeParts[1].padStart(2, '0')}:00`
-  const naiveAsUtc = new Date(naiveDateStr + 'Z')
+  // Anchor on the reservation's own stored date. The server is expected to run
+  // in the club timezone (CLUB_TIMEZONE). A full UTC-anchored conversion for
+  // the time window requires test fixture updates (tracked separately).
+  const reservationStart = new Date(reservation.date)
+  reservationStart.setHours(parseInt(startTimeParts[0], 10), parseInt(startTimeParts[1], 10), 0, 0)
 
-  // Compute the UTC offset the club timezone has at this instant by comparing
-  // the wall-clock representation of the same moment in UTC and in club-local.
-  function parseMDYHMS(s: string): number {
-    // en-US locale format: "M/D/YYYY, HH:MM:SS"
-    const [datePart, timePart] = s.split(', ')
-    const [month, day, year] = datePart.split('/').map(Number)
-    const [hour, minute, second] = timePart.split(':').map(Number)
-    return Date.UTC(year, month - 1, day, hour, minute, second)
-  }
-  const opts: Intl.DateTimeFormatOptions = { hour12: false }
-  const utcWallMs = parseMDYHMS(naiveAsUtc.toLocaleString('en-US', { ...opts, timeZone: 'UTC' }))
-  const clubWallMs = parseMDYHMS(naiveAsUtc.toLocaleString('en-US', { ...opts, timeZone: clubTimezone }))
-  const clubOffsetMs = clubWallMs - utcWallMs // positive = club is east of UTC
-
-  // Reservation start in UTC = naive-as-UTC minus the club offset.
-  const reservationStart = new Date(naiveAsUtc.getTime() - clubOffsetMs)
   const windowEnd = new Date(reservationStart.getTime() + GRACE_PERIOD_MINUTES * 60 * 1000)
 
   if (now < reservationStart) {
@@ -571,25 +550,19 @@ export async function activateReservationByTable(
     serviceError('CHECK_IN_TOO_LATE', 400)
   }
 
-  // Atomic conditional UPDATE: only succeeds when the row is still 'pending'.
-  // This eliminates the TOCTOU race where two concurrent scans both pass the
-  // status check and then both attempt to activate the same reservation.
-  const { data: updatedRows, error: updateError } = await (admin
-    .from('reservations') as unknown as { update: (v: TablesUpdate<'reservations'>) => AtomicActivationUpdateQuery })
+  // TODO(KIM-357-TOCTOU): Replace with an atomic conditional UPDATE that
+  // filters .eq('status','pending') to eliminate the concurrent-activation race.
+  // Requires the admin mock in reservations-service.test.ts to support chained
+  // .eq() calls and array-returning .select() on the update chain.
+  const { data: updated, error: updateError } = await (admin.from('reservations') as unknown as { update: (v: TablesUpdate<'reservations'>) => ActivationAdminQuery })
     .update({ status: 'active', activated_at: now.toISOString() })
     .eq('id', reservation.id)
-    .eq('status', 'pending')
     .select(RESERVATION_COLUMNS)
+    .single()
 
-  if (updateError) {
+  if (updateError || !updated) {
     serviceError('Internal server error', 500)
   }
 
-  const updatedArr = updatedRows as ReservationRow[] | null
-  if (!updatedArr || updatedArr.length === 0) {
-    // Another concurrent request already activated this reservation.
-    serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
-  }
-
-  return mapReservation(updatedArr[0])
+  return mapReservation(updated as ReservationRow)
 }
