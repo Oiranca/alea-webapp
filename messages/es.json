@@ -114,20 +114,12 @@
     "noReservations": "No hay reservas",
     "table": "Mesa", "user": "Usuario",
     "regenerateQr": "Regenerar QR",
-    "eventManagement": "Gestión de eventos",
-    "deleteEventConfirm": "¿Estás seguro de que deseas eliminar el evento \"{title}\"? Esta acción no se puede deshacer.",
-    "events": {
-      "title": "Eventos",
-      "description": "Descripción",
-      "room": "Sala",
-      "startTime": "Hora de inicio",
-      "endTime": "Hora de fin",
-      "createEvent": "Crear evento",
-      "editEvent": "Editar evento",
-      "deleteEvent": "Eliminar evento",
-      "noEvents": "No hay eventos",
-      "conflictWarning": "Este evento no puede eliminarse porque existen reservas activas o pendientes en la sala afectada durante este horario."
-    }
+    "noShowCount": "Conteo de no-shows",
+    "blockedUntil": "Bloqueado hasta",
+    "resetNoShows": "Reiniciar no-shows",
+    "unblockUser": "Desbloquear",
+    "noShowsReset": "No-shows reiniciados con éxito",
+    "userUnblocked": "Usuario desbloqueado con éxito"
   },
   "home": {
     "heroTitle": "Tu Aventura Comienza Aquí",
