@@ -363,3 +363,125 @@ describe('deleteUser', () => {
     expect(deleteUserMock).toHaveBeenCalledWith('1')
   })
 })
+
+describe('resetNoShows', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    resetQueryMocks()
+  })
+
+  it('sets no_show_count=0 and blocked_until=null for the user', async () => {
+    let capturedUpdates: Record<string, unknown> | undefined
+    vi.mocked(
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
+          maybeSingle: maybeSingleMock,
+        })),
+        update: vi.fn((updates: Record<string, unknown>) => {
+          capturedUpdates = updates
+          return {
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }
+        }),
+      })),
+      auth: { admin: { deleteUser: deleteUserMock } },
+    } as never)
+    const { resetNoShows } = await loadUsersModules()
+
+    await resetNoShows('user-123')
+
+    expect(capturedUpdates).toEqual({ no_show_count: 0, blocked_until: null })
+  })
+
+  it('throws a service error when update fails', async () => {
+    vi.mocked(
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
+          maybeSingle: maybeSingleMock,
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: new Error('DB error') }),
+        })),
+      })),
+      auth: { admin: { deleteUser: deleteUserMock } },
+    } as never)
+    const { resetNoShows } = await loadUsersModules()
+
+    await expect(resetNoShows('user-123')).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 500,
+    })
+  })
+})
+
+describe('unblockUser', () => {
+  beforeEach(() => {
+    vi.resetModules()
+    vi.clearAllMocks()
+    resetQueryMocks()
+  })
+
+  it('sets blocked_until=null for the user', async () => {
+    let capturedUpdates: Record<string, unknown> | undefined
+    vi.mocked(
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
+          maybeSingle: maybeSingleMock,
+        })),
+        update: vi.fn((updates: Record<string, unknown>) => {
+          capturedUpdates = updates
+          return {
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }
+        }),
+      })),
+      auth: { admin: { deleteUser: deleteUserMock } },
+    } as never)
+    const { unblockUser } = await loadUsersModules()
+
+    await unblockUser('user-456')
+
+    expect(capturedUpdates).toEqual({ blocked_until: null })
+  })
+
+  it('throws a service error when update fails', async () => {
+    vi.mocked(
+      (await import('@/lib/supabase/server')).createSupabaseServerAdminClient
+    ).mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: maybeSingleMock,
+          })),
+          maybeSingle: maybeSingleMock,
+        })),
+        update: vi.fn(() => ({
+          eq: vi.fn().mockResolvedValue({ error: new Error('DB error') }),
+        })),
+      })),
+      auth: { admin: { deleteUser: deleteUserMock } },
+    } as never)
+    const { unblockUser } = await loadUsersModules()
+
+    await expect(unblockUser('user-456')).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 500,
+    })
+  })
+})
