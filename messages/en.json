@@ -86,7 +86,9 @@
       "conflictTime": "A reservation already exists at that time",
       "pastDate": "You cannot book dates in the past",
       "invalidTime": "End time must be after start time",
-      "userSlotConflict": "You already have a reservation in this time slot"
+      "userSlotConflict": "You already have a reservation in this time slot",
+      "cancellationCutoff": "This reservation cannot be cancelled — it starts in less than 60 minutes.",
+      "generic": "Something went wrong. Please try again."
     }
   },
   "admin": {

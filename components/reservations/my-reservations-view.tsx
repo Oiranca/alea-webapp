@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useTranslations } from 'next-intl'
 import { CalendarDays, Clock, MapPin, Layers, AlertCircle } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
@@ -81,19 +81,45 @@ function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
 
 export function MyReservationsView() {
   const t = useTranslations('reservations')
+  const tc = useTranslations('common')
   const { user } = useAuth()
   const { data: reservations, isLoading } = useMyReservations(user?.id ?? null)
   const cancelReservation = useCancelReservation()
   const [cancelingId, setCancelingId] = useState<string | null>(null)
+  const [cancelError, setCancelError] = useState<string | null>(null)
+  const dialogOpenRef = useRef(false)
+
+  const closeDialog = () => {
+    dialogOpenRef.current = false
+    setCancelingId(null)
+    setCancelError(null)
+  }
+
+  const openCancelDialog = (id: string) => {
+    dialogOpenRef.current = true
+    setCancelingId(id)
+  }
 
   const activeReservations = reservations?.filter(r => r.status === 'active' || r.status === 'pending') ?? []
   const pastReservations = reservations?.filter(r => r.status !== 'active' && r.status !== 'pending') ?? []
 
   async function handleCancel(id: string) {
+    setCancelError(null)
     try {
       await cancelReservation.mutateAsync(id)
-    } finally {
-      setCancelingId(null)
+      closeDialog()
+    } catch (error: unknown) {
+      if (!dialogOpenRef.current) return
+      const msg = error instanceof Error
+        ? error.message
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message: string }).message
+          : ''
+      if (msg === 'CANCELLATION_CUTOFF') {
+        setCancelError(t('errors.cancellationCutoff'))
+      } else {
+        setCancelError(t('errors.generic'))
+      }
     }
   }
 
@@ -127,7 +153,7 @@ export function MyReservationsView() {
               </div>
             ) : (
               <div className="space-y-3">
-                {activeReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={setCancelingId} />)}
+                {activeReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={openCancelDialog} />)}
               </div>
             )}
           </section>
@@ -139,7 +165,7 @@ export function MyReservationsView() {
                 {t('completed')} / {t('cancelled')} ({pastReservations.length})
               </h2>
               <div className="space-y-3 opacity-70">
-                {pastReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={setCancelingId} />)}
+                {pastReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={openCancelDialog} />)}
               </div>
             </section>
           )}
@@ -147,15 +173,21 @@ export function MyReservationsView() {
       )}
 
       {/* Cancel confirmation dialog */}
-      <Dialog open={!!cancelingId} onOpenChange={() => setCancelingId(null)}>
+      <Dialog open={!!cancelingId} onOpenChange={closeDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="font-cinzel">{t('cancel')}</DialogTitle>
             <DialogDescription>{t('cancelConfirm')}</DialogDescription>
           </DialogHeader>
+          {cancelError && (
+            <p className="text-sm text-destructive flex items-center gap-1.5">
+              <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              {cancelError}
+            </p>
+          )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCancelingId(null)}>
-              No
+            <Button variant="outline" onClick={closeDialog}>
+              {tc('no')}
             </Button>
             <Button
               variant="destructive"
