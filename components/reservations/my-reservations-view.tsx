@@ -31,7 +31,6 @@ interface ReservationCardProps {
 function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
   const t = useTranslations('reservations')
   const tt = useTranslations('tables')
-  const tc = useTranslations('common')
   return (
     <div className="rpg-card p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -82,6 +81,7 @@ function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
 
 export function MyReservationsView() {
   const t = useTranslations('reservations')
+  const tc = useTranslations('common')
   const { user } = useAuth()
   const { data: reservations, isLoading } = useMyReservations(user?.id ?? null)
   const cancelReservation = useCancelReservation()
