@@ -65,7 +65,7 @@ function ReservationCard({ reservation, onCancel }: ReservationCardProps) {
         </Badge>
       </div>
 
-      {reservation.status === 'active' && (
+      {(reservation.status === 'active' || reservation.status === 'pending') && (
         <Button
           variant="outline"
           size="sm"
@@ -95,11 +95,15 @@ export function MyReservationsView() {
     setCancelError(null)
   }
 
-  const activeReservations = reservations?.filter(r => r.status === 'active') ?? []
-  const pastReservations = reservations?.filter(r => r.status !== 'active') ?? []
+  const openCancelDialog = (id: string) => {
+    dialogOpenRef.current = true
+    setCancelingId(id)
+  }
+
+  const activeReservations = reservations?.filter(r => r.status === 'active' || r.status === 'pending') ?? []
+  const pastReservations = reservations?.filter(r => r.status !== 'active' && r.status !== 'pending') ?? []
 
   async function handleCancel(id: string) {
-    dialogOpenRef.current = true
     setCancelError(null)
     try {
       await cancelReservation.mutateAsync(id)
@@ -108,7 +112,9 @@ export function MyReservationsView() {
       if (!dialogOpenRef.current) return
       const msg = error instanceof Error
         ? error.message
-        : (error as { message?: string })?.message ?? ''
+        : typeof error === 'object' && error !== null && 'message' in error
+          ? (error as { message: string }).message
+          : ''
       if (msg === 'CANCELLATION_CUTOFF') {
         setCancelError(t('errors.cancellationCutoff'))
       } else {
@@ -147,7 +153,7 @@ export function MyReservationsView() {
               </div>
             ) : (
               <div className="space-y-3">
-                {activeReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={setCancelingId} />)}
+                {activeReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={openCancelDialog} />)}
               </div>
             )}
           </section>
@@ -159,7 +165,7 @@ export function MyReservationsView() {
                 {t('completed')} / {t('cancelled')} ({pastReservations.length})
               </h2>
               <div className="space-y-3 opacity-70">
-                {pastReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={setCancelingId} />)}
+                {pastReservations.map(r => <ReservationCard key={r.id} reservation={r} onCancel={openCancelDialog} />)}
               </div>
             </section>
           )}
