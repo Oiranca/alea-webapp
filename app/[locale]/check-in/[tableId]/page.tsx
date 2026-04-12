@@ -21,7 +21,7 @@ export default async function CheckInPage({ params, searchParams }: CheckInPageP
   const { side: sideParam } = await searchParams
 
   if (!UUID_REGEX.test(tableId)) {
-    redirect(`/${locale}/check-in/invalid`)
+    redirect(`/${locale}/rooms`)
   }
 
   const session = await getSessionFromServerCookies()

@@ -459,9 +459,10 @@ type ActivationAdminQuery = {
   eq: (column: 'table_id' | 'date' | 'status' | 'user_id' | 'surface' | 'id', value: string) => ActivationAdminQuery
   or: (filter: string) => ActivationAdminQuery
   maybeSingle: () => Promise<{ data: ReservationRow | null; error: unknown }>
-  select: (columns: string) => ActivationAdminQuery
+  select: (columns?: string) => ActivationAdminQuery
   update: (values: TablesUpdate<'reservations'>) => ActivationAdminQuery
   single: () => Promise<{ data: ReservationRow | null; error: PostgrestErrorLike | null }>
+  then: Promise<{ data: ReservationRow[] | null; error: PostgrestErrorLike | null }>['then']
 }
 
 export async function activateReservationByTable(
@@ -550,19 +551,21 @@ export async function activateReservationByTable(
     serviceError('CHECK_IN_TOO_LATE', 400)
   }
 
-  // TODO(KIM-357-TOCTOU): Replace with an atomic conditional UPDATE that
-  // filters .eq('status','pending') to eliminate the concurrent-activation race.
-  // Requires the admin mock in reservations-service.test.ts to support chained
-  // .eq() calls and array-returning .select() on the update chain.
+  // Atomic conditional UPDATE: only affects the row if it is still 'pending'.
+  // A second concurrent QR scan will find 0 rows updated (empty array) and
+  // receive CHECK_IN_ALREADY_ACTIVE instead of double-activating.
   const { data: updated, error: updateError } = await (admin.from('reservations') as unknown as { update: (v: TablesUpdate<'reservations'>) => ActivationAdminQuery })
     .update({ status: 'active', activated_at: now.toISOString() })
     .eq('id', reservation.id)
+    .eq('status', 'pending')
     .select(RESERVATION_COLUMNS)
-    .single()
 
-  if (updateError || !updated) {
+  if (updateError) {
     serviceError('Internal server error', 500)
   }
+  if (!updated || updated.length === 0) {
+    serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
+  }
 
-  return mapReservation(updated as ReservationRow)
+  return mapReservation((updated as ReservationRow[])[0])
 }
