@@ -144,7 +144,7 @@ function EventFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-start" className="text-sm text-muted-foreground font-medium">
-                {tc('time')} (start)
+                {t('events.startTime')}
               </Label>
               <Input
                 id="event-start"
@@ -157,7 +157,7 @@ function EventFormDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-end" className="text-sm text-muted-foreground font-medium">
-                {tc('time')} (end)
+                {t('events.endTime')}
               </Label>
               <Input
                 id="event-end"

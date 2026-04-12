@@ -120,6 +120,8 @@
       "title": "Eventos",
       "description": "Descripción",
       "room": "Sala",
+      "startTime": "Hora de inicio",
+      "endTime": "Hora de fin",
       "createEvent": "Crear evento",
       "editEvent": "Editar evento",
       "deleteEvent": "Eliminar evento",

@@ -121,6 +121,8 @@
       "title": "Events",
       "description": "Description",
       "room": "Room",
+      "startTime": "Start time",
+      "endTime": "End time",
       "createEvent": "Create event",
       "editEvent": "Edit event",
       "deleteEvent": "Delete event",

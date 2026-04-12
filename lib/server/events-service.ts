@@ -259,6 +259,8 @@ export async function deleteEvent(id: string): Promise<void> {
         .select('id')
         .in('table_id', tableIds)
         .eq('date', event.date)
+        .lt('start_time', event.end_time)
+        .gt('end_time', event.start_time)
         .in('status', ['active', 'pending'])
         .limit(1)
 
