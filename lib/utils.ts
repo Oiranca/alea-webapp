@@ -14,7 +14,7 @@ export function formatTime(time: string): string {
   return time.substring(0, 5)
 }
 
-export function generateTimeSlots(start = '09:00', end = '22:00', intervalMinutes = 60): string[] {
+export function generateTimeSlots(start = '00:00', end = '24:00', intervalMinutes = 60): string[] {
   const slots: string[] = []
   const [startH, startM] = start.split(':').map(Number)
   const [endH, endM] = end.split(':').map(Number)

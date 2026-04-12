@@ -95,15 +95,15 @@ describe('normalizeTime', () => {
 })
 
 describe('generateDaySlots', () => {
-  it('generates 13 slots for an empty reserved list', () => {
+  it('generates 24 slots for an empty reserved list', () => {
     const slots = generateDaySlots([])
-    expect(slots).toHaveLength(13)
+    expect(slots).toHaveLength(24)
   })
 
-  it('first slot starts at 09:00 and last slot ends at 22:00', () => {
+  it('first slot starts at 00:00 and last slot ends at 24:00', () => {
     const slots = generateDaySlots([])
-    expect(slots[0]).toEqual({ startTime: '09:00', endTime: '10:00', available: true })
-    expect(slots[12]).toEqual({ startTime: '21:00', endTime: '22:00', available: true })
+    expect(slots[0]).toEqual({ startTime: '00:00', endTime: '01:00', available: true })
+    expect(slots[23]).toEqual({ startTime: '23:00', endTime: '24:00', available: true })
   })
 
   it('each slot has startTime, endTime and available fields', () => {
@@ -145,7 +145,7 @@ describe('buildAvailability', () => {
 
     expect(result.tableId).toBe('t1')
     expect(result.date).toBe('2025-06-15')
-    expect(result.slots).toHaveLength(13)
+    expect(result.slots).toHaveLength(24)
     expect(result.slots.every((s) => s.available)).toBe(true)
   })
 
@@ -183,8 +183,8 @@ describe('buildAvailability', () => {
     expect(result.top).toBeDefined()
     expect(result.bottom).toBeDefined()
     expect(result.conflicts).toBeDefined()
-    expect(result.top).toHaveLength(13)
-    expect(result.bottom).toHaveLength(13)
+    expect(result.top).toHaveLength(24)
+    expect(result.bottom).toHaveLength(24)
   })
 
   it('separates top and bottom surface reservations for removable_top tables', () => {

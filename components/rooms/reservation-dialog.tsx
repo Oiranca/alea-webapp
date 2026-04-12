@@ -41,7 +41,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   )
   const createReservation = useCreateReservation()
 
-  const timeSlots = generateTimeSlots('09:00', '22:00', 60)
+  const timeSlots = generateTimeSlots('00:00', '24:00', 60)
 
   function isSlotAvailable(time: string, surface?: TableSurface): boolean {
     if (!availability) return true
