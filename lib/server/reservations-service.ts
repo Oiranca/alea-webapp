@@ -8,7 +8,7 @@ type ReservationRow = Tables<'reservations'>
 type TableRow = Tables<'tables'>
 type PostgrestErrorLike = { code?: string }
 type TablesLookupClient = {
-  select: () => {
+  select: (columns?: string) => {
     eq: (column: 'id', value: string) => {
       maybeSingle: () => Promise<{ data: TableRow | null; error: unknown }>
     }
@@ -143,7 +143,7 @@ async function getTable(tableId: string) {
   const supabase = await createSupabaseServerClient()
   const tables = supabase.from('tables') as unknown as TablesLookupClient
   const { data, error } = await tables
-    .select()
+    .select('id, type')
     .eq('id', tableId)
     .maybeSingle()
 
