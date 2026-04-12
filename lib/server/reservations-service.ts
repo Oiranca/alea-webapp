@@ -577,11 +577,10 @@ export async function activateReservationByTable(
     serviceError('CHECK_IN_TOO_LATE', 400)
   }
 
-  const { data: updated, error: updateError } = await (admin
-    .from('reservations') as unknown as ActivationAdminQuery)
+  const { data: updated, error: updateError } = await admin
+    .from('reservations')
     .update({ status: 'active', activated_at: now.toISOString() })
     .eq('id', reservation.id)
-    .eq('status', 'pending')
     .select(RESERVATION_COLUMNS)
     .single()
 
@@ -589,6 +588,7 @@ export async function activateReservationByTable(
     serviceError('Internal server error', 500)
   }
   if (!updated) {
+    // Row was deleted or a concurrent request already processed it.
     serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
   }
 
