@@ -1316,6 +1316,96 @@ describe('reservations service', () => {
         message: expect.stringContaining('Table not found'),
       })
     })
+
+    it('UPDATE returning PGRST116 resolves to 409 CHECK_IN_ALREADY_ACTIVE (TOCTOU race)', async () => {
+      // Simulates the TOCTOU race: pendingQuery finds the row, but by the time the UPDATE
+      // executes the row is gone (already activated by a concurrent request).
+      // PostgREST returns PGRST116 when .single() matches zero rows.
+      // We override createSupabaseServerAdminClient for this one invocation via mockReturnValueOnce.
+      const { createSupabaseServerAdminClient } = await import('@/lib/supabase/server')
+      const adminMock = vi.mocked(createSupabaseServerAdminClient)
+
+      const pendingRow = makeReservation({
+        id: 'rTOCTOU',
+        table_id: 't3',
+        user_id: '2',
+        date: FIXED_DATE,
+        status: 'pending',
+        surface: 'top',
+        start_time: makeStartTime(10),
+      })
+
+      // Build a select chain that returns the pending row for pendingQuery
+      function buildSingleRowSelectChain(row: ReservationRow) {
+        const self: {
+          eq: (col: string, val: string) => typeof self
+          maybeSingle: () => Promise<{ data: ReservationRow; error: null }>
+        } = {
+          eq: vi.fn(() => self),
+          maybeSingle: vi.fn(async () => ({ data: { ...row }, error: null })),
+        }
+        return self
+      }
+
+      // Build an update chain whose single() returns PGRST116
+      function buildPGRST116UpdateChain() {
+        const self: {
+          eq: (col: string, val: string) => typeof self
+          select: (cols?: string) => typeof self
+          single: () => Promise<{ data: null; error: { code: string; message: string } }>
+        } = {
+          eq: vi.fn(() => self),
+          select: vi.fn(() => self),
+          single: vi.fn(async () => ({
+            data: null,
+            error: { code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' },
+          })),
+        }
+        return self
+      }
+
+      let fromCallCount = 0
+      adminMock.mockReturnValueOnce({
+        from: vi.fn((table: string) => {
+          if (table !== 'reservations') throw new Error(`Unexpected admin table ${table}`)
+          fromCallCount++
+          if (fromCallCount === 1) {
+            // pendingQuery: .select(cols).eq().eq().eq().eq().eq().maybeSingle()
+            return { select: vi.fn(() => buildSingleRowSelectChain(pendingRow)) }
+          }
+          // updateChain: .update().eq().eq().select().single() → PGRST116
+          return { update: vi.fn(() => buildPGRST116UpdateChain()) }
+        }),
+        rpc: vi.fn(),
+      } as unknown as ReturnType<typeof createSupabaseServerAdminClient>)
+
+      const { activateReservationByTable } = await loadReservationModules()
+
+      await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 409,
+        message: expect.stringContaining('CHECK_IN_ALREADY_ACTIVE'),
+      })
+    })
+
+    it('sequential double-call returns 409 CHECK_IN_ALREADY_ACTIVE on second call', async () => {
+      // First call activates the reservation (pending → active).
+      // Second call finds no pending row but finds an active row → 409 CHECK_IN_ALREADY_ACTIVE.
+      const { activateReservationByTable } = await loadReservationModules()
+
+      seedPendingReservation({ start_time: makeStartTime(10) })
+
+      // First activation should succeed
+      const firstResult = await activateReservationByTable('t3', '2', undefined)
+      expect(firstResult).toMatchObject({ tableId: 't3', userId: '2', status: 'active' })
+
+      // Second activation on the same table/user — reservation is now active, not pending
+      await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 409,
+        message: expect.stringContaining('CHECK_IN_ALREADY_ACTIVE'),
+      })
+    })
   })
 
   describe('cancelExpiredPendingReservations', () => {
