@@ -27,7 +27,8 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   const tCommon = useTranslations('common')
   const { user } = useAuth()
 
-  const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const today = now.toISOString().split('T')[0]
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null)
   const [selectedEndTime, setSelectedEndTime] = useState<string | null>(null)
@@ -41,7 +42,14 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   )
   const createReservation = useCreateReservation()
 
-  const timeSlots = generateTimeSlots('00:00', '24:00', 60)
+  const allTimeSlots = generateTimeSlots('00:00', '24:00', 60)
+  const nowMinutes = now.getHours() * 60 + now.getMinutes()
+  const timeSlots = selectedDate === today
+    ? allTimeSlots.filter((slot) => {
+        const [h, m] = slot.split(':').map(Number)
+        return h * 60 + m > nowMinutes
+      })
+    : allTimeSlots
 
   function isSlotAvailable(time: string, surface?: TableSurface): boolean {
     if (!availability) return true
