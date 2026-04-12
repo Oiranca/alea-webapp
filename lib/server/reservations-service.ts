@@ -550,8 +550,16 @@ export async function activateReservationByTable(
   // Anchor on the reservation's own stored date. The server is expected to run
   // in the club timezone (CLUB_TIMEZONE). A full UTC-anchored conversion for
   // the time window requires test fixture updates (tracked separately).
-  const reservationStart = new Date(reservation.date)
-  reservationStart.setHours(parseInt(startTimeParts[0], 10), parseInt(startTimeParts[1], 10), 0, 0)
+  const dateParts = reservation.date.split('-')
+  const reservationStart = new Date(
+    parseInt(dateParts[0]!, 10),
+    parseInt(dateParts[1]!, 10) - 1,
+    parseInt(dateParts[2]!, 10),
+    parseInt(startTimeParts[0]!, 10),
+    parseInt(startTimeParts[1]!, 10),
+    0,
+    0,
+  )
 
   const windowEnd = new Date(reservationStart.getTime() + GRACE_PERIOD_MINUTES * 60 * 1000)
 

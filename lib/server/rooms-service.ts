@@ -258,7 +258,7 @@ export async function createTableEntry(
   const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? '').replace(/\/$/, '')
   if (appUrl) {
     regenerateQrCodes(tableRow.id).catch((qrErr: unknown) => {
-      console.error('[createTableEntry] QR generation failed silently:', qrErr)
+      console.error('[createTableEntry] QR generation failed in background:', qrErr)
     })
   }
 
