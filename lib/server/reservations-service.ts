@@ -534,7 +534,11 @@ export async function activateReservationByTable(
       activeQuery = activeQuery.eq('surface', 'top')
     }
 
-    const { data: activeData } = await activeQuery.maybeSingle()
+    const { data: activeData, error: activeError } = await activeQuery.maybeSingle()
+
+    if (activeError) {
+      serviceError('Internal server error', 500)
+    }
 
     if (activeData) {
       serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
