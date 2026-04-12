@@ -104,7 +104,7 @@ export async function listPaginatedUsers(input: {
 
 export async function updateUser(id: string, body: { memberNumber?: unknown; role?: unknown; is_active?: unknown }) {
   const updates: TablesUpdate<'profiles'> = {}
-  if (body.memberNumber) {
+  if (body.memberNumber !== undefined) {
     const parsed = memberNumberSchema.safeParse(String(body.memberNumber))
     if (!parsed.success) {
       serviceError('Invalid member number format', 400)
