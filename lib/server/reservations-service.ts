@@ -585,11 +585,16 @@ export async function activateReservationByTable(
     .select(RESERVATION_COLUMNS)
     .single()
 
+  // PGRST116: PostgREST returns this code when .single() matches zero rows.
+  // Here it means the reservation was already activated by a concurrent request
+  // (TOCTOU race) between our read and this UPDATE. Return 409, not 500.
+  if ((updateError as PostgrestErrorLike | null)?.code === 'PGRST116') {
+    serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
+  }
   if (updateError) {
     serviceError('Internal server error', 500)
   }
   if (!updated) {
-    // Row was deleted, already active, or a concurrent request already processed it (TOCTOU guard).
     serviceError('CHECK_IN_ALREADY_ACTIVE', 409)
   }
 
