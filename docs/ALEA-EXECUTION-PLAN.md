@@ -1,6 +1,6 @@
 # Alea Webapp — Execution Plan
 
-> Generated: 2026-04-10 · Last updated: 2026-04-12
+> Generated: 2026-04-10 · Last updated: 2026-04-12 12:30Z
 > Covers all 39 open Linear issues (Todo status)
 > Ordered: highest → lowest priority
 
@@ -15,13 +15,16 @@
 | M3 — Overlap restriction backend | KIM-330, KIM-338, KIM-339 | ✅ Merged | #77 |
 | M4 — Overlap UI feedback | KIM-337 | ✅ Merged | #81 |
 | M5 — Cancellation cutoff backend | KIM-331, KIM-340, KIM-342 | ✅ Merged | #79 |
-| M6 — Cancellation cutoff UI | KIM-341 | 🟡 PR open | [#82](https://github.com/KimoxStudio/alea-webapp/pull/82) |
+| M6 — Cancellation cutoff UI | KIM-341 | ✅ Merged | #82 |
 | M11 partial — Auth i18n fix | KIM-325 | ✅ Merged | #78 |
 | M12A — Seed data | KIM-306 | ✅ Merged | #80 |
+| Pending reservations cancellable | KIM-362 | ✅ Merged | #83 |
+| Auth hardening | KIM-322, KIM-323 | ✅ Merged | #84 |
+| Locale switcher redirect | KIM-360 | ✅ Merged | #85 |
+| Checkin hardening | KIM-357, KIM-359 | ✅ Merged | #86 |
+| Docker docs cleanup | KIM-328 | ✅ Merged | #87 |
 
-> **PR #82 is 2-cycle team-review clean, all Copilot comments resolved, conflicts resolved. Ready to merge.**
->
-> After #82 merges → final smoke test → Monday launch.
+> **All MVP milestones merged. Ready for final smoke test → Monday 2026-04-14 launch.**
 
 ---
 
@@ -185,7 +188,7 @@
 
 ---
 
-### M6 — Cancellation Cutoff — UI Warning (KIM-341) 🟡 PR #82 — ready to merge
+### M6 — Cancellation Cutoff — UI Warning (KIM-341) ✅ Done — PR #82
 
 **Priority:** Low
 **Agent:** `software-engineer`
@@ -369,7 +372,7 @@
 
 ---
 
-### M10 — Auth Hardening Batch (KIM-322, KIM-323) 🚫 Post-MVP
+### M10 — Auth Hardening Batch (KIM-322, KIM-323) ✅ Done — PR #84
 
 **Priority:** Medium (can run in parallel with any non-auth milestone)
 **Agent:** `software-engineer`
@@ -386,7 +389,7 @@
 
 ---
 
-### M11 — UX Hardening Batch (KIM-315, KIM-317, KIM-325) 🚫 Post-MVP (KIM-325 ✅ merged PR #78)
+### M11 — UX Hardening Batch (KIM-315, KIM-317, KIM-360) — KIM-325 ✅ merged PR #78 · KIM-360 ✅ merged PR #85 · 🚫 Post-MVP (KIM-315, KIM-317)
 
 **Priority:** Low
 **Agent:** `software-engineer`
@@ -398,7 +401,7 @@
 - `components/cookie-banner.tsx` (new) — GDPR cookie consent banner, `localStorage`-persisted dismissal
 - `app/[locale]/layout.tsx` — render `CookieBanner`
 - `components/rooms/reservation-dialog.tsx` — change time slot generator from 60-min to 30-min intervals (pass `interval: 30` to existing `generateTimeSlots`)
-- Auth form components — trace where server error keys are surfaced; fix `t(errorKey)` namespace mismatch for translated auth errors (KIM-325)
+- Auth form components — trace where server error keys are surfaced; fix `t(errorKey)` namespace mismatch for translated auth errors (KIM-325 ✅ done)
 - `messages/en.json` — add `cookies.*` namespace
 - `messages/es.json` — full parity
 
@@ -406,7 +409,7 @@
 
 ---
 
-### M11B — Docker Docs Cleanup (KIM-328) 🚫 Post-MVP
+### M11B — Docker Docs Cleanup (KIM-328) ✅ Done — PR #87
 
 **Priority:** Low
 **Agent:** `tech-writer`

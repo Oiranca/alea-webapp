@@ -12,11 +12,8 @@
 ## Current branch
 `develop`
 
-## Open PRs — ready to merge (team-review clean, all comments resolved)
-| PR | Branch | Issues | Tests |
-|---|---|---|---|
-| [#82](https://github.com/KimoxStudio/alea-webapp/pull/82) | `feat/cancellation-cutoff-ui` | KIM-341 | 279 ✅ — needs manual QA (3 checklist items in PR description) |
-| [#83](https://github.com/KimoxStudio/alea-webapp/pull/83) | `fix/pending-reservation-cancel` | KIM-362 | 279 ✅ ready to merge |
+## Open PRs
+None — all merged.
 
 ## Merged this session
 | PR | Branch | Issues |
@@ -27,6 +24,12 @@
 | ~~#79~~ | `feat/cancellation-cutoff` | KIM-331 ✅ · KIM-340 ✅ · KIM-342 ✅ Done |
 | ~~#80~~ | `chore/seed-data` | KIM-306 ✅ Done |
 | ~~#81~~ | `feat/overlap-ui-feedback` | KIM-337 ✅ Done |
+| ~~#82~~ | `feat/cancellation-cutoff-ui` | KIM-341 ✅ Done |
+| ~~#83~~ | `fix/pending-reservation-cancel` | KIM-362 ✅ Done |
+| ~~#84~~ | `fix/auth-hardening` | KIM-322 ✅ Done · KIM-323 ✅ Done |
+| ~~#85~~ | `fix/locale-switcher-redirect` | KIM-360 ✅ Done |
+| ~~#86~~ | `fix/checkin-hardening` | KIM-357 ✅ Done · KIM-359 ✅ Done |
+| ~~#87~~ | `chore/remove-docker-docs` | KIM-328 ✅ Done |
 
 ---
 
@@ -41,46 +44,39 @@
 - **KIM-306** — seed data — merged PR #80
 - **KIM-337** — overlap UI feedback — merged PR #81
 
-### 🟡 Awaiting merge
-- **KIM-341** — cancellation cutoff UI — PR #82 ✅ team-review clean · ⚠️ needs manual QA first
-  - Checklist: cancel > 60 min → succeeds, cancel < 60 min → inline error shown, dismiss dialog clears error
-- **KIM-362** — pending reservations cancellable — PR #83 ✅ ready to merge
+### 🟡 Ready for final smoke test → Monday launch
+- **KIM-341** — cancellation cutoff UI — merged PR #82 ✅
+- **KIM-362** — pending reservations cancellable — merged PR #83 ✅
+- **KIM-322, KIM-323** — auth hardening — merged PR #84 ✅
+- **KIM-360** — locale switcher redirect — merged PR #85 ✅
+- **KIM-357, KIM-359** — checkin hardening — merged PR #86 ✅
+- **KIM-328** — Docker docs cleanup — merged PR #87 ✅
 
-### 🔴 After PRs merge: Final smoke test → Monday launch
+**All MVP milestones merged. Ready for final smoke test → Monday 2026-04-14 launch.**
 
 ---
 
 ## Post-MVP (do NOT start before launch)
 
+- **KIM-364** — After cancellation cutoff passes, reservation moves to completed/cancelled section instead of staying Active. Cancel button should explain why it can't be cancelled. (Open Linear issue)
+- **KIM-365** — Manual QA checklist (Open Linear issue, updated each time manual QA steps are identified)
 - **KIM-361** — Spanish translations with missing ñ (open Linear issue)
 - **KIM-317** — 24h time range for reservations (open Linear issue)
 - **KIM-329 epic** (no-show tracking) — KIM-329, 333, 334, 335, 336
 - **KIM-332 epic** (events / room blocking) — KIM-332, 343, 344, 345, 346, 347
 - **KIM-348 epic** (equipment management) — KIM-348–356
-- **KIM-360** — locale switcher redirects to home instead of current route
-- **Auth hardening** (KIM-322, KIM-323)
-- **KIM-357** (checkin hardening)
-- **KIM-359** (QR non-blocking perf)
-- **KIM-328** (Docker doc removal — tech-writer)
 
 ---
 
-## Recommended execution order for Monday launch
+## Status Summary
 
-```
-Sunday (completed):
-  ✅ Merge #79 (KIM-331+340+342)
-  ✅ Merge #80 (KIM-306)
-  ✅ Merge #81 (KIM-337)
-  ✅ Open PR #82 (KIM-341 cutoff UI) — team-review clean
-  ✅ Open PR #83 (KIM-362 pending cancel) — team-review clean
+All MVP milestones merged as of 2026-04-12 12:30Z.
 
-Monday:
-  → Manual QA on PR #82 (3 checklist items)
-  → Merge #82 + #83
-  → Final smoke tests across all flows
-  → Launch
-```
+**Next steps:**
+1. Final smoke test across all flows
+2. Monday 2026-04-14 launch
+
+**No PRs awaiting merge.**
 
 ---
 
