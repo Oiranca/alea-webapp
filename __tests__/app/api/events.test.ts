@@ -663,10 +663,8 @@ describe('Events API routes', () => {
       expect(response.status).toBe(404)
     })
 
-    it('returns 409 when active reservations conflict with event', async () => {
-      deleteEventMock.mockRejectedValue(
-        new ServiceError('Cannot delete event: active or pending reservations exist for this room during the event time', 409),
-      )
+    it('returns 204 on successful delete when event has overlapping reservations (auto-cancelled by service)', async () => {
+      deleteEventMock.mockResolvedValue(undefined)
 
       const { DELETE } = await import('@/app/api/events/[id]/route')
       const response = await DELETE(
@@ -674,22 +672,10 @@ describe('Events API routes', () => {
         { params: Promise.resolve({ id: 'event-1' }) },
       )
 
-      expect(response.status).toBe(409)
+      expect(response.status).toBe(204)
+      expect(deleteEventMock).toHaveBeenCalledWith('event-1')
     })
 
-    it('returns 409 when pending reservations conflict with event', async () => {
-      deleteEventMock.mockRejectedValue(
-        new ServiceError('Cannot delete event: active or pending reservations exist for this room during the event time', 409),
-      )
-
-      const { DELETE } = await import('@/app/api/events/[id]/route')
-      const response = await DELETE(
-        createJsonRequest('/api/events/event-1', undefined, 'DELETE'),
-        { params: Promise.resolve({ id: 'event-1' }) },
-      )
-
-      expect(response.status).toBe(409)
-    })
 
     it('returns 403 when non-admin user tries to delete event', async () => {
       requireAdminMock.mockResolvedValue(

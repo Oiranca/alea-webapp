@@ -199,21 +199,21 @@ function EventFormDialog({
   )
 }
 
-// Conflict warning delete dialog
+// Delete event dialog
 function DeleteEventDialog({
   open,
   onOpenChange,
   event,
   onConfirm,
   isPending,
-  conflictError,
+  deleteError,
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
   event: AdminEvent | null
   onConfirm: () => void
   isPending: boolean
-  conflictError: string | null
+  deleteError: string | null
 }) {
   const t = useTranslations('admin')
   const tc = useTranslations('common')
@@ -228,10 +228,12 @@ function DeleteEventDialog({
           <p className="text-sm text-muted-foreground">
             {t('deleteEventConfirm', { title: event?.title ?? '' })}
           </p>
-          {conflictError && (
-            <div className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3">
-              <p className="text-sm text-destructive font-medium">{t('events.conflictWarning')}</p>
-              <p className="text-xs text-destructive/80 mt-1">{conflictError}</p>
+          <p className="text-sm text-muted-foreground">
+            {t('events.deleteWarning')}
+          </p>
+          {deleteError && (
+            <div role="alert" className="rounded-md border border-destructive/50 bg-destructive/10 px-4 py-3">
+              <p className="text-sm text-destructive font-medium">{t('events.deleteError')}</p>
             </div>
           )}
         </div>
@@ -239,22 +241,20 @@ function DeleteEventDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)} className="border-border">
             {tc('cancel')}
           </Button>
-          {!conflictError && (
-            <Button
-              type="button"
-              variant="destructive"
-              onClick={onConfirm}
-              disabled={isPending}
-              className="min-w-[80px]"
-            >
-              {isPending ? (
-                <span className="inline-flex items-center gap-2">
-                  <DiceLoader size="sm" hideRole />
-                  <span>{tc('loading')}</span>
-                </span>
-              ) : tc('delete')}
-            </Button>
-          )}
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={onConfirm}
+            disabled={isPending}
+            className="min-w-[80px]"
+          >
+            {isPending ? (
+              <span className="inline-flex items-center gap-2">
+                <DiceLoader size="sm" hideRole />
+                <span>{tc('loading')}</span>
+              </span>
+            ) : tc('delete')}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -340,7 +340,7 @@ export function EventsSection() {
   const [editForm, setEditForm] = useState<EventFormState>(emptyForm())
 
   const [deletingEvent, setDeletingEvent] = useState<AdminEvent | null>(null)
-  const [deleteConflictError, setDeleteConflictError] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
   const [createError, setCreateError] = useState<string | null>(null)
   const [updateError, setUpdateError] = useState<string | null>(null)
 
@@ -351,7 +351,7 @@ export function EventsSection() {
 
   function openDelete(event: AdminEvent) {
     setDeletingEvent(event)
-    setDeleteConflictError(null)
+    setDeleteError(null)
   }
 
   async function handleCreate(e: React.FormEvent) {
@@ -406,12 +406,12 @@ export function EventsSection() {
     try {
       await deleteEvent.mutateAsync(deletingEvent.id)
       setDeletingEvent(null)
-      setDeleteConflictError(null)
+      setDeleteError(null)
     } catch (err: unknown) {
       const msg = err instanceof Error
         ? err.message
         : (err as { message?: string })?.message ?? String(err)
-      setDeleteConflictError(msg)
+      setDeleteError(msg)
     }
   }
 
@@ -504,11 +504,11 @@ export function EventsSection() {
       {/* Delete Dialog */}
       <DeleteEventDialog
         open={!!deletingEvent}
-        onOpenChange={(open) => { if (!open) { setDeletingEvent(null); setDeleteConflictError(null) } }}
+        onOpenChange={(open) => { if (!open) { setDeletingEvent(null); setDeleteError(null) } }}
         event={deletingEvent}
         onConfirm={handleDelete}
         isPending={deleteEvent.isPending}
-        conflictError={deleteConflictError}
+        deleteError={deleteError}
       />
     </section>
   )
