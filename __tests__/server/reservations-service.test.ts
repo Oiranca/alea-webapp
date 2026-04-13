@@ -984,6 +984,17 @@ describe('reservations service', () => {
       return `${hh}:${mm}:00`
     }
 
+    function makeEndTime(startTimeStr: string, durationMinutes: number): string {
+      // Parse the start time and add duration minutes
+      const [hh, mm] = startTimeStr.split(':')
+      const date = new Date()
+      date.setHours(parseInt(hh!, 10))
+      date.setMinutes(parseInt(mm!, 10) + durationMinutes)
+      const endHh = String(date.getHours()).padStart(2, '0')
+      const endMm = String(date.getMinutes()).padStart(2, '0')
+      return `${endHh}:${endMm}:00`
+    }
+
     it('succeeds within the grace period activation window', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
@@ -1009,7 +1020,8 @@ describe('reservations service', () => {
     it('throws CHECK_IN_TOO_LATE when called more than 20 minutes after start_time', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
-      seedPendingReservation({ start_time: makeStartTime(25) })
+      const startTime = makeStartTime(25)
+      seedPendingReservation({ start_time: startTime, end_time: makeEndTime(startTime, 20) })
 
       await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
         name: 'ServiceError',
@@ -1101,7 +1113,8 @@ describe('reservations service', () => {
     it('boundary: called at start_time + (21) min throws CHECK_IN_TOO_LATE', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
-      seedPendingReservation({ start_time: makeStartTime(21) })
+      const startTime = makeStartTime(21)
+      seedPendingReservation({ start_time: startTime, end_time: makeEndTime(startTime, 20) })
 
       await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
         name: 'ServiceError',
