@@ -311,29 +311,7 @@ export async function updateEvent(
     .select('*')
     .eq('event_id', id)
 
-  // Cancel active/pending reservations that overlap any current room block
   const currentBlocks = (blocks ?? []) as EventRoomBlockRow[]
-  for (const block of currentBlocks) {
-    const { data: tables } = await admin
-      .from('tables')
-      .select('id')
-      .eq('room_id', block.room_id)
-
-    const tableIds = ((tables ?? []) as { id: string }[]).map((t) => t.id)
-
-    if (tableIds.length > 0) {
-      const { error: cancelError } = await admin
-        .from('reservations')
-        .update({ status: 'cancelled' })
-        .in('table_id', tableIds)
-        .eq('date', block.date)
-        .lt('start_time', block.end_time)
-        .gt('end_time', block.start_time)
-        .in('status', ['active', 'pending'])
-
-      if (cancelError) serviceError('Internal server error', 500)
-    }
-  }
 
   return toAdminEvent(eventRow, currentBlocks)
 }
