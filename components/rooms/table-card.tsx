@@ -124,7 +124,7 @@ export function TableCard({ table, availability, onReserve, currentDate: _curren
       {/* QR indicator — admin only */}
       {isAdmin && (
         <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
-          <QrCode className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
+          <QrCode className="h-3 w-3 text-muted-foreground" aria-hidden="true" data-testid="qr-icon" />
         </div>
       )}
     </button>
