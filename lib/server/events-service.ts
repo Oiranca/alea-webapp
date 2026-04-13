@@ -153,11 +153,13 @@ export async function createEvent(body: {
     if (blockError) serviceError('Internal server error', 500)
     blocks = (blockData ?? []) as EventRoomBlockRow[]
 
-    // Cancel active/pending reservations that overlap this room block
-    const { data: tables } = await admin
+    // Cancel any reservations that conflict with this new event block
+    const { data: tables, error: tablesError } = await admin
       .from('tables')
       .select('id')
       .eq('room_id', roomId)
+
+    if (tablesError) serviceError('Internal server error', 500)
 
     const tableIds = ((tables ?? []) as { id: string }[]).map((t) => t.id)
 
@@ -271,6 +273,36 @@ export async function updateEvent(
         })
         .eq('event_id', id)
       if (blockUpdateError) serviceError('Internal server error', 500)
+    }
+
+    // Cancel reservations conflicting with the updated event blocks
+    const { data: currentBlocks } = await admin
+      .from('event_room_blocks')
+      .select('room_id')
+      .eq('event_id', id)
+
+    const roomIds = ((currentBlocks ?? []) as EventRoomBlockRow[]).map((b) => b.room_id)
+    if (roomIds.length > 0) {
+      const { data: tables, error: tablesError } = await admin
+        .from('tables')
+        .select('id')
+        .in('room_id', roomIds)
+
+      if (tablesError) serviceError('Internal server error', 500)
+
+      const tableIds = ((tables ?? []) as { id: string }[]).map((t) => t.id)
+      if (tableIds.length > 0) {
+        const { error: cancelError } = await admin
+          .from('reservations')
+          .update({ status: 'cancelled' })
+          .in('table_id', tableIds)
+          .eq('date', eventRow.date)
+          .lt('start_time', eventRow.end_time)
+          .gt('end_time', eventRow.start_time)
+          .in('status', ['active', 'pending'])
+
+        if (cancelError) serviceError('Internal server error', 500)
+      }
     }
   }
 
