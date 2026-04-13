@@ -24,6 +24,8 @@ export function useTableAvailability(tableId: string | null, date: string | null
     queryKey: ['availability', tableId, date],
     queryFn: () => apiClient.get<TableAvailability>(endpoints.tables.availability(tableId!, date!)),
     enabled: !!tableId && !!date,
+    staleTime: 0,
+    refetchInterval: 30_000,
   })
 }
 
@@ -32,6 +34,8 @@ export function useRoomAvailability(roomId: string | null, date: string | null) 
     queryKey: ['availability', 'room', roomId, date],
     queryFn: () => apiClient.get<Record<string, TableAvailability>>(endpoints.rooms.tablesAvailability(roomId!, date!)),
     enabled: !!roomId && !!date,
+    staleTime: 0,
+    refetchInterval: 60_000,
   })
 }
 
