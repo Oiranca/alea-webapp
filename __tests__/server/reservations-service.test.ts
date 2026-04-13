@@ -32,6 +32,16 @@ type RoomRow = {
   name: string
 }
 
+type EventRoomBlockRow = {
+  id: string
+  event_id: string
+  room_id: string
+  date: string
+  start_time: string
+  end_time: string
+  all_day: boolean
+}
+
 const adminSession: SessionUser = {
   id: '1',
   role: 'admin',
@@ -46,6 +56,7 @@ const reservationsState: ReservationRow[] = []
 const tablesState = new Map<string, TableRow>()
 const profilesMap = new Map<string, { member_number: string }>()
 const roomsMap = new Map<string, RoomRow>()
+const eventRoomBlocksState: EventRoomBlockRow[] = []
 
 function makeReservation(overrides?: Partial<ReservationRow>): ReservationRow {
   return {
@@ -104,6 +115,7 @@ function seedState() {
   })
 
   reservationsState.length = 0
+  eventRoomBlocksState.length = 0
 
   const r1base = makeReservation()
   const t1 = tablesState.get(r1base.table_id)!
@@ -258,6 +270,12 @@ vi.mock('@/lib/supabase/server', () => ({
   })),
   createSupabaseServerAdminClient: vi.fn(() => ({
     from: vi.fn((table: string) => {
+      if (table === 'event_room_blocks') {
+        return {
+          select: vi.fn(() => buildSelectChain(eventRoomBlocksState)),
+        }
+      }
+
       if (table !== 'reservations') {
         throw new Error(`Unexpected admin table ${table}`)
       }
