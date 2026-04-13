@@ -8,11 +8,14 @@ export type { AdminEvent, AdminEventRoomBlock }
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/
+const WHOLE_HOUR_TIME_RE = /^([01]\d|2[0-3]):00$/
 
 function validateDateTimeFields(date: string, startTime: string, endTime: string): void {
   if (!DATE_RE.test(date)) serviceError('date must be in YYYY-MM-DD format', 400)
   if (!TIME_RE.test(startTime)) serviceError('startTime must be in HH:MM format', 400)
   if (!TIME_RE.test(endTime)) serviceError('endTime must be in HH:MM format', 400)
+  if (!WHOLE_HOUR_TIME_RE.test(startTime)) serviceError('startTime must be on a whole-hour boundary', 400)
+  if (!WHOLE_HOUR_TIME_RE.test(endTime)) serviceError('endTime must be on a whole-hour boundary', 400)
   if (endTime <= startTime) serviceError('endTime must be after startTime', 400)
 }
 
@@ -213,7 +216,7 @@ export async function updateEvent(
   // Resolve room: if body.roomId is present use it (null means remove), otherwise load existing block
   let roomId: string | null
   let currentAllDay = false
-  if (body.roomId !== undefined || body.allDay === undefined) {
+  if (body.roomId === undefined || body.allDay === undefined) {
     const { data: existingBlocks } = await admin
       .from('event_room_blocks')
       .select('room_id, all_day')

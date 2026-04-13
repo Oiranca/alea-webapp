@@ -179,6 +179,7 @@ function EventFormDialog({
                   <Input
                     id={id('start')}
                     type="time"
+                    step={3600}
                     value={form.startTime}
                     onChange={field('startTime')}
                     required={!form.allDay}
@@ -192,6 +193,7 @@ function EventFormDialog({
                   <Input
                     id={id('end')}
                     type="time"
+                    step={3600}
                     value={form.endTime}
                     onChange={field('endTime')}
                     required={!form.allDay}

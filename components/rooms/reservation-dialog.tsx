@@ -261,7 +261,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                           : undefined}
                         aria-label={!available && slotDetails?.source === 'event'
                           ? `${time} — ${t('eventBlocked')}: ${slotDetails.label ?? t('eventBlockLabel')}`
-                          : `${time} — ${available ? 'disponible' : 'ocupado'}`}
+                          : `${time} — ${available ? t('available') : t('occupied')}`}
                         aria-pressed={isStart || isEnd || !!isInRange}
                         aria-disabled={!available}
                       >
