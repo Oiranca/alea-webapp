@@ -71,6 +71,8 @@ type EnrichedReservationsTableClient = {
 }
 
 export const GRACE_PERIOD_MINUTES = 20
+// How many minutes before the reservation start time check-in is allowed.
+export const CHECK_IN_EARLY_MINUTES = 15
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
 
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at'
@@ -568,6 +570,7 @@ export async function activateReservationByTable(
 
   const now = new Date()
   const startTimeParts = normalizeTime(reservation.start_time).split(':')
+  const endTimeParts = normalizeTime(reservation.end_time).split(':')
   // Anchor on the reservation's own stored date. The server is expected to run
   // in the club timezone (CLUB_TIMEZONE). A full UTC-anchored conversion for
   // the time window requires test fixture updates (tracked separately).
@@ -581,13 +584,24 @@ export async function activateReservationByTable(
     0,
     0,
   )
+  const reservationEnd = new Date(
+    parseInt(dateParts[0]!, 10),
+    parseInt(dateParts[1]!, 10) - 1,
+    parseInt(dateParts[2]!, 10),
+    parseInt(endTimeParts[0]!, 10),
+    parseInt(endTimeParts[1]!, 10),
+    0,
+    0,
+  )
 
-  const windowEnd = new Date(reservationStart.getTime() + GRACE_PERIOD_MINUTES * 60 * 1000)
+  // Allow check-in starting CHECK_IN_EARLY_MINUTES before the slot begins,
+  // up to the end of the reserved slot.
+  const windowStart = new Date(reservationStart.getTime() - CHECK_IN_EARLY_MINUTES * 60 * 1000)
 
-  if (now < reservationStart) {
+  if (now < windowStart) {
     serviceError('CHECK_IN_TOO_EARLY', 400)
   }
-  if (now > windowEnd) {
+  if (now > reservationEnd) {
     serviceError('CHECK_IN_TOO_LATE', 400)
   }
 
