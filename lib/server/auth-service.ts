@@ -138,7 +138,7 @@ export async function login(
 
   if (credentialProfile.is_active === false) {
     // Suspended users cannot sign in.
-    serviceError('Your account is suspended. Contact an administrator to reactivate it.', 403)
+    serviceError('Invalid credentials', 401)
   }
 
   const supabase = client ?? await createSupabaseServerClient()
@@ -176,9 +176,10 @@ export async function register(
   const adminClient = createSupabaseServerAdminClient()
 
   // Check whether the member number is already taken by an existing profile.
+  // Generic message to avoid user enumeration (do not confirm whether the number exists).
   const existing = await getAuthCredentialProfileBy(adminClient, 'member_number', memberNumber)
   if (existing) {
-    serviceError('This member number is already registered', 409)
+    serviceError('Invalid registration details', 400)
   }
 
   // Derive a deterministic internal email from the member number so Supabase Auth
@@ -214,7 +215,7 @@ export async function register(
     // same member number; clean up the orphaned auth user.
     if ((profileError as { code?: string }).code === '23505') {
       await adminClient.auth.admin.deleteUser(userId)
-      serviceError('This member number is already registered', 409)
+      serviceError('Invalid registration details', 400)
     }
     await adminClient.auth.admin.deleteUser(userId)
     serviceError('Failed to create user profile', 500)
