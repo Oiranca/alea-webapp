@@ -1017,7 +1017,34 @@ describe('reservations service', () => {
       })
     })
 
-    it('throws CHECK_IN_TOO_LATE when called more than 20 minutes after start_time', async () => {
+    it('boundary: called exactly 15 minutes before start_time (early window opens) succeeds', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 14:15:00 (15 min in future)
+      // This is exactly at [start - 15min, end_time], so check-in should succeed
+      const startTime = makeStartTime(-15)
+      seedPendingReservation({ start_time: startTime })
+
+      const result = await activateReservationByTable('t3', '2', undefined)
+
+      expect(result.status).toBe('active')
+    })
+
+    it('boundary: called 16 minutes before start_time throws CHECK_IN_TOO_EARLY', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 14:16:00 (16 min in future)
+      // This is before the early window [start - 15min], so check-in should fail
+      seedPendingReservation({ start_time: makeStartTime(-16) })
+
+      await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+        message: expect.stringContaining('CHECK_IN_TOO_EARLY'),
+      })
+    })
+
+    it('throws CHECK_IN_TOO_LATE when called after end_time', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
       const startTime = makeStartTime(25)
@@ -1110,11 +1137,28 @@ describe('reservations service', () => {
       expect(result.status).toBe('active')
     })
 
-    it('boundary: called at start_time + (21) min throws CHECK_IN_TOO_LATE', async () => {
+    it('boundary: called exactly at end_time succeeds', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
+      // now is 14:00:00, set start_time so end_time is also 14:00:00
+      // At end_time boundary, check-in should succeed (now === reservationEnd, not strictly greater)
+      const startTime = makeStartTime(20)
+      const endTime = makeEndTime(startTime, 20)
+      seedPendingReservation({ start_time: startTime, end_time: endTime })
+
+      const result = await activateReservationByTable('t3', '2', undefined)
+
+      expect(result.status).toBe('active')
+    })
+
+    it('boundary: called just after end_time throws CHECK_IN_TOO_LATE', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, set end_time to 13:59:00 (1 minute before now)
+      // This is after end_time, so check-in should fail
       const startTime = makeStartTime(21)
-      seedPendingReservation({ start_time: startTime, end_time: makeEndTime(startTime, 20) })
+      const endTime = makeEndTime(startTime, 19)
+      seedPendingReservation({ start_time: startTime, end_time: endTime })
 
       await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
         name: 'ServiceError',
