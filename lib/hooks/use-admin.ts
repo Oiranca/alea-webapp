@@ -1,7 +1,7 @@
 'use client'
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import type { User, Room, GameTable, Reservation, PaginatedResponse, AdminEvent } from '@/lib/types'
+import type { User, Room, GameTable, Reservation, PaginatedResponse, AdminEvent, MemberImportResult } from '@/lib/types'
 import { apiClient } from '@/lib/api/client'
 import { endpoints } from '@/lib/api/endpoints'
 
@@ -20,7 +20,18 @@ export function useAdminUsers(page: number, limit: number, search: string) {
 export function useAdminUpdateUser() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { memberNumber?: string; role?: string; is_active?: boolean; status?: 'active' | 'suspended' } }) =>
+    mutationFn: ({ id, data }: {
+      id: string
+      data: {
+        memberNumber?: string
+        fullName?: string
+        email?: string
+        phone?: string
+        role?: string
+        is_active?: boolean
+        status?: 'active' | 'suspended'
+      }
+    }) =>
       apiClient.put<User>(endpoints.users.byId(id), data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
@@ -43,6 +54,20 @@ export function useAdminPatchUser() {
   return useMutation({
     mutationFn: ({ id, action }: { id: string; action: 'reset_no_shows' | 'unblock' }) =>
       apiClient.patch<void>(endpoints.users.byId(id), { action }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+    },
+  })
+}
+
+export function useAdminImportUsers() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (file: File) => {
+      const formData = new FormData()
+      formData.append('file', file)
+      return apiClient.post<MemberImportResult>(endpoints.users.import, formData)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
     },
