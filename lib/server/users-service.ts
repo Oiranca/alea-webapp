@@ -190,6 +190,12 @@ function sanitizeOptionalUpdateValue(value: unknown) {
   return trimmed.length > 0 ? trimmed : null
 }
 
+function assertNullableStringField(value: unknown, fieldName: string) {
+  if (value !== null && typeof value !== 'string') {
+    serviceError(`${fieldName} must be a string or null`, 400)
+  }
+}
+
 function createInternalAuthEmail(memberNumber: string) {
   return `${memberNumber}@members.alea.internal`
 }
@@ -264,18 +270,20 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
   const { totalRows, normalizedRows, issues } = parseMemberImportCsv(input)
   const admin = createSupabaseServerAdminClient()
   const profiles = admin.from('profiles') as unknown as ProfilesImportTableClient
-  let createdCount = 0
-  let updatedCount = 0
+  const concurrencyLimit = 10
 
-  for (const row of normalizedRows) {
+  async function processImportRow(row: MemberImportRow) {
     const { data: existing, error: selectError } = await profiles
       .select(PROFILE_COLUMNS)
       .eq('member_number', row.memberNumber)
       .maybeSingle()
 
     if (selectError) {
-      pushImportIssue(issues, { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'read_existing_failed' })
-      continue
+      return {
+        created: 0,
+        updated: 0,
+        issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'read_existing_failed' as const },
+      }
     }
 
     if (existing) {
@@ -293,12 +301,14 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
         .maybeSingle()
 
       if (updateError) {
-        pushImportIssue(issues, { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'update_existing_failed' })
-        continue
+        return {
+          created: 0,
+          updated: 0,
+          issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'update_existing_failed' as const },
+        }
       }
 
-      updatedCount += 1
-      continue
+      return { created: 0, updated: 1, issue: null }
     }
 
     const authEmail = createInternalAuthEmail(row.memberNumber)
@@ -310,11 +320,14 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
     })
 
     if (createAuthError || !authData.user) {
-      pushImportIssue(issues, { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'create_auth_failed' })
-      continue
+      return {
+        created: 0,
+        updated: 0,
+        issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'create_auth_failed' as const },
+      }
     }
 
-    const { error: updateProfileError } = await profiles
+    const { data: persistedProfile, error: updateProfileError } = await profiles
       .update({
         member_number: row.memberNumber,
         full_name: row.fullName,
@@ -330,13 +343,32 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
       .select(PROFILE_COLUMNS)
       .maybeSingle()
 
-    if (updateProfileError) {
+    if (updateProfileError || !persistedProfile) {
       await admin.auth.admin.deleteUser(authData.user.id)
-      pushImportIssue(issues, { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'persist_import_failed' })
-      continue
+      return {
+        created: 0,
+        updated: 0,
+        issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'persist_import_failed' as const },
+      }
     }
 
-    createdCount += 1
+    return { created: 1, updated: 0, issue: null }
+  }
+
+  let createdCount = 0
+  let updatedCount = 0
+
+  for (let index = 0; index < normalizedRows.length; index += concurrencyLimit) {
+    const batch = normalizedRows.slice(index, index + concurrencyLimit)
+    const results = await Promise.all(batch.map((row) => processImportRow(row)))
+
+    for (const result of results) {
+      createdCount += result.created
+      updatedCount += result.updated
+      if (result.issue) {
+        pushImportIssue(issues, result.issue)
+      }
+    }
   }
 
   return {
@@ -344,7 +376,7 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
     createdCount,
     updatedCount,
     skippedCount: issues.length,
-    normalizedRows,
+    normalizedRows: [],
     issues,
   }
 }
@@ -408,9 +440,11 @@ export async function updateUser(
     updates.full_name = fullName
   }
   if (body.email !== undefined) {
+    assertNullableStringField(body.email, 'Email')
     updates.email = sanitizeOptionalUpdateValue(body.email)
   }
   if (body.phone !== undefined) {
+    assertNullableStringField(body.phone, 'Phone')
     updates.phone = sanitizeOptionalUpdateValue(body.phone)
   }
   if (body.role === 'admin' || body.role === 'member') updates.role = body.role

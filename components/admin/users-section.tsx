@@ -444,7 +444,7 @@ export function UsersSection() {
                   onChange={(e) => setEditState((s) => ({ ...s, isActive: e.target.checked }))}
                 />
                 <span className="text-sm text-muted-foreground">
-                  {editState.isActive ? t('active') : t('suspended')}
+                  {editState.isActive ? t('active') : t('inactive')}
                 </span>
               </div>
             </div>

@@ -42,7 +42,8 @@ class ApiClient {
 
   get<T>(path: string, options?: RequestInit) { return this.request<T>(path, { method: 'GET', ...options }) }
   post<T>(path: string, body?: unknown, options?: RequestInit) {
-    const requestBody = body instanceof FormData ? body : body ? JSON.stringify(body) : undefined
+    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
+    const requestBody = isFormData ? body : body ? JSON.stringify(body) : undefined
     return this.request<T>(path, { method: 'POST', body: requestBody, ...options })
   }
   put<T>(path: string, body?: unknown, options?: RequestInit) {

@@ -231,5 +231,69 @@ describe('importMembersFromCsv', () => {
         psw_changed: null,
       })
     )
+    expect(result.normalizedRows).toEqual([])
+  })
+
+  it('deletes the auth user when profile persistence returns null data', async () => {
+    const { createSupabaseServerAdminClient } = await import('@/lib/supabase/server')
+    vi.mocked(createSupabaseServerAdminClient).mockReturnValue({
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn((column: 'member_number' | 'id', value: string) => ({
+            maybeSingle: vi.fn(async () => {
+              const data = column === 'member_number'
+                ? profileState.get(value) ?? null
+                : Array.from(profileState.values()).find((row) => row.id === value) ?? null
+              return { data, error: null }
+            }),
+          })),
+        })),
+        update: vi.fn((updates: Record<string, unknown>) => ({
+          eq: vi.fn((_column: 'id', value: string) => ({
+            select: vi.fn(() => ({
+              maybeSingle: vi.fn(async () => {
+                if (value === 'user-100020') {
+                  return { data: null, error: null }
+                }
+
+                const target = Array.from(profileState.values()).find((row) => row.id === value)
+                if (!target) {
+                  return { data: null, error: { message: 'not found' } }
+                }
+
+                const next = {
+                  ...target,
+                  ...updates,
+                  updated_at: '2026-04-14T00:00:00.000Z',
+                }
+                profileState.delete(target.member_number)
+                profileState.set(next.member_number, next)
+                return { data: next, error: null }
+              }),
+            })),
+          })),
+        })),
+      })),
+      auth: {
+        admin: {
+          createUser: createUserMock,
+          deleteUser: deleteUserMock,
+        },
+      },
+    } as never)
+
+    const { importMembersFromCsv } = await loadService()
+    const result = await importMembersFromCsv(
+      'USUARIOS,ID,email,phone\nNew Member,100020,new@alea.club,699000111\n'
+    )
+
+    expect(result.createdCount).toBe(0)
+    expect(result.skippedCount).toBe(1)
+    expect(result.issues).toContainEqual({
+      rowNumber: 2,
+      memberNumber: '100020',
+      code: 'persist_import_failed',
+    })
+    expect(deleteUserMock).toHaveBeenCalledWith('user-100020')
   })
 })

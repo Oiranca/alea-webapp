@@ -10,8 +10,8 @@ type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'full_name' | 
 type AuthCredentialRow = Pick<ProfileRow, 'id' | 'member_number' | 'auth_email' | 'email' | 'full_name' | 'phone' | 'role' | 'is_active' | 'active_from' | 'psw_changed' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
 const PUBLIC_PROFILE_COLUMNS = 'id, member_number, full_name, email, phone, role, is_active, active_from, psw_changed, no_show_count, blocked_until, created_at, updated_at' as const
 
-// Auth-only columns: email is needed solely to resolve Supabase Auth credentials.
-// It is not part of the public user model (issue #39) but IS included for admin-facing user data.
+// Auth-only columns: auth_email is used to resolve Supabase Auth credentials for sign-in/activation.
+// email is optional contact email; it is not part of the public user model (issue #39) but IS included for admin-facing user data.
 const AUTH_CREDENTIAL_COLUMNS = 'id, member_number, auth_email, email, full_name, phone, role, is_active, active_from, psw_changed, no_show_count, blocked_until, created_at, updated_at' as const
 
 type PublicProfileLookupColumn = 'id' | 'member_number'
@@ -212,7 +212,7 @@ export async function register(
   // already inserted a row for this user id with a placeholder member_number.
   const { data: profileData, error: profileError } = await adminClient
     .from('profiles')
-    .update({ member_number: memberNumber, auth_email: email, email, role: 'member', is_active: true })
+    .update({ member_number: memberNumber, auth_email: email, role: 'member', is_active: true })
     .eq('id', userId)
     .select(PUBLIC_PROFILE_COLUMNS)
     .maybeSingle()

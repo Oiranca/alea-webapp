@@ -66,6 +66,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS profiles_auth_email_key ON public.profiles (au
 COMMENT ON COLUMN public.profiles.auth_email IS 'Supabase Auth credential email used for sign-in and account activation.';
 COMMENT ON COLUMN public.profiles.email IS 'Optional contact email imported from the member registry.';
 COMMENT ON COLUMN public.profiles.full_name IS 'Canonical member full name imported from the registry.';
+COMMENT ON COLUMN public.profiles.is_active IS 'Whether the member can sign in. False covers inactive pre-activation accounts and suspended accounts.';
 COMMENT ON COLUMN public.profiles.active_from IS 'Timestamp when the member completed account activation.';
 COMMENT ON COLUMN public.profiles.psw_changed IS 'Timestamp of the latest password change.';
 COMMENT ON COLUMN public.profiles.phone IS 'Optional contact phone imported from the member registry.';

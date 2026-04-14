@@ -134,4 +134,26 @@ describe('api client', () => {
       }),
     )
   })
+
+  it('does not throw when FormData is unavailable in the runtime', async () => {
+    const originalFormData = globalThis.FormData
+    // @ts-expect-error test-only runtime override
+    delete globalThis.FormData
+
+    try {
+      const { apiClient } = await import('@/lib/api/client')
+
+      await apiClient.post('/auth/login', { identifier: '100001', password: 'secret' })
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/auth/login',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ identifier: '100001', password: 'secret' }),
+        }),
+      )
+    } finally {
+      globalThis.FormData = originalFormData
+    }
+  })
 })

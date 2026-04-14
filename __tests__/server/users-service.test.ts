@@ -451,6 +451,26 @@ describe('updateUser', () => {
     })
   })
 
+  it('rejects non-string email updates', async () => {
+    const { updateUser } = await loadUsersModules()
+
+    await expect(updateUser('1', { email: { bad: true } })).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 400,
+      message: 'Email must be a string or null',
+    })
+  })
+
+  it('rejects non-string phone updates', async () => {
+    const { updateUser } = await loadUsersModules()
+
+    await expect(updateUser('1', { phone: ['699000111'] })).rejects.toMatchObject({
+      name: 'ServiceError',
+      statusCode: 400,
+      message: 'Phone must be a string or null',
+    })
+  })
+
   it('rejects is_active when provided as a non-boolean string', async () => {
     const { updateUser } = await loadUsersModules()
 
