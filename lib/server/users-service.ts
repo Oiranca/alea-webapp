@@ -59,6 +59,12 @@ const PROFILE_IMPORT_HEADERS = {
   email: ['email', 'correo', 'mail'],
   phone: ['phone', 'telefono', 'teléfono', 'mobile', 'movil', 'móvil'],
 } as const
+const PROFILE_IMPORT_HEADERS_NORMALIZED = {
+  memberNumber: PROFILE_IMPORT_HEADERS.memberNumber.map(normalizeHeader),
+  fullName: PROFILE_IMPORT_HEADERS.fullName.map(normalizeHeader),
+  email: PROFILE_IMPORT_HEADERS.email.map(normalizeHeader),
+  phone: PROFILE_IMPORT_HEADERS.phone.map(normalizeHeader),
+} as const
 
 function toPublicUser(profile: PublicProfileRow): User {
   return {
@@ -215,15 +221,15 @@ export function parseMemberImportCsv(input: string): {
   }
 
   const headers = rows[0].map(normalizeHeader)
-  const memberNumberIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS.memberNumber)
-  const fullNameIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS.fullName)
+  const memberNumberIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS_NORMALIZED.memberNumber)
+  const fullNameIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS_NORMALIZED.fullName)
 
   if (memberNumberIndex === -1 || fullNameIndex === -1) {
     serviceError('CSV headers must include member number and full name columns', 400)
   }
 
-  const emailIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS.email)
-  const phoneIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS.phone)
+  const emailIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS_NORMALIZED.email)
+  const phoneIndex = findHeaderIndex(headers, PROFILE_IMPORT_HEADERS_NORMALIZED.phone)
   const normalizedRows: MemberImportRow[] = []
   const issues: MemberImportIssue[] = []
   const seenMemberNumbers = new Set<string>()

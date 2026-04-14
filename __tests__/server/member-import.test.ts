@@ -125,6 +125,25 @@ describe('parseMemberImportCsv', () => {
     expect(result.issues).toEqual([])
   })
 
+  it('accepts normalized member_number headers with underscores', async () => {
+    const { parseMemberImportCsv } = await loadService()
+
+    const result = parseMemberImportCsv(
+      'member_number,full_name,email\n100013,Jane Doe,jane@alea.club\n'
+    )
+
+    expect(result.issues).toEqual([])
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100013',
+        fullName: 'Jane Doe',
+        email: 'jane@alea.club',
+        phone: null,
+      },
+    ])
+  })
+
   it('reports duplicate member numbers in the same file', async () => {
     const { parseMemberImportCsv } = await loadService()
 
