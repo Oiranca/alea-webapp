@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Search, Pencil, Trash2, AlertCircle } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
@@ -18,13 +18,16 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser } from '@/lib/hooks/use-admin'
-import type { User } from '@/lib/types'
+import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser, useAdminImportUsers } from '@/lib/hooks/use-admin'
+import type { MemberImportResult, User } from '@/lib/types'
 
 type UserRole = 'member' | 'admin'
 
 interface EditState {
   memberNumber: string
+  fullName: string
+  email: string
+  phone: string
   role: UserRole
   isActive: boolean
 }
@@ -34,7 +37,7 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   if (!isActive) {
     return (
       <Badge className="border-orange-500/40 bg-orange-900/20 text-orange-400">
-        {t('suspended')}
+        {t('inactive')}
       </Badge>
     )
   }
@@ -52,19 +55,33 @@ export function UsersSection() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editState, setEditState] = useState<EditState>({ memberNumber: '', role: 'member', isActive: true })
+  const [editState, setEditState] = useState<EditState>({
+    memberNumber: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'member',
+    isActive: true,
+  })
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importResult, setImportResult] = useState<MemberImportResult | null>(null)
 
   const { data, isLoading, isError } = useAdminUsers(page, 10, search)
   const updateMutation = useAdminUpdateUser()
   const deleteMutation = useAdminDeleteUser()
   const patchMutation = useAdminPatchUser()
+  const importMutation = useAdminImportUsers()
 
   function openEdit(user: User) {
     setEditState({
       memberNumber: user.memberNumber,
+      fullName: user.fullName ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
       role: user.role,
       isActive: user.isActive,
     })
@@ -79,13 +96,33 @@ export function UsersSection() {
 
   function handleSaveEdit() {
     if (!editUser) return
+
+    const data: {
+      memberNumber: string
+      role: UserRole
+      is_active: boolean
+      fullName?: string
+      email?: string
+      phone?: string
+    } = {
+      memberNumber: editState.memberNumber,
+      role: editState.role,
+      is_active: editState.isActive,
+    }
+
+    if (editState.fullName.trim() !== (editUser.fullName ?? '').trim()) {
+      data.fullName = editState.fullName
+    }
+    if (editState.email.trim() !== (editUser.email ?? '').trim()) {
+      data.email = editState.email
+    }
+    if (editState.phone.trim() !== (editUser.phone ?? '').trim()) {
+      data.phone = editState.phone
+    }
+
     updateMutation.mutate({
       id: editUser.id,
-      data: {
-        memberNumber: editState.memberNumber,
-        role: editState.role,
-        is_active: editState.isActive,
-      },
+      data,
     }, {
       onSuccess: () => setEditUser(null),
     })
@@ -98,8 +135,74 @@ export function UsersSection() {
     })
   }
 
+  function handleImportSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!importFile) return
+
+    importMutation.mutate(importFile, {
+      onSuccess: (result) => {
+        setImportResult(result)
+        setImportFile(null)
+        if (importInputRef.current) {
+          importInputRef.current.value = ''
+        }
+      },
+    })
+  }
+
   return (
     <div className="space-y-4">
+      <form onSubmit={handleImportSubmit} className="rounded-lg border border-border bg-secondary/10 p-4 space-y-3">
+        <div className="space-y-1">
+          <h2 className="font-medium text-foreground">{t('importMembersTitle')}</h2>
+          <p className="text-sm text-muted-foreground">{t('importMembersDescription')}</p>
+        </div>
+        <div className="flex flex-col gap-3 md:flex-row md:items-end">
+          <div className="flex-1 space-y-1.5">
+            <Label htmlFor="member-import-file">{t('importMembersFile')}</Label>
+            <Input
+              ref={importInputRef}
+              id="member-import-file"
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(event) => {
+                const nextFile = event.target.files?.[0] ?? null
+                setImportFile(nextFile)
+              }}
+            />
+            <p className="text-xs text-muted-foreground">{t('importMembersHelp')}</p>
+          </div>
+          <Button type="submit" disabled={!importFile || importMutation.isPending}>
+            {importMutation.isPending ? <DiceLoader size="sm" className="mr-2" hideRole /> : null}
+            {t('importMembersAction')}
+          </Button>
+        </div>
+        {importMutation.isError && (
+          <p className="text-sm text-destructive-foreground">{t('importMembersFailed')}</p>
+        )}
+        {importResult && (
+          <div className="rounded-md border border-border bg-background/60 p-3 text-sm space-y-2">
+            <div className="flex flex-wrap gap-4 text-muted-foreground">
+              <span>{t('importMembersCreated', { count: importResult.createdCount })}</span>
+              <span>{t('importMembersUpdated', { count: importResult.updatedCount })}</span>
+              <span>{t('importMembersSkipped', { count: importResult.skippedCount })}</span>
+            </div>
+            {importResult.issues.length > 0 && (
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">{t('importMembersIssues')}</p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {importResult.issues.slice(0, 10).map((issue) => (
+                    <li key={`${issue.rowNumber}-${issue.memberNumber ?? 'missing'}`}>
+                      {t('importMembersIssueRow', { row: issue.rowNumber })}: {t(`importMembersIssueCodes.${issue.code}`)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        )}
+      </form>
+
       <form onSubmit={handleSearch} className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -140,6 +243,7 @@ export function UsersSection() {
               <thead>
                 <tr className="border-b border-border bg-secondary/20">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('memberNumber')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('name')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('email')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('role')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('status')}</th>
@@ -153,6 +257,7 @@ export function UsersSection() {
                 {data.data.map((user) => (
                   <tr key={user.id} className="border-b border-border last:border-0 hover:bg-secondary/10 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs">{user.memberNumber}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{user.fullName ?? '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground">{user.email ?? '—'}</td>
                     <td className="px-4 py-3">
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
@@ -281,6 +386,34 @@ export function UsersSection() {
                 id="edit-member-number"
                 value={editState.memberNumber}
                 onChange={(e) => setEditState((s) => ({ ...s, memberNumber: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-full-name">{t('fullName')}</Label>
+              <Input
+                id="edit-full-name"
+                value={editState.fullName}
+                onChange={(e) => setEditState((s) => ({ ...s, fullName: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email">{tc('email')}</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editState.email}
+                onChange={(e) => setEditState((s) => ({ ...s, email: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone">{t('phone')}</Label>
+              <Input
+                id="edit-phone"
+                value={editState.phone}
+                onChange={(e) => setEditState((s) => ({ ...s, phone: e.target.value }))}
               />
             </div>
 
