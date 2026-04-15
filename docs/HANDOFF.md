@@ -14,7 +14,7 @@
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
-| None | — | — |
+| #109 | `feat/KIM-378-member-activation` | Open — local QA/review passed; merge still gated by pending manual QA checklist |
 
 ## Merged this session
 | PR | Branch | Fix |
@@ -29,9 +29,8 @@
 Current branch implements `KIM-378`: public sign-up removed, login becomes primary entry route, admin copy-link activation flow added, and first-time activation now sets password + activates the imported member profile.
 
 Current meaningful next steps:
-- Finish QA + code review for `KIM-378`, then open the PR from this branch.
-- Do not merge `KIM-378` until the pending manual QA checklist is closed if we are still respecting the Phase 0 gate.
 - Finish the pending manual QA checklist still listed below.
+- Merge PR `#109` once the manual QA gate is considered closed.
 - Start `KIM-379` next after `KIM-378` lands.
 
 Plan source:
