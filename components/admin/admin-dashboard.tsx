@@ -35,7 +35,7 @@ export function AdminDashboard() {
       </div>
 
       <Tabs defaultValue="users">
-        <TabsList className="mb-6 h-auto w-full flex-wrap justify-start gap-1 border border-border bg-background-secondary/80 p-1">
+        <TabsList className="mb-6 h-auto w-full flex-wrap justify-center gap-1 border border-border bg-background-secondary/80 p-1">
           <TabsTrigger value="users" className="gap-2 data-[state=active]:border data-[state=active]:border-primary/30 data-[state=active]:glow-gold">
             <Users className="h-4 w-4" aria-hidden="true" />
             {t('users')}
