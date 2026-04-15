@@ -19,8 +19,12 @@ import type { Reservation } from '@/lib/types'
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
 
 function isCutoffPassed(reservation: Reservation): boolean {
-  const startMs = zonedDateTimeToUtc(reservation.date, reservation.startTime).getTime()
-  return Date.now() >= startMs - CANCELLATION_CUTOFF_MS
+  try {
+    const startMs = zonedDateTimeToUtc(reservation.date, reservation.startTime).getTime()
+    return Date.now() >= startMs - CANCELLATION_CUTOFF_MS
+  } catch {
+    return true
+  }
 }
 
 const statusBadgeVariant: Record<Reservation['status'], 'available' | 'reserved' | 'outline'> = {
