@@ -36,6 +36,7 @@ const activationTokensByProfileId = new Map<string, ActivationTokenRow>()
 const activationTokensByHash = new Map<string, ActivationTokenRow>()
 
 const updateUserByIdMock = vi.fn()
+const activationTokenUpsertMock = vi.fn()
 
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex')
@@ -143,7 +144,7 @@ vi.mock('@/lib/supabase/server', () => ({
           activationTokensByHash.set(inserted.token_hash, inserted)
           return { error: null }
         }),
-        upsert: vi.fn(async (values: ActivationTokenRow) => {
+        upsert: activationTokenUpsertMock.mockImplementation(async (values: ActivationTokenRow) => {
           const existing = activationTokensByProfileId.get(values.profile_id)
           if (existing) {
             activationTokensByHash.delete(existing.token_hash)
@@ -151,7 +152,7 @@ vi.mock('@/lib/supabase/server', () => ({
               ...existing,
               ...values,
               updated_at: '2026-04-15T10:00:00.000Z',
-              used_at: null,
+              used_at: Object.prototype.hasOwnProperty.call(values, 'used_at') ? values.used_at : existing.used_at,
             }
             activationTokensById.set(existing.id, next)
             activationTokensByProfileId.set(next.profile_id, next)
@@ -166,14 +167,39 @@ vi.mock('@/lib/supabase/server', () => ({
           return { error: null }
         }),
         update: vi.fn((updates: Partial<ActivationTokenRow>) => ({
-          eq: vi.fn(async (_column: 'id', value: string) => {
-            const existing = activationTokensById.get(value)
-            if (!existing) return { error: null }
-            const next = { ...existing, ...updates, updated_at: '2026-04-15T11:00:00.000Z' }
-            activationTokensById.set(value, next)
-            activationTokensByProfileId.set(next.profile_id, next)
-            activationTokensByHash.set(next.token_hash, next)
-            return { error: null }
+          eq: vi.fn((column: 'id' | 'token_hash', value: string) => {
+            if (column === 'id') {
+              return Promise.resolve().then(async () => {
+                const existing = activationTokensById.get(value)
+                if (!existing) return { error: null }
+                const next = { ...existing, ...updates, updated_at: '2026-04-15T11:00:00.000Z' }
+                activationTokensById.set(value, next)
+                activationTokensByProfileId.set(next.profile_id, next)
+                activationTokensByHash.set(next.token_hash, next)
+                return { error: null }
+              })
+            }
+
+            return {
+              gt: vi.fn((_gtColumn: 'expires_at', gtValue: string) => ({
+                is: vi.fn((_isColumn: 'used_at', isValue: null) => ({
+                  select: vi.fn(() => ({
+                    maybeSingle: vi.fn(async () => {
+                      const existing = activationTokensByHash.get(value)
+                      if (!existing) return { data: null, error: null }
+                      if (existing.expires_at <= gtValue || existing.used_at !== isValue) {
+                        return { data: null, error: null }
+                      }
+                      const next = { ...existing, ...updates, updated_at: '2026-04-15T11:00:00.000Z' }
+                      activationTokensById.set(existing.id, next)
+                      activationTokensByProfileId.set(next.profile_id, next)
+                      activationTokensByHash.set(next.token_hash, next)
+                      return { data: next, error: null }
+                    }),
+                  })),
+                })),
+              })),
+            }
           }),
         })),
       }
@@ -195,6 +221,7 @@ describe('auth activation helpers', () => {
     activationTokensByProfileId.clear()
     activationTokensByHash.clear()
     updateUserByIdMock.mockResolvedValue({ error: null })
+    activationTokenUpsertMock.mockClear()
 
     const profile = seedProfile()
     profilesById.set(profile.id, profile)
@@ -237,6 +264,27 @@ describe('auth activation helpers', () => {
     expect(result.activationLink).toContain('http://localhost:3000/es/activate?token=')
     expect(result.activationLink).not.toContain('old-token')
     expect(activationTokensByProfileId.get('member-1')?.token_hash).not.toBe(hashToken('old-token'))
+  })
+
+  it('clears used_at when regenerating an already consumed activation link', async () => {
+    seedActivationToken({
+      id: 'token-old',
+      token_hash: hashToken('old-token'),
+      used_at: '2026-04-15T10:30:00.000Z',
+    })
+    const { generateActivationLink } = await loadService()
+
+    await generateActivationLink({
+      userId: 'member-1',
+      locale: 'es',
+      baseUrl: 'http://localhost:3000',
+      createdBy: 'admin-1',
+    })
+
+    expect(activationTokenUpsertMock).toHaveBeenCalledWith(expect.objectContaining({
+      used_at: null,
+    }), { onConflict: 'profile_id' })
+    expect(activationTokensByProfileId.get('member-1')?.used_at).toBeNull()
   })
 
   it('activates account, updates password, profile state, and marks token used', async () => {

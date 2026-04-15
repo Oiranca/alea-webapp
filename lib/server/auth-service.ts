@@ -58,7 +58,22 @@ type ActivationTokenTableClient = {
     options: { onConflict: 'profile_id' },
   ) => Promise<{ error: unknown }>
   update: (values: Partial<Tables<'activation_tokens'>>) => {
-    eq: (column: 'id', value: string) => Promise<{ error: unknown }>
+    eq: (column: 'id' | 'token_hash', value: string) => {
+      eq: (column: 'id', value: string) => Promise<{ error: unknown }>
+      gt: (
+        column: 'expires_at',
+        value: string,
+      ) => {
+        is: (
+          column: 'used_at',
+          value: null,
+        ) => {
+          select: (columns: typeof ACTIVATION_TOKEN_COLUMNS) => {
+            maybeSingle: () => ActivationTokenMaybeSingleResult
+          }
+        }
+      }
+    }
   }
 }
 type ProfileLookupClient = {
@@ -226,6 +241,7 @@ export async function generateActivationLink(input: {
     token_hash: hashActivationToken(token),
     expires_at: expiresAt.toISOString(),
     created_by: input.createdBy,
+    used_at: null,
   }, { onConflict: 'profile_id' })
 
   if (upsertResult.error) {
@@ -247,21 +263,36 @@ export async function activateAccount(input: { token: unknown; password: unknown
   const admin = createSupabaseServerAdminClient()
   const activationTokens = getActivationTokenTable(admin)
   const tokenHash = hashActivationToken(parsed.data.token)
-  const { data: activationToken, error: activationTokenError } = await activationTokens
-    .select(ACTIVATION_TOKEN_COLUMNS)
+  const activatedAt = new Date().toISOString()
+  const { data: claimedToken, error: claimTokenError } = await activationTokens
+    .update({ used_at: activatedAt })
     .eq('token_hash', tokenHash)
+    .gt('expires_at', activatedAt)
+    .is('used_at', null)
+    .select(ACTIVATION_TOKEN_COLUMNS)
     .maybeSingle()
 
-  if (activationTokenError) {
-    serviceError('Internal server error', 500)
+  if (claimTokenError) {
+    serviceError('Failed to activate account', 500)
   }
+
+  let activationToken = claimedToken
   if (!activationToken) {
-    serviceError('Activation link is invalid or has expired', 400)
-  }
-  if (activationToken.used_at) {
-    serviceError('Activation link has already been used', 400)
-  }
-  if (isActivationExpired(activationToken.expires_at)) {
+    const { data: existingToken, error: activationTokenError } = await activationTokens
+      .select(ACTIVATION_TOKEN_COLUMNS)
+      .eq('token_hash', tokenHash)
+      .maybeSingle()
+
+    if (activationTokenError) {
+      serviceError('Internal server error', 500)
+    }
+    if (!existingToken || isActivationExpired(existingToken.expires_at)) {
+      serviceError('Activation link is invalid or has expired', 400)
+    }
+    if (existingToken.used_at) {
+      serviceError('Activation link has already been used', 400)
+    }
+
     serviceError('Activation link is invalid or has expired', 400)
   }
 
@@ -270,12 +301,6 @@ export async function activateAccount(input: { token: unknown; password: unknown
     serviceError('Activation link is invalid or has expired', 400)
   }
   if (profile.is_active) {
-    const { error: markTokenUsedError } = await activationTokens
-      .update({ used_at: new Date().toISOString() })
-      .eq('id', activationToken.id)
-    if (markTokenUsedError) {
-      serviceError('Failed to activate account', 500)
-    }
     serviceError('Activation link has already been used', 400)
   }
 
@@ -287,7 +312,6 @@ export async function activateAccount(input: { token: unknown; password: unknown
     serviceError('Failed to activate account', 500)
   }
 
-  const activatedAt = new Date().toISOString()
   const { data: updatedProfile, error: updatedProfileError } = await admin
     .from('profiles')
     .update({
@@ -300,13 +324,6 @@ export async function activateAccount(input: { token: unknown; password: unknown
     .maybeSingle()
 
   if (updatedProfileError || !updatedProfile) {
-    serviceError('Failed to activate account', 500)
-  }
-
-  const { error: markTokenUsedError } = await activationTokens
-    .update({ used_at: activatedAt })
-    .eq('id', activationToken.id)
-  if (markTokenUsedError) {
     serviceError('Failed to activate account', 500)
   }
 

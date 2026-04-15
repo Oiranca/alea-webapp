@@ -239,7 +239,7 @@ export function UsersSection() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/20">
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">ID</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('memberNumber')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('name')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('email')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('role')}</th>
