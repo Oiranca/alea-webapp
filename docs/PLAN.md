@@ -11,16 +11,12 @@
 - Stack: single Next.js 15 app with Supabase, `next-intl`, Vitest, and shadcn/ui.
 - Member import is done and merged (`KIM-377`).
 - Admin already has: users, reservations, rooms, events, and member import.
-- `KIM-378` is the current active implementation track: replace public sign-up with admin-issued activation links and make login the default entry route.
+- `KIM-378` is merged: public sign-up is disabled, activation links are admin-issued, and login is the default entry route.
 - Current reservation model supports normal table bookings, QR check-in, no-show tracking, and event blocking, but does not yet support equipment bookings or `Saved Game`.
 
 ---
 
 ## Open Issues In Scope
-
-### Urgent
-
-- `KIM-378` — Replace open sign-up with pre-registered member activation and make login the default entry route
 
 ### High priority
 
@@ -44,21 +40,20 @@
 
 1. Close the pending manual QA checklist for merged work.
 2. Refresh docs only after the product state is confirmed in `develop`.
-3. `KIM-378` can continue in parallel, but merge sequencing should still respect the operational QA gate.
+3. Start new implementation work only after deciding how strictly to enforce the remaining manual QA gate.
 
 Reason:
 - No new feature plan should sit on top of unverified behavior in reservations/events/check-in.
 
 ### Phase 1 — Lock the new access model
 
-1. `KIM-378`
-2. `KIM-379`
+1. `KIM-379`
 
 Reason:
 - `KIM-377` created the imported member base.
-- `KIM-378` turns that imported base into the real access model.
+- `KIM-378` already turned that imported base into the real access model.
 - `KIM-379` completes the same auth transition with the recovery flow and final password rules.
-- These two issues redefine the entry flow of the application and should land before user-facing FAQ or deeper booking changes.
+- The auth transition should be completed before user-facing FAQ or deeper booking changes.
 
 ### Phase 2 — Prepare inventory for equipment-aware bookings
 
@@ -108,7 +103,6 @@ Reason:
 
 ## Dependency Summary
 
-- `KIM-377` -> `KIM-378`
 - `KIM-378` -> `KIM-379`
 - `KIM-380` -> `KIM-381`
 - `KIM-381` + `KIM-382` + `KIM-383` -> `KIM-384`
@@ -122,7 +116,7 @@ Reason:
 If the goal is implementation work after docs cleanup, the next branch should target:
 
 1. the pending manual QA checklist if we are finishing operational closure
-2. otherwise `KIM-379` once `KIM-378` is merged
+2. otherwise `KIM-379` from a fresh branch off `develop`
 
 ---
 

@@ -9,29 +9,28 @@
 ## Last updated: 2026-04-15
 
 ## Current branch
-`feat/KIM-378-member-activation`
+`develop`
 
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
-| #109 | `feat/KIM-378-member-activation` | Open — local QA/review passed; merge still gated by pending manual QA checklist |
+| None | — | —
 
 ## Merged this session
 | PR | Branch | Fix |
 |---|---|---|
-| None | — | — |
+| #109 | `feat/KIM-378-member-activation` | `KIM-378` merged into `develop`: activation flow, login-first entry route, and auth redirect fixes |
 
 ---
 
 ## Status Summary
 
-`develop` already includes `KIM-377` and merged PR `#106`.
-Current branch implements `KIM-378`: public sign-up removed, login becomes primary entry route, admin copy-link activation flow added, and first-time activation now sets password + activates the imported member profile.
+`develop` now includes `KIM-377`, merged PR `#106`, and merged PR `#109` for `KIM-378`.
+Current product state already includes the pre-registered activation flow: public sign-up is disabled, login is the primary entry route, admins can generate activation links, and first-time activation sets the password and activates the imported member profile.
 
 Current meaningful next steps:
 - Finish the pending manual QA checklist still listed below.
-- Merge PR `#109` once the manual QA gate is considered closed.
-- Start `KIM-379` next after `KIM-378` lands.
+- Start `KIM-379` from a new branch once we decide to move past docs/manual-QA closure.
 
 Plan source:
 - Use only `docs/PLAN.md`.
@@ -105,7 +104,7 @@ All checks require a live browser session.
 2. `gh pr list --state open` — check PRs awaiting merge
 3. `git branch --show-current` — confirm you are on the branch referenced above
 4. If operational closure is still pending, use the Manual QA checklist above
-5. Otherwise continue `KIM-378` on this branch, or start `KIM-379` if `KIM-378` is already merged
+5. Otherwise branch from `develop` and start `KIM-379`
 
 **At session end:**
 1. Update this file with current state
