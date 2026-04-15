@@ -55,7 +55,7 @@
     "noAccount": "¿No tienes cuenta?", "hasAccount": "¿Ya tienes cuenta?",
     "showPassword": "Mostrar contraseña", "hidePassword": "Ocultar contraseña",
     "showConfirmation": "Mostrar confirmación", "hideConfirmation": "Ocultar confirmación",
-    "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?", "forgotPasswordContactAdmin": "Debe poner en contacto con el Administrador", "verifyingSession": "Verificando sesión...",
+    "rememberMe": "Recordarme", "forgotPassword": "¿Olvidaste tu contraseña?", "forgotPasswordContactAdmin": "Debe ponerse en contacto con un administrador.", "verifyingSession": "Verificando sesión...",
     "passwordRequirements": {
       "title": "Requisitos de contraseña",
       "minLength": "Mínimo 8 caracteres",

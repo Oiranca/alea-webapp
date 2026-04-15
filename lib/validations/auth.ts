@@ -85,4 +85,4 @@ export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
 export type RegisterServerData = z.infer<typeof registerServerSchema>
 export type ActivationFormData = z.infer<typeof activationSchema>
-export type RecoveryFormData = z.infer<typeof activationSchema>
+export type RecoveryFormData = ActivationFormData
