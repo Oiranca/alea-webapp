@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { Calendar, Clock, Layers } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import type { GameTable, TableSurface, TableAvailability } from '@/lib/types'
+import { getCurrentClubDate } from '@/lib/club-time'
 import { useTableAvailability, useCreateReservation } from '@/lib/hooks/use-reservations'
 import { useAuth } from '@/lib/auth/auth-context'
 import { generateTimeSlots, formatDate } from '@/lib/utils'
@@ -28,7 +29,7 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   const { user } = useAuth()
 
   const now = new Date()
-  const today = now.toISOString().split('T')[0]
+  const today = getCurrentClubDate(now)
   const [selectedDate, setSelectedDate] = useState(today)
   const [selectedStartTime, setSelectedStartTime] = useState<string | null>(null)
   const [selectedEndTime, setSelectedEndTime] = useState<string | null>(null)
