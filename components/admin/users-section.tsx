@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { Search, Pencil, Trash2, AlertCircle, FileUp } from 'lucide-react'
+import { useLocale, useTranslations } from 'next-intl'
+import { Search, Pencil, Trash2, AlertCircle, FileUp, Link2 } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -52,10 +52,12 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 export function UsersSection() {
   const t = useTranslations('admin')
   const tc = useTranslations('common')
+  const locale = useLocale()
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [activationFeedback, setActivationFeedback] = useState<{ userId: string; kind: 'success' | 'error'; message: string } | null>(null)
 
   const [editUser, setEditUser] = useState<User | null>(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
@@ -131,6 +133,40 @@ export function UsersSection() {
     deleteMutation.mutate(deleteUser.id, {
       onSuccess: () => setDeleteUser(null),
     })
+  }
+
+  async function handleCopyActivationLink(user: User) {
+    setActivationFeedback(null)
+
+    try {
+      const result = await patchMutation.mutateAsync({
+        id: user.id,
+        action: 'generate_activation_link',
+        locale,
+      }) as { activationLink: string; expiresAt: string }
+
+      try {
+        await navigator.clipboard.writeText(result.activationLink)
+        setActivationFeedback({
+          userId: user.id,
+          kind: 'success',
+          message: t('activationLinkCopied'),
+        })
+      } catch {
+        window.prompt(t('activationLinkPrompt'), result.activationLink)
+        setActivationFeedback({
+          userId: user.id,
+          kind: 'success',
+          message: t('activationLinkReady'),
+        })
+      }
+    } catch (error) {
+      setActivationFeedback({
+        userId: user.id,
+        kind: 'error',
+        message: error instanceof Error ? error.message : t('activationLinkFailed'),
+      })
+    }
   }
 
   return (
@@ -263,6 +299,21 @@ export function UsersSection() {
                             {t('unblockUser')}
                           </Button>
                         )}
+                        {!user.isActive && user.role === 'member' && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-sky-400 hover:bg-sky-900/20 hover:text-sky-300"
+                            disabled={patchMutation.isPending}
+                            onClick={() => handleCopyActivationLink(user)}
+                            aria-label={t('copyActivationLink')}
+                          >
+                            {patchMutation.isPending && patchMutation.variables?.id === user.id && patchMutation.variables?.action === 'generate_activation_link'
+                              ? <DiceLoader size="sm" className="mr-1" hideRole />
+                              : <Link2 className="mr-1 h-3.5 w-3.5" aria-hidden="true" />}
+                            {t('copyActivationLink')}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -281,6 +332,11 @@ export function UsersSection() {
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
+                      {activationFeedback?.userId === user.id && (
+                        <p className={`mt-2 text-right text-xs ${activationFeedback.kind === 'success' ? 'text-emerald-400' : 'text-destructive'}`}>
+                          {activationFeedback.message}
+                        </p>
+                      )}
                     </td>
                   </tr>
                 ))}

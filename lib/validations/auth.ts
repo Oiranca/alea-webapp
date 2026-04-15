@@ -41,6 +41,22 @@ export const registerServerSchema = z.object({
   password: passwordSchema,
 })
 
+export const activationSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'errors.passwordsDoNotMatch',
+    path: ['confirmPassword'],
+  })
+
+export const activationServerSchema = z.object({
+  token: z.string().min(1),
+  password: passwordSchema,
+})
+
 export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
 export type RegisterServerData = z.infer<typeof registerServerSchema>
+export type ActivationFormData = z.infer<typeof activationSchema>

@@ -1,5 +1,6 @@
 export const endpoints = {
   auth: {
+    activate: '/auth/activate',
     login: '/auth/login',
     register: '/auth/register',
     logout: '/auth/logout',
@@ -8,6 +9,7 @@ export const endpoints = {
   users: {
     list: '/users',
     byId: (id: string) => `/users/${id}`,
+    activationLink: (id: string) => `/users/${id}/activation-link`,
     import: '/users/import',
   },
   rooms: {

@@ -52,8 +52,12 @@ export function useAdminDeleteUser() {
 export function useAdminPatchUser() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ id, action }: { id: string; action: 'reset_no_shows' | 'unblock' }) =>
-      apiClient.patch<void>(endpoints.users.byId(id), { action }),
+    mutationFn: async ({ id, action, locale }: { id: string; action: 'reset_no_shows' | 'unblock' | 'generate_activation_link'; locale?: string }) => {
+      if (action === 'generate_activation_link') {
+        return apiClient.post<{ activationLink: string; expiresAt: string }>(endpoints.users.activationLink(id), { locale })
+      }
+      return apiClient.patch<void>(endpoints.users.byId(id), { action })
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
     },

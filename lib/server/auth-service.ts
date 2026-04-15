@@ -1,14 +1,18 @@
 import type { User } from '@/lib/types'
 import type { SessionUser } from '@/lib/server/auth'
+import { createHash, randomBytes } from 'node:crypto'
 import { serviceError } from '@/lib/server/service-error'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
-import type { Tables } from '@/lib/supabase/types'
-import { registerServerSchema } from '@/lib/validations/auth'
+import type { Tables, TablesInsert } from '@/lib/supabase/types'
+import { activationServerSchema, registerServerSchema } from '@/lib/validations/auth'
 
 type ProfileRow = Tables<'profiles'>
+type ActivationTokenRow = Tables<'activation_tokens'>
 type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'full_name' | 'email' | 'phone' | 'role' | 'is_active' | 'active_from' | 'psw_changed' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
 type AuthCredentialRow = Pick<ProfileRow, 'id' | 'member_number' | 'auth_email' | 'email' | 'full_name' | 'phone' | 'role' | 'is_active' | 'active_from' | 'psw_changed' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
 const PUBLIC_PROFILE_COLUMNS = 'id, member_number, full_name, email, phone, role, is_active, active_from, psw_changed, no_show_count, blocked_until, created_at, updated_at' as const
+const ACTIVATION_TOKEN_COLUMNS = 'id, profile_id, token_hash, expires_at, used_at, created_by, created_at, updated_at' as const
+const ACTIVATION_WINDOW_MS = 24 * 60 * 60 * 1000
 
 // Auth-only columns: auth_email is used to resolve Supabase Auth credentials for sign-in/activation.
 // email is optional contact email; it is not part of the public user model (issue #39) but IS included for admin-facing user data.
@@ -24,6 +28,10 @@ type AuthCredentialMaybeSingleResult = Promise<{
   data: AuthCredentialRow | null
   error: unknown
 }>
+type ActivationTokenMaybeSingleResult = Promise<{
+  data: ActivationTokenRow | null
+  error: unknown
+}>
 type PublicProfilesTableClient = {
   select: (columns: typeof PUBLIC_PROFILE_COLUMNS) => {
     eq: (column: PublicProfileLookupColumn, value: string) => {
@@ -36,6 +44,20 @@ type AuthCredentialTableClient = {
     eq: (column: AuthCredentialLookupColumn, value: string) => {
       maybeSingle: () => AuthCredentialMaybeSingleResult
     }
+  }
+}
+type ActivationTokenTableClient = {
+  select: (columns: typeof ACTIVATION_TOKEN_COLUMNS) => {
+    eq: (column: 'profile_id' | 'token_hash', value: string) => {
+      maybeSingle: () => ActivationTokenMaybeSingleResult
+    }
+  }
+  delete: () => {
+    eq: (column: 'profile_id', value: string) => Promise<{ error: unknown }>
+  }
+  insert: (values: TablesInsert<'activation_tokens'>) => Promise<{ error: unknown }>
+  update: (values: Partial<Tables<'activation_tokens'>>) => {
+    eq: (column: 'id', value: string) => Promise<{ error: unknown }>
   }
 }
 type ProfileLookupClient = {
@@ -59,6 +81,10 @@ function getProfilesTable(client: ProfileLookupClient) {
 
 function getAuthCredentialTable(client: ProfileLookupClient) {
   return client.from('profiles') as AuthCredentialTableClient
+}
+
+function getActivationTokenTable(client: { from: (table: 'activation_tokens') => unknown }) {
+  return client.from('activation_tokens') as ActivationTokenTableClient
 }
 
 async function getPublicProfileBy(
@@ -116,6 +142,179 @@ function toPublicUser(profile: PublicProfileRow): User {
 async function getAuthCredentialByMemberNumber(memberNumber: string) {
   const admin = createSupabaseServerAdminClient()
   return getAuthCredentialProfileBy(admin, 'member_number', memberNumber)
+}
+
+function hashActivationToken(token: string) {
+  return createHash('sha256').update(token).digest('hex')
+}
+
+function createActivationToken() {
+  return randomBytes(32).toString('hex')
+}
+
+function isActivationExpired(expiresAt: string) {
+  return new Date(expiresAt).getTime() <= Date.now()
+}
+
+export type ActivationLinkState =
+  | { status: 'valid'; memberNumber: string; fullName: string | null }
+  | { status: 'expired' | 'used' | 'invalid'; memberNumber: null; fullName: null }
+
+export async function getActivationLinkState(token: string): Promise<ActivationLinkState> {
+  if (!token) {
+    return { status: 'invalid', memberNumber: null, fullName: null }
+  }
+
+  const admin = createSupabaseServerAdminClient()
+  const activationTokens = getActivationTokenTable(admin)
+  const tokenHash = hashActivationToken(token)
+  const { data: activationToken, error: activationTokenError } = await activationTokens
+    .select(ACTIVATION_TOKEN_COLUMNS)
+    .eq('token_hash', tokenHash)
+    .maybeSingle()
+
+  if (activationTokenError) {
+    serviceError('Internal server error', 500)
+  }
+  if (!activationToken) {
+    return { status: 'invalid', memberNumber: null, fullName: null }
+  }
+  if (activationToken.used_at) {
+    return { status: 'used', memberNumber: null, fullName: null }
+  }
+  if (isActivationExpired(activationToken.expires_at)) {
+    return { status: 'expired', memberNumber: null, fullName: null }
+  }
+
+  const profile = await getAuthCredentialProfileBy(admin, 'id', activationToken.profile_id)
+  if (!profile || profile.is_active) {
+    return { status: 'used', memberNumber: null, fullName: null }
+  }
+
+  return {
+    status: 'valid',
+    memberNumber: profile.member_number,
+    fullName: profile.full_name ?? null,
+  }
+}
+
+export async function generateActivationLink(input: {
+  userId: string
+  locale: string
+  baseUrl: string
+  createdBy: string
+}) {
+  const admin = createSupabaseServerAdminClient()
+  const profile = await getAuthCredentialProfileBy(admin, 'id', input.userId)
+
+  if (!profile) {
+    serviceError('User not found', 404)
+  }
+  if (profile.role !== 'member') {
+    serviceError('Only member accounts can be activated', 400)
+  }
+  if (profile.is_active) {
+    serviceError('This member is already active', 400)
+  }
+
+  const activationTokens = getActivationTokenTable(admin)
+  const deleteExisting = await activationTokens.delete().eq('profile_id', profile.id)
+  if (deleteExisting.error) {
+    serviceError('Internal server error', 500)
+  }
+
+  const token = createActivationToken()
+  const expiresAt = new Date(Date.now() + ACTIVATION_WINDOW_MS)
+  const insertResult = await activationTokens.insert({
+    profile_id: profile.id,
+    token_hash: hashActivationToken(token),
+    expires_at: expiresAt.toISOString(),
+    created_by: input.createdBy,
+  })
+
+  if (insertResult.error) {
+    serviceError('Failed to create activation link', 500)
+  }
+
+  return {
+    activationLink: `${input.baseUrl}/${input.locale}/activate?token=${token}`,
+    expiresAt: expiresAt.toISOString(),
+  }
+}
+
+export async function activateAccount(input: { token: unknown; password: unknown }) {
+  const parsed = activationServerSchema.safeParse(input)
+  if (!parsed.success) {
+    serviceError('Invalid activation link', 400)
+  }
+
+  const admin = createSupabaseServerAdminClient()
+  const activationTokens = getActivationTokenTable(admin)
+  const tokenHash = hashActivationToken(parsed.data.token)
+  const { data: activationToken, error: activationTokenError } = await activationTokens
+    .select(ACTIVATION_TOKEN_COLUMNS)
+    .eq('token_hash', tokenHash)
+    .maybeSingle()
+
+  if (activationTokenError) {
+    serviceError('Internal server error', 500)
+  }
+  if (!activationToken) {
+    serviceError('Activation link is invalid or has expired', 400)
+  }
+  if (activationToken.used_at) {
+    serviceError('Activation link has already been used', 400)
+  }
+  if (isActivationExpired(activationToken.expires_at)) {
+    serviceError('Activation link is invalid or has expired', 400)
+  }
+
+  const profile = await getAuthCredentialProfileBy(admin, 'id', activationToken.profile_id)
+  if (!profile) {
+    serviceError('Activation link is invalid or has expired', 400)
+  }
+  if (profile.is_active) {
+    await activationTokens
+      .update({ used_at: new Date().toISOString() })
+      .eq('id', activationToken.id)
+    serviceError('Activation link has already been used', 400)
+  }
+
+  const { error: updateAuthError } = await admin.auth.admin.updateUserById(profile.id, {
+    password: parsed.data.password,
+    email_confirm: true,
+  })
+  if (updateAuthError) {
+    serviceError('Failed to activate account', 500)
+  }
+
+  const activatedAt = new Date().toISOString()
+  const { data: updatedProfile, error: updatedProfileError } = await admin
+    .from('profiles')
+    .update({
+      is_active: true,
+      active_from: activatedAt,
+      psw_changed: activatedAt,
+    })
+    .eq('id', profile.id)
+    .select(PUBLIC_PROFILE_COLUMNS)
+    .maybeSingle()
+
+  if (updatedProfileError || !updatedProfile) {
+    serviceError('Failed to activate account', 500)
+  }
+
+  const { error: markTokenUsedError } = await activationTokens
+    .update({ used_at: activatedAt })
+    .eq('id', activationToken.id)
+  if (markTokenUsedError) {
+    serviceError('Failed to activate account', 500)
+  }
+
+  return {
+    authEmail: profile.auth_email,
+    user: toPublicUser(updatedProfile),
+  }
 }
 
 export async function login(
