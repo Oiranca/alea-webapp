@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { utils, write } from 'xlsx'
 
 const createUserMock = vi.fn()
 const deleteUserMock = vi.fn()
@@ -180,6 +181,96 @@ describe('parseMemberImportCsv', () => {
   })
 })
 
+describe('normalizeMemberImportSource', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resetProfileState()
+  })
+
+  it('normalizes xlsx spreadsheets into the canonical dataset', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const workbook = utils.book_new()
+    const sheet = utils.aoa_to_sheet([
+      ['USUARIOS', 'ID', 'email', 'phone'],
+      ['Jane Doe', '100021', 'jane@alea.club', '699123123'],
+    ])
+    utils.book_append_sheet(workbook, sheet, 'Members')
+    const bytes = write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+
+    const result = normalizeMemberImportSource({
+      fileName: 'members.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      bytes: new Uint8Array(bytes),
+    })
+
+    expect(result.normalizedCsv).toBe('USUARIOS,ID,email,phone\nJane Doe,100021,jane@alea.club,699123123')
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100021',
+        fullName: 'Jane Doe',
+        email: 'jane@alea.club',
+        phone: '699123123',
+      },
+    ])
+  })
+
+  it('uses the first xlsx sheet that matches import headers', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const workbook = utils.book_new()
+    const coverSheet = utils.aoa_to_sheet([
+      ['Report generated', '2026-04-15'],
+      ['Notes', 'Skip this sheet'],
+    ])
+    const memberSheet = utils.aoa_to_sheet([
+      ['USUARIOS', 'ID', 'email'],
+      ['Second Sheet Member', '100031', 'sheet2@alea.club'],
+    ])
+    utils.book_append_sheet(workbook, coverSheet, 'Cover')
+    utils.book_append_sheet(workbook, memberSheet, 'Members')
+    const bytes = write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+
+    const result = normalizeMemberImportSource({
+      fileName: 'members.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      bytes: new Uint8Array(bytes),
+    })
+
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100031',
+        fullName: 'Second Sheet Member',
+        email: 'sheet2@alea.club',
+        phone: null,
+      },
+    ])
+  })
+
+  it('normalizes odt table files into the canonical dataset', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const bytes = Uint8Array.from(Buffer.from(
+      'UEsDBBQAAAAIABxQj1xmoUcuKQEAABwFAAALAAAAY29udGVudC54bWy1VNFqgzAUfe9XhLzbWoUxgtoNyqCDMVjnB8R4uzpiIiZ27d8vJrad7kXW+aLJuefck5vLTbQ6lhwdoFaFFDFezn2MQDCZF+Ijxun7k3ePV8kskrtdwYDkkjUlCO0xKbT5I6MWirhojJtaEElVoYigJSiiGZEViLOK/GQT6+UQTTM+Wm7JPTUc9Wix4VptMkPoXFUm81O7vyItzSEGc4b2i9y6dYjxC5SZuTib6jfVq+XXNTKIMeAcdV4Hyhvw9KkyKZWuzcXjJLLnrJJ0mz6+bV630aIDzGKQ5maPzXrK7FDSgk9pUO2lgFEG/VivPf/euGe5F2gtxx3sjx5L3/eDYEqHT1PFA+VA54w32ZROd20pQRiGt3WyF+hGejGY6Qvgxv6yHb5tyTdQSwMEFAAAAAgAHFCPXF7GMgwnAAAAJwAAAAgAAABtaW1ldHlwZQVAwQkAIAjcyGaS9CGUJ3hF44dWrZjKQI6bJtCOFpSnYZ7tSaE/flBLAQIUABQAAAAIABxQj1xmoUcuKQEAABwFAAALAAAAAAAAAAAAAAAAAAAAAABjb250ZW50LnhtbFBLAQIUABQAAAAIABxQj1xexjIMJwAAACcAAAAIAAAAAAAAAAAAAAAAAFIBAABtaW1ldHlwZVBLBQYAAAAAAgACAG8AAACfAQAAAAA=',
+      'base64'
+    ))
+
+    const result = normalizeMemberImportSource({
+      fileName: 'members.odt',
+      contentType: 'application/vnd.oasis.opendocument.text',
+      bytes,
+    })
+
+    expect(result.normalizedCsv).toBe('USUARIOS,ID,email,phone\nJohn Doe,100022,john@alea.club,600222333')
+    expect(result.normalizedRows[0]).toEqual({
+      rowNumber: 2,
+      memberNumber: '100022',
+      fullName: 'John Doe',
+      email: 'john@alea.club',
+      phone: '600222333',
+    })
+  })
+})
+
 describe('importMembersFromCsv', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -209,7 +300,7 @@ describe('importMembersFromCsv', () => {
     deleteUserMock.mockResolvedValue({ error: null })
   })
 
-  it('updates existing members and preserves missing optional fields', async () => {
+  it('updates existing members with generated fallback email and nullable phone', async () => {
     const { importMembersFromCsv } = await loadService()
 
     const result = await importMembersFromCsv(
@@ -219,8 +310,31 @@ describe('importMembersFromCsv', () => {
     expect(result.createdCount).toBe(0)
     expect(result.updatedCount).toBe(1)
     expect(profileState.get('100001')?.full_name).toBe('Updated Name')
-    expect(profileState.get('100001')?.email).toBe('existing@alea.club')
-    expect(profileState.get('100001')?.phone).toBe('600111222')
+    expect(profileState.get('100001')?.email).toBe('100001@members.alea.internal')
+    expect(profileState.get('100001')?.phone).toBeNull()
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100001',
+        fullName: 'Updated Name',
+        email: '100001@members.alea.internal',
+        phone: null,
+      },
+    ])
+  })
+
+  it('rejects renamed odt archives uploaded as xlsx', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const odtBytes = Uint8Array.from(Buffer.from(
+      'UEsDBBQAAAAIABxQj1xmoUcuKQEAABwFAAALAAAAY29udGVudC54bWy1VNFqgzAUfe9XhLzbWoUxgtoNyqCDMVjnB8R4uzpiIiZ27d8vJrad7kXW+aLJuefck5vLTbQ6lhwdoFaFFDFezn2MQDCZF+Ijxun7k3ePV8kskrtdwYDkkjUlCO0xKbT5I6MWirhojJtaEElVoYigJSiiGZEViLOK/GQT6+UQTTM+Wm7JPTUc9Wix4VptMkPoXFUm81O7vyItzSEGc4b2i9y6dYjxC5SZuTib6jfVq+XXNTKIMeAcdV4Hyhvw9KkyKZWuzcXjJLLnrJJ0mz6+bV630aIDzGKQ5maPzXrK7FDSgk9pUO2lgFEG/VivPf/euGe5F2gtxx3sjx5L3/eDYEqHT1PFA+VA54w32ZROd20pQRiGt3WyF+hGejGY6Qvgxv6yHb5tyTdQSwMEFAAAAAgAHFCPXF7GMgwnAAAAJwAAAAgAAABtaW1ldHlwZQVAwQkAIAjcyGaS9CGUJ3hF44dWrZjKQI6bJtCOFpSnYZ7tSaE/flBLAQIUABQAAAAIABxQj1xmoUcuKQEAABwFAAALAAAAAAAAAAAAAAAAAAAAAABjb250ZW50LnhtbFBLAQIUABQAAAAIABxQj1xexjIMJwAAACcAAAAIAAAAAAAAAAAAAAAAAFIBAABtaW1ldHlwZVBLBQYAAAAAAgACAG8AAACfAQAAAAA=',
+      'base64'
+    ))
+
+    expect(() => normalizeMemberImportSource({
+      fileName: 'members.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      bytes: odtBytes,
+    })).toThrowError()
   })
 
   it('creates new imported members as inactive profiles with internal auth email', async () => {
@@ -250,7 +364,107 @@ describe('importMembersFromCsv', () => {
         psw_changed: null,
       })
     )
-    expect(result.normalizedRows).toEqual([])
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100020',
+        fullName: 'New Member',
+        email: 'new@alea.club',
+        phone: '699000111',
+      },
+    ])
+  })
+
+  it('fills missing source email with internal generated email and keeps phone null', async () => {
+    const { importMembersFromCsv } = await loadService()
+
+    const result = await importMembersFromCsv(
+      'USUARIOS,ID,phone\nNo Email Member,100024,\n'
+    )
+
+    expect(result.createdCount).toBe(1)
+    expect(profileState.get('100024')).toEqual(
+      expect.objectContaining({
+        auth_email: '100024@members.alea.internal',
+        email: '100024@members.alea.internal',
+        phone: null,
+      })
+    )
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100024',
+        fullName: 'No Email Member',
+        email: '100024@members.alea.internal',
+        phone: null,
+      },
+    ])
+  })
+
+  it('rejects mismatched file extension and MIME type during source normalization', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+
+    expect(() => normalizeMemberImportSource({
+      fileName: 'members.csv',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      bytes: new Uint8Array([1, 2, 3]),
+    })).toThrowError()
+  })
+
+  it('rejects malformed odt uploads with a validation error', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+
+    expect(() => normalizeMemberImportSource({
+      fileName: 'members.odt',
+      contentType: 'application/vnd.oasis.opendocument.text',
+      bytes: new Uint8Array([1, 2, 3]),
+    })).toThrowError()
+  })
+
+  it('honors repeated odt rows for row counts and duplicate detection', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const repeatedBytes = Uint8Array.from(Buffer.from(
+      'UEsDBBQAAAAIAKVRj1yr9ggzGAEAAK8DAAALAAAAY29udGVudC54bWy1U8tqwzAQvOcrhO5unPRShO1QKIUcSiGpP0CWN8UgS0aS0+Tvq4edxOrFNOSix+zOjnZYZZtTy9ERlG6kyPHqKcUIBJN1I75zXH69Jy94UywyeTg0DEgtWd+CMAmTwtgdWbbQJERz3CtBJNWNJoK2oIlhRHYgRha5zSZeKyCGVnw23SdP2HAys8k213OLBUJjV5Wsz+5+RVxaQCwWBP2Kwtkp5PgD2soa50v9TU2U/LlGohgDztGgdaS8h8ScO1tSG2WNx0Xm39kV5b583W0/99lyAOwhKnO3xvZtVvVpbNJc3PboUu/8cYBOFHRADdQ5Xt/49c8X73wxFPx/pDWrNE2f1/fZMwkMU7aMxuwChEm8XOPvVvwCUEsDBBQAAAAIAKVRj1xexjIMJwAAACcAAAAIAAAAbWltZXR5cGUFQMEJACAI3MhmkvQhlCd4ReOHVq2YykCOmybQjhaUp2Ge7UmhP35QSwECFAAUAAAACAClUY9cq/YIMxgBAACvAwAACwAAAAAAAAAAAAAAAAAAAAAAY29udGVudC54bWxQSwECFAAUAAAACAClUY9cXsYyDCcAAAAnAAAACAAAAAAAAAAAAAAAAABBAQAAbWltZXR5cGVQSwUGAAAAAAIAAgBvAAAAjgEAAAAA',
+      'base64'
+    ))
+
+    const result = normalizeMemberImportSource({
+      fileName: 'members.odt',
+      contentType: 'application/vnd.oasis.opendocument.text',
+      bytes: repeatedBytes,
+    })
+
+    expect(result.totalRows).toBe(2)
+    expect(result.normalizedRows).toHaveLength(1)
+    expect(result.issues).toContainEqual({
+      rowNumber: 3,
+      memberNumber: '100032',
+      code: 'duplicate_member_number',
+    })
+  })
+
+  it('keeps odt sparse cells aligned when empty email cell is self-closing', async () => {
+    const { normalizeMemberImportSource } = await loadService()
+    const sparseBytes = Uint8Array.from(Buffer.from(
+      'UEsDBBQAAAAIAKVRj1xwaRyJHgEAANUEAAALAAAAY29udGVudC54bWy1VNFugyAUfe9XEN6dNpplIWqzZFnSh2XJnB+AeLuZIBjBrv37Idh2uhcz54vCuefcA1wu8e5Uc3SEVlVSJHh7F2AEgsmyEh8Jzt+fvQe8SzexPBwqBqSUrKtBaI9Joc0fGbVQxEUT3LWCSKoqRQStQRHNiGxAXFTkJ5tYL4doWvDZckseqeGkZ4sN12rTDUKXXRWyPPfzG9LTHGIwZ2i/yI17hwS/QF2Yg7OpflO9Vn7dIpMYA87R4HWkvANPnxuTUunWHDxOY7vOJs2z/PFt/5rF/gCYwSTNYo/905rZoaYVX9Og+ZQCZhmMY6Py/Hvhsoa2CpC7ImtufxsEQRj+1cFf7H/f24dRFC0rwSgw9KI/acYr4Pr1Op0+Suk3UEsDBBQAAAAIAKVRj1xexjIMJwAAACcAAAAIAAAAbWltZXR5cGUFQMEJACAI3MhmkvQhlCd4ReOHVq2YykCOmybQjhaUp2Ge7UmhP35QSwECFAAUAAAACAClUY9ccGkciR4BAADVBAAACwAAAAAAAAAAAAAAAAAAAAAAY29udGVudC54bWxQSwECFAAUAAAACAClUY9cXsYyDCcAAAAnAAAACAAAAAAAAAAAAAAAAABHAQAAbWltZXR5cGVQSwUGAAAAAAIAAgBvAAAAlAEAAAAA',
+      'base64'
+    ))
+
+    const result = normalizeMemberImportSource({
+      fileName: 'members.odt',
+      contentType: 'application/vnd.oasis.opendocument.text',
+      bytes: sparseBytes,
+    })
+
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100033',
+        fullName: 'Sparse Member',
+        email: null,
+        phone: '600333444',
+      },
+    ])
   })
 
   it('deletes the auth user when profile persistence returns null data', async () => {
@@ -314,5 +528,70 @@ describe('importMembersFromCsv', () => {
       code: 'persist_import_failed',
     })
     expect(deleteUserMock).toHaveBeenCalledWith('user-100020')
+  })
+})
+
+describe('importMembersFromSource', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    resetProfileState()
+    createUserMock.mockImplementation(async ({ email }: { email: string }) => {
+      profileState.set('M-PLACEHOLDER-100023', {
+        id: 'user-100023',
+        member_number: 'M-PLACEHOLDER-100023',
+        full_name: null,
+        auth_email: email,
+        email: null,
+        phone: null,
+        role: 'member',
+        is_active: false,
+        active_from: null,
+        psw_changed: null,
+        no_show_count: 0,
+        blocked_until: null,
+        created_at: '2026-04-14T00:00:00.000Z',
+        updated_at: '2026-04-14T00:00:00.000Z',
+      })
+      return {
+        data: { user: { id: 'user-100023' } },
+        error: null,
+      }
+    })
+    deleteUserMock.mockResolvedValue({ error: null })
+  })
+
+  it('imports from xlsx source files and returns normalized rows for audit', async () => {
+    const { importMembersFromSource } = await loadService()
+    const workbook = utils.book_new()
+    const sheet = utils.aoa_to_sheet([
+      ['USUARIOS', 'ID', 'email'],
+      ['New Spreadsheet Member', '100023', 'sheet@alea.club'],
+    ])
+    utils.book_append_sheet(workbook, sheet, 'Members')
+    const bytes = write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer
+
+    const result = await importMembersFromSource({
+      fileName: 'members.xlsx',
+      contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      bytes: new Uint8Array(bytes),
+    })
+
+    expect(result.createdCount).toBe(1)
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100023',
+        fullName: 'New Spreadsheet Member',
+        email: 'sheet@alea.club',
+        phone: null,
+      },
+    ])
+    expect(profileState.get('100023')).toEqual(
+      expect.objectContaining({
+        member_number: '100023',
+        full_name: 'New Spreadsheet Member',
+        email: 'sheet@alea.club',
+      })
+    )
   })
 })

@@ -209,6 +209,12 @@ Before pushing:
 3. `pnpm test`
 4. `pnpm build`
 
+Session hygiene:
+
+1. Read `docs/HANDOFF.md` before starting work.
+2. Update `docs/HANDOFF.md` before ending the session.
+3. Keep handoff notes only in `docs/HANDOFF.md`; do not use GitHub PR comments or `CLAUDE.md` for repository handoff state.
+
 If you touched SQL schema or generated DB types:
 
 1. `pnpm test:integration`
@@ -220,7 +226,7 @@ If you touched SQL schema or generated DB types:
 - **Table types**: `small`, `large`, `removable_top`.
 - **removable_top rule**: A table with a removable top has two bookable surfaces (`top` and `bottom`). Reserving one surface blocks the other surface in the same time slot.
 - **Authentication**: Members currently log in with their member number + password. Passwords require: minimum 12 characters, at least one letter, at least one number, and at least one special character.
-- **Admin**: Admins access the dashboard at `/{locale}/admin` (guarded route). The dashboard features: user management (10/page, paginated list with search, status badge, edit role/status/member number/contact fields, CSV member import, delete), room and table management (list/edit rooms, create tables), event management, and reservation management (list all, cancel with confirmation). Passwords are never shown or editable. Admin write operations use Supabase admin client (bypasses RLS). Inactive/suspended users cannot log in.
+- **Admin**: Admins access the dashboard at `/{locale}/admin` (guarded route). The dashboard features: user management (10/page, paginated list with search, status badge, edit role/status/member number/contact fields, member import from `csv`/`xlsx`/`odt`, delete), room and table management (list/edit rooms, create tables), event management, and reservation management (list all, cancel with confirmation). The member importer accepts source columns such as `USUARIOS` -> `full_name` and `ID` -> `member_number`, normalizes them into the canonical dataset before persistence, returns invalid/skipped rows, and shows a normalized preview for audit. Passwords are never shown or editable. Admin write operations use Supabase admin client (bypasses RLS). Inactive/suspended users cannot log in.
 - **QR codes**: Each table has a QR code for quick reservation lookup.
 
 ## Accessibility

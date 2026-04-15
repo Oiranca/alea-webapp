@@ -69,6 +69,7 @@ export function UsersSection() {
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importResult, setImportResult] = useState<MemberImportResult | null>(null)
+  const [importDragActive, setImportDragActive] = useState(false)
 
   const { data, isLoading, isError } = useAdminUsers(page, 10, search)
   const updateMutation = useAdminUpdateUser()
@@ -150,6 +151,14 @@ export function UsersSection() {
     })
   }
 
+  function setNextImportFile(nextFile: File | null) {
+    setImportFile(nextFile)
+  }
+
+  function openImportPicker() {
+    importInputRef.current?.click()
+  }
+
   return (
     <div className="space-y-4">
       <form onSubmit={handleImportSubmit} className="rounded-lg border border-border bg-secondary/10 p-4 space-y-3">
@@ -160,17 +169,38 @@ export function UsersSection() {
         <div className="flex flex-col gap-3 md:flex-row md:items-end">
           <div className="flex-1 space-y-1.5">
             <Label htmlFor="member-import-file">{t('importMembersFile')}</Label>
+            <button
+              type="button"
+              className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${importDragActive ? 'border-primary bg-primary/10' : 'border-border bg-background/40 hover:bg-background/70'}`}
+              aria-describedby="member-import-help member-import-selected-file"
+              onClick={openImportPicker}
+              onDragOver={(event) => {
+                event.preventDefault()
+                setImportDragActive(true)
+              }}
+              onDragLeave={() => setImportDragActive(false)}
+              onDrop={(event) => {
+                event.preventDefault()
+                setImportDragActive(false)
+                setNextImportFile(event.dataTransfer.files?.[0] ?? null)
+              }}
+            >
+              <span className="text-sm font-medium text-foreground">{t('importMembersDropLabel')}</span>
+              <span id="member-import-help" className="text-xs text-muted-foreground">{t('importMembersHelp')}</span>
+              {importFile && (
+                <span id="member-import-selected-file" className="text-xs text-foreground">{t('importMembersSelectedFile', { name: importFile.name })}</span>
+              )}
+            </button>
             <Input
               ref={importInputRef}
               id="member-import-file"
               type="file"
-              accept=".csv,text/csv"
+              className="sr-only"
+              accept=".csv,.xlsx,.odt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.text"
               onChange={(event) => {
-                const nextFile = event.target.files?.[0] ?? null
-                setImportFile(nextFile)
+                setNextImportFile(event.target.files?.[0] ?? null)
               }}
             />
-            <p className="text-xs text-muted-foreground">{t('importMembersHelp')}</p>
           </div>
           <Button type="submit" disabled={!importFile || importMutation.isPending}>
             {importMutation.isPending ? <DiceLoader size="sm" className="mr-2" hideRole /> : null}
@@ -194,6 +224,18 @@ export function UsersSection() {
                   {importResult.issues.slice(0, 10).map((issue) => (
                     <li key={`${issue.rowNumber}-${issue.memberNumber ?? 'missing'}`}>
                       {t('importMembersIssueRow', { row: issue.rowNumber })}: {t(`importMembersIssueCodes.${issue.code}`)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {importResult.normalizedRows.length > 0 && (
+              <div className="space-y-1">
+                <p className="font-medium text-foreground">{t('importMembersNormalizedPreview')}</p>
+                <ul className="space-y-1 text-xs text-muted-foreground">
+                  {importResult.normalizedRows.slice(0, 5).map((row) => (
+                    <li key={`${row.rowNumber}-${row.memberNumber}`}>
+                      {row.memberNumber} · {row.fullName}{row.email ? ` · ${row.email}` : ''}{row.phone ? ` · ${row.phone}` : ''}
                     </li>
                   ))}
                 </ul>

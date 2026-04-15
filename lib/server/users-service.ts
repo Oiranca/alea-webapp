@@ -1,8 +1,10 @@
 import type { MemberImportIssue, MemberImportResult, MemberImportRow, PaginatedResponse, User } from '@/lib/types'
+import { strFromU8, unzipSync } from 'fflate'
 import { createSupabaseServerAdminClient } from '@/lib/supabase/server'
 import { serviceError } from '@/lib/server/service-error'
 import type { Tables, TablesUpdate } from '@/lib/supabase/types'
 import { memberNumberSchema } from '@/lib/validations/auth'
+import { read, utils } from 'xlsx'
 
 type ProfileRow = Tables<'profiles'>
 type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'full_name' | 'auth_email' | 'email' | 'phone' | 'role' | 'is_active' | 'active_from' | 'psw_changed' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
@@ -65,6 +67,12 @@ const PROFILE_IMPORT_HEADERS_NORMALIZED = {
   email: PROFILE_IMPORT_HEADERS.email.map(normalizeHeader),
   phone: PROFILE_IMPORT_HEADERS.phone.map(normalizeHeader),
 } as const
+const CANONICAL_IMPORT_HEADERS = ['USUARIOS', 'ID', 'email', 'phone'] as const
+const ACCEPTED_MEMBER_IMPORT_CONTENT_TYPES_BY_EXTENSION: Record<string, Set<string>> = {
+  csv: new Set(['text/csv', 'application/csv', 'application/vnd.ms-excel']),
+  xlsx: new Set(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']),
+  odt: new Set(['application/vnd.oasis.opendocument.text']),
+}
 
 function toPublicUser(profile: PublicProfileRow): User {
   return {
@@ -181,6 +189,190 @@ function parseCsv(input: string) {
   return rows
 }
 
+function escapeCsvValue(value: string | null) {
+  const normalized = value ?? ''
+  if (!/[",\n\r]/.test(normalized)) return normalized
+  return `"${normalized.replace(/"/g, '""')}"`
+}
+
+function rowsToCsv(rows: string[][]) {
+  return rows
+    .map((row) => row.map((cell) => escapeCsvValue(cell)).join(','))
+    .join('\n')
+}
+
+function buildCanonicalMemberImportCsv(rows: MemberImportRow[]) {
+  return rowsToCsv([
+    [...CANONICAL_IMPORT_HEADERS],
+    ...rows.map((row) => [row.fullName, row.memberNumber, row.email ?? '', row.phone ?? '']),
+  ])
+}
+
+function getSourceExtension(fileName: string) {
+  const parts = fileName.toLowerCase().split('.')
+  return parts.length > 1 ? parts.at(-1) ?? '' : ''
+}
+
+function tryReadArchive(bytes: Uint8Array, invalidMessage: string) {
+  try {
+    return unzipSync(bytes)
+  } catch {
+    serviceError(invalidMessage, 400)
+  }
+}
+
+function assertSourceArchiveMatchesExtension(extension: 'xlsx' | 'odt', bytes: Uint8Array) {
+  const archive = tryReadArchive(bytes, `${extension.toUpperCase()} file is invalid or corrupted`)
+
+  if (extension === 'xlsx') {
+    const hasWorkbook = Object.keys(archive).some((fileName) => (
+      fileName === 'xl/workbook.xml'
+      || fileName === '/xl/workbook.xml'
+      || fileName.endsWith('/xl/workbook.xml')
+    ))
+    const hasContentTypes = Object.keys(archive).some((fileName) => (
+      fileName === '[Content_Types].xml'
+      || fileName === '/[Content_Types].xml'
+      || fileName.endsWith('/[Content_Types].xml')
+    ))
+
+    if (!hasWorkbook || !hasContentTypes) {
+      serviceError('Import file content does not match the .xlsx extension.', 400)
+    }
+    return
+  }
+
+  const mimetypeEntry = archive.mimetype
+    ?? archive['/mimetype']
+    ?? Object.entries(archive).find(([fileName]) => fileName.endsWith('/mimetype'))?.[1]
+  const mimetype = mimetypeEntry ? strFromU8(mimetypeEntry).trim() : ''
+
+  if (mimetype && mimetype !== 'application/vnd.oasis.opendocument.text') {
+    serviceError('Import file content does not match the .odt extension.', 400)
+  }
+  if (!archive['content.xml'] && !archive['/content.xml'] && !Object.keys(archive).some((fileName) => fileName.endsWith('content.xml'))) {
+    serviceError('Import file content does not match the .odt extension.', 400)
+  }
+}
+
+function extractSpreadsheetCsv(bytes: Uint8Array) {
+  let workbook: ReturnType<typeof read>
+
+  try {
+    workbook = read(bytes, { type: 'array', cellText: false, cellDates: false })
+  } catch {
+    serviceError('Spreadsheet file is invalid or corrupted', 400)
+  }
+
+  if (workbook.SheetNames.length === 0) {
+    serviceError('Spreadsheet does not contain any sheets', 400)
+  }
+
+  let firstNonEmptyCsv = ''
+
+  for (const sheetName of workbook.SheetNames) {
+    const sheet = workbook.Sheets[sheetName]
+    const rows = utils.sheet_to_json<(string | number | boolean | null)[]>(sheet, {
+      header: 1,
+      raw: false,
+      defval: '',
+      blankrows: false,
+    })
+      .map((row) => row.map((cell) => String(cell ?? '').trim()))
+      .filter((row) => row.some((cell) => cell.length > 0))
+
+    if (rows.length === 0) continue
+
+    const csv = rowsToCsv(rows)
+    if (!firstNonEmptyCsv) {
+      firstNonEmptyCsv = csv
+    }
+
+    try {
+      parseMemberImportCsv(csv)
+      return csv
+    } catch {
+      continue
+    }
+  }
+
+  if (firstNonEmptyCsv) {
+    return firstNonEmptyCsv
+  }
+
+  serviceError('Spreadsheet is empty', 400)
+}
+
+function decodeXmlEntities(value: string) {
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, '\'')
+    .replace(/&apos;/g, '\'')
+    .replace(/&amp;/g, '&')
+}
+
+function extractOdtCellText(input: string) {
+  const withSpacing = input
+    .replace(/<text:line-break\s*\/>/g, '\n')
+    .replace(/<text:tab\s*\/>/g, '\t')
+    .replace(/<text:s(?:\s+[^>]*?text:c="(\d+)")?[^>]*\/>/g, (_match, count) => ' '.repeat(Number(count ?? 1)))
+
+  const paragraphs = Array.from(withSpacing.matchAll(/<text:p\b[^>]*>([\s\S]*?)<\/text:p>/g))
+    .map((match) => decodeXmlEntities(match[1].replace(/<[^>]+>/g, '').trim()))
+    .filter((value) => value.length > 0)
+
+  if (paragraphs.length > 0) return paragraphs.join(' ')
+
+  const plainText = decodeXmlEntities(withSpacing.replace(/<[^>]+>/g, '').trim())
+  return plainText
+}
+
+function extractOdtCsv(bytes: Uint8Array) {
+  const archive = tryReadArchive(bytes, 'ODT file is invalid or corrupted')
+
+  const contentXml = archive['content.xml']
+    ?? archive['/content.xml']
+    ?? Object.entries(archive).find(([fileName]) => fileName.endsWith('content.xml'))?.[1]
+
+  if (!contentXml) {
+    serviceError('ODT file is missing content.xml', 400)
+  }
+
+  const xml = strFromU8(contentXml)
+  const rows: string[][] = []
+
+  for (const rowMatch of xml.matchAll(/<table:table-row\b([^>]*)>([\s\S]*?)<\/table:table-row>/g)) {
+    const row: string[] = []
+    const rowRepeatMatch = rowMatch[1].match(/table:number-rows-repeated="(\d+)"/)
+    const rowRepeats = Math.max(1, Number.parseInt(rowRepeatMatch?.[1] ?? '1', 10) || 1)
+
+    for (const cellMatch of rowMatch[2].matchAll(/<table:table-cell\b([^>]*?)(?:>([\s\S]*?)<\/table:table-cell>|\s*\/>)/g)) {
+      const repeatMatch = cellMatch[1].match(/table:number-columns-repeated="(\d+)"/)
+      const repeats = Math.max(1, Number.parseInt(repeatMatch?.[1] ?? '1', 10) || 1)
+      const cellText = extractOdtCellText(cellMatch[2] ?? '')
+
+      for (let index = 0; index < repeats; index += 1) {
+        row.push(cellText)
+      }
+    }
+
+    if (row.some((cell) => cell.trim().length > 0)) {
+      const normalizedRow = row.map((cell) => cell.trim())
+      for (let index = 0; index < rowRepeats; index += 1) {
+        rows.push([...normalizedRow])
+      }
+    }
+  }
+
+  if (rows.length === 0) {
+    serviceError('ODT file does not contain any importable table rows', 400)
+  }
+
+  return rowsToCsv(rows)
+}
+
 function findHeaderIndex(headers: string[], candidates: readonly string[]) {
   return headers.findIndex((header) => candidates.includes(header))
 }
@@ -272,8 +464,61 @@ export function parseMemberImportCsv(input: string): {
   return { totalRows, normalizedRows, issues }
 }
 
-export async function importMembersFromCsv(input: string): Promise<MemberImportResult> {
-  const { totalRows, normalizedRows, issues } = parseMemberImportCsv(input)
+export function normalizeMemberImportSource(input: {
+  fileName: string
+  contentType?: string | null
+  bytes: Uint8Array
+}): {
+  totalRows: number
+  normalizedRows: MemberImportRow[]
+  issues: MemberImportIssue[]
+  normalizedCsv: string
+} {
+  const extension = getSourceExtension(input.fileName)
+  const normalizedContentType = input.contentType?.trim() ?? ''
+  const allowedContentTypes = ACCEPTED_MEMBER_IMPORT_CONTENT_TYPES_BY_EXTENSION[extension]
+
+  if (!allowedContentTypes) {
+    serviceError('Unsupported import file type. Upload CSV, XLSX, or ODT.', 400)
+  }
+  if (normalizedContentType && !allowedContentTypes.has(normalizedContentType)) {
+    serviceError('Import file extension and MIME type do not match.', 400)
+  }
+
+  const sourceBytes = input.bytes.slice()
+  let extractedCsv = ''
+
+  if (extension === 'csv') {
+    extractedCsv = new TextDecoder('utf-8').decode(sourceBytes).trim()
+  } else if (extension === 'xlsx') {
+    assertSourceArchiveMatchesExtension('xlsx', sourceBytes)
+    extractedCsv = extractSpreadsheetCsv(sourceBytes)
+  } else if (extension === 'odt') {
+    assertSourceArchiveMatchesExtension('odt', sourceBytes)
+    extractedCsv = extractOdtCsv(sourceBytes)
+  } else {
+    serviceError('Unsupported import file type. Upload CSV, XLSX, or ODT.', 400)
+  }
+
+  if (!extractedCsv) {
+    serviceError('Import file is empty', 400)
+  }
+
+  const parsed = parseMemberImportCsv(extractedCsv)
+  return {
+    ...parsed,
+    normalizedCsv: buildCanonicalMemberImportCsv(parsed.normalizedRows),
+  }
+}
+
+async function importMembersFromNormalizedRows(input: {
+  totalRows: number
+  normalizedRows: MemberImportRow[]
+  issues: MemberImportIssue[]
+}): Promise<MemberImportResult> {
+  const { totalRows, normalizedRows } = input
+  const issues = [...input.issues]
+  const auditedRows: MemberImportRow[] = []
   const admin = createSupabaseServerAdminClient()
   const profiles = admin.from('profiles') as unknown as ProfilesImportTableClient
   const concurrencyLimit = 10
@@ -288,17 +533,18 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
       return {
         created: 0,
         updated: 0,
+        normalizedRow: null,
         issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'read_existing_failed' as const },
       }
     }
 
     if (existing) {
+      const resolvedEmail = row.email ?? createInternalAuthEmail(row.memberNumber)
       const updatePayload: TablesUpdate<'profiles'> = {
         full_name: row.fullName,
+        email: resolvedEmail,
+        phone: row.phone,
       }
-
-      if (row.email !== null) updatePayload.email = row.email
-      if (row.phone !== null) updatePayload.phone = row.phone
 
       const { error: updateError } = await profiles
         .update(updatePayload)
@@ -310,14 +556,24 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
         return {
           created: 0,
           updated: 0,
+          normalizedRow: null,
           issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'update_existing_failed' as const },
         }
       }
 
-      return { created: 0, updated: 1, issue: null }
+      return {
+        created: 0,
+        updated: 1,
+        normalizedRow: {
+          ...row,
+          email: resolvedEmail,
+        },
+        issue: null,
+      }
     }
 
     const authEmail = createInternalAuthEmail(row.memberNumber)
+    const contactEmail = row.email ?? authEmail
     const temporaryPassword = `Temp-${crypto.randomUUID()}-Aa1`
     const { data: authData, error: createAuthError } = await admin.auth.admin.createUser({
       email: authEmail,
@@ -329,6 +585,7 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
       return {
         created: 0,
         updated: 0,
+        normalizedRow: null,
         issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'create_auth_failed' as const },
       }
     }
@@ -338,7 +595,7 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
         member_number: row.memberNumber,
         full_name: row.fullName,
         auth_email: authEmail,
-        email: row.email,
+        email: contactEmail,
         phone: row.phone,
         role: 'member',
         is_active: false,
@@ -354,11 +611,20 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
       return {
         created: 0,
         updated: 0,
+        normalizedRow: null,
         issue: { rowNumber: row.rowNumber, memberNumber: row.memberNumber, code: 'persist_import_failed' as const },
       }
     }
 
-    return { created: 1, updated: 0, issue: null }
+    return {
+      created: 1,
+      updated: 0,
+      normalizedRow: {
+        ...row,
+        email: contactEmail,
+      },
+      issue: null,
+    }
   }
 
   let createdCount = 0
@@ -371,6 +637,9 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
     for (const result of results) {
       createdCount += result.created
       updatedCount += result.updated
+      if (result.normalizedRow) {
+        auditedRows.push(result.normalizedRow)
+      }
       if (result.issue) {
         pushImportIssue(issues, result.issue)
       }
@@ -382,9 +651,23 @@ export async function importMembersFromCsv(input: string): Promise<MemberImportR
     createdCount,
     updatedCount,
     skippedCount: issues.length,
-    normalizedRows: [],
+    normalizedRows: auditedRows,
     issues,
   }
+}
+
+export async function importMembersFromCsv(input: string): Promise<MemberImportResult> {
+  const parsed = parseMemberImportCsv(input)
+  return importMembersFromNormalizedRows(parsed)
+}
+
+export async function importMembersFromSource(input: {
+  fileName: string
+  contentType?: string | null
+  bytes: Uint8Array
+}): Promise<MemberImportResult> {
+  const normalized = normalizeMemberImportSource(input)
+  return importMembersFromNormalizedRows(normalized)
 }
 
 export async function listPaginatedUsers(input: {

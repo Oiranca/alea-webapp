@@ -2,10 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/server/auth'
 import { toServiceErrorResponse } from '@/lib/server/http-error'
 import { enforceMutationSecurity, enforceRateLimit, RATE_LIMIT_POLICIES } from '@/lib/server/security'
-import { importMembersFromCsv } from '@/lib/server/users-service'
+import { importMembersFromSource } from '@/lib/server/users-service'
 
 const MAX_IMPORT_FILE_SIZE_BYTES = 5 * 1024 * 1024
-const ACCEPTED_EXTENSIONS = new Set(['csv'])
+const ACCEPTED_EXTENSIONS = new Set(['csv', 'xlsx', 'odt'])
+const ACCEPTED_CONTENT_TYPES_BY_EXTENSION: Record<string, Set<string>> = {
+  csv: new Set(['text/csv', 'application/csv', 'application/vnd.ms-excel']),
+  xlsx: new Set(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']),
+  odt: new Set(['application/vnd.oasis.opendocument.text']),
+}
 
 function getFileExtension(fileName: string) {
   const parts = fileName.toLowerCase().split('.')
@@ -16,7 +21,7 @@ function isAcceptedUpload(fileName: string, contentType: string) {
   const extension = getFileExtension(fileName)
   if (!ACCEPTED_EXTENSIONS.has(extension)) return false
   if (!contentType) return true
-  return contentType === 'text/csv' || contentType === 'application/csv' || contentType === 'application/vnd.ms-excel'
+  return ACCEPTED_CONTENT_TYPES_BY_EXTENSION[extension]?.has(contentType) ?? false
 }
 
 export async function POST(request: NextRequest) {
@@ -36,12 +41,12 @@ export async function POST(request: NextRequest) {
     if (
       !file
       || typeof file === 'string'
-      || typeof file.text !== 'function'
+      || typeof file.arrayBuffer !== 'function'
       || typeof file.name !== 'string'
       || typeof file.size !== 'number'
     ) {
       return admin.applyCookies(
-        NextResponse.json({ message: 'CSV file is required', statusCode: 400 }, { status: 400 })
+        NextResponse.json({ message: 'Import source file is required', statusCode: 400 }, { status: 400 })
       )
     }
 
@@ -53,19 +58,23 @@ export async function POST(request: NextRequest) {
 
     if (!isAcceptedUpload(file.name, file.type)) {
       return admin.applyCookies(
-        NextResponse.json({ message: 'Unsupported import file type. Upload a CSV export.', statusCode: 400 }, { status: 400 })
+        NextResponse.json({ message: 'Unsupported import file type. Upload CSV, XLSX, or ODT.', statusCode: 400 }, { status: 400 })
       )
     }
 
-    const contents = (await file.text()).trim()
+    const bytes = new Uint8Array(await file.arrayBuffer())
 
-    if (!contents) {
+    if (bytes.byteLength === 0) {
       return admin.applyCookies(
         NextResponse.json({ message: 'Import file is empty', statusCode: 400 }, { status: 400 })
       )
     }
 
-    return admin.applyCookies(NextResponse.json(await importMembersFromCsv(contents)))
+    return admin.applyCookies(NextResponse.json(await importMembersFromSource({
+      fileName: file.name,
+      contentType: file.type,
+      bytes,
+    })))
   } catch (error) {
     return admin.applyCookies(toServiceErrorResponse(error))
   }

@@ -1,0 +1,2 @@
+ALTER TABLE public.profiles
+  ALTER COLUMN is_active SET DEFAULT false;
