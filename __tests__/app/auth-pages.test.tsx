@@ -55,4 +55,24 @@ describe('auth page guards', () => {
 
     expect(redirectMock).toHaveBeenCalledWith('/es/login')
   })
+
+  it('root page redirects valid sessions directly to rooms', async () => {
+    getSessionFromServerCookiesMock.mockResolvedValueOnce({ id: 'session-1', role: 'member' })
+    getCurrentUserMock.mockResolvedValueOnce({ id: 'user-1' })
+
+    const { default: RootPage } = await import('@/app/page')
+    await RootPage()
+
+    expect(redirectMock).toHaveBeenCalledWith('/es/rooms')
+  })
+
+  it('root page redirects stale sessions to login', async () => {
+    getSessionFromServerCookiesMock.mockResolvedValueOnce({ id: 'session-1', role: 'member' })
+    getCurrentUserMock.mockRejectedValueOnce(new Error('stale'))
+
+    const { default: RootPage } = await import('@/app/page')
+    await RootPage()
+
+    expect(redirectMock).toHaveBeenCalledWith('/es/login')
+  })
 })
