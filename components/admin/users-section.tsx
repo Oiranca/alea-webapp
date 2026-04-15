@@ -18,7 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser } from '@/lib/hooks/use-admin'
+import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser, useAdminGenerateActivationLink } from '@/lib/hooks/use-admin'
 import { ImportMembersSection } from './import-members-section'
 import type { User } from '@/lib/types'
 
@@ -75,6 +75,7 @@ export function UsersSection() {
   const updateMutation = useAdminUpdateUser()
   const deleteMutation = useAdminDeleteUser()
   const patchMutation = useAdminPatchUser()
+  const activationLinkMutation = useAdminGenerateActivationLink()
 
   useEffect(() => {
     if (!activationFeedback) return
@@ -149,11 +150,10 @@ export function UsersSection() {
     setActivationFeedback(null)
 
     try {
-      const result = await patchMutation.mutateAsync({
+      const result = await activationLinkMutation.mutateAsync({
         id: user.id,
-        action: 'generate_activation_link',
         locale,
-      }) as { activationLink: string; expiresAt: string }
+      })
 
       try {
         await navigator.clipboard.writeText(result.activationLink)
@@ -318,12 +318,12 @@ export function UsersSection() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8 border-sky-500/40 text-sky-400 hover:bg-sky-900/20 hover:text-sky-300"
-                            disabled={patchMutation.isPending}
+                            disabled={activationLinkMutation.isPending}
                             onClick={() => handleCopyActivationLink(user)}
                             aria-label={t('copyActivationLink')}
                             title={t('copyActivationLink')}
                           >
-                            {patchMutation.isPending && patchMutation.variables?.id === user.id && patchMutation.variables?.action === 'generate_activation_link'
+                            {activationLinkMutation.isPending && activationLinkMutation.variables?.id === user.id
                               ? <DiceLoader size="sm" hideRole />
                               : <Link2 className="h-3.5 w-3.5" aria-hidden="true" />}
                           </Button>

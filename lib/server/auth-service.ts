@@ -309,6 +309,7 @@ export async function activateAccount(input: { token: unknown; password: unknown
     email_confirm: true,
   })
   if (updateAuthError) {
+    await activationTokens.update({ used_at: null }).eq('id', activationToken.id)
     serviceError('Failed to activate account', 500)
   }
 
@@ -324,6 +325,7 @@ export async function activateAccount(input: { token: unknown; password: unknown
     .maybeSingle()
 
   if (updatedProfileError || !updatedProfile) {
+    await activationTokens.update({ used_at: null }).eq('id', activationToken.id)
     serviceError('Failed to activate account', 500)
   }
 

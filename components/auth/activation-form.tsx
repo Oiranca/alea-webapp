@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
 import { activationSchema, getPasswordRequirementChecks, type ActivationFormData } from '@/lib/validations/auth'
 import { apiClient } from '@/lib/api/client'
+import { endpoints } from '@/lib/api/endpoints'
 
 function PasswordStrengthIndicator({ password }: { password: string }) {
   const t = useTranslations('auth.passwordRequirements')
@@ -59,7 +60,7 @@ export function ActivationForm({ locale, token }: ActivationFormProps) {
     setServerError(null)
 
     try {
-      await apiClient.post('/auth/activate', {
+      await apiClient.post(endpoints.auth.activate, {
         token,
         password: data.password,
       })

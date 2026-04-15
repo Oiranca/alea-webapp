@@ -17,7 +17,7 @@ vi.mock('@/lib/server/security', async (importOriginal) => {
     enforceMutationSecurity: enforceMutationSecurityMock,
     enforceRateLimit: enforceRateLimitMock,
     RATE_LIMIT_POLICIES: {
-      authRegister: { bucket: 'auth-register', limit: 5, windowMs: 60_000 },
+      authActivate: { bucket: 'auth-activate', limit: 5, windowMs: 60_000 },
     },
   }
 })

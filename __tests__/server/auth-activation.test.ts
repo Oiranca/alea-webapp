@@ -311,4 +311,20 @@ describe('auth activation helpers', () => {
     expect(profilesById.get('member-1')?.psw_changed).toBeTruthy()
     expect(activationTokensByProfileId.get('member-1')?.used_at).toBeTruthy()
   })
+
+  it('rolls token usage back when auth password update fails', async () => {
+    seedActivationToken()
+    updateUserByIdMock.mockResolvedValueOnce({ error: { message: 'boom' } })
+    const { activateAccount } = await loadService()
+
+    await expect(activateAccount({
+      token: 'plain-token',
+      password: 'Password1234!@#',
+    })).rejects.toMatchObject({
+      message: 'Failed to activate account',
+      statusCode: 500,
+    })
+
+    expect(activationTokensByProfileId.get('member-1')?.used_at).toBeNull()
+  })
 })
