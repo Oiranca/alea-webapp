@@ -1,8 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Search, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { Search, Pencil, Trash2, AlertCircle, FileUp } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,8 +18,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser, useAdminImportUsers } from '@/lib/hooks/use-admin'
-import type { MemberImportResult, User } from '@/lib/types'
+import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser } from '@/lib/hooks/use-admin'
+import { ImportMembersSection } from './import-members-section'
+import type { User } from '@/lib/types'
 
 type UserRole = 'member' | 'admin'
 
@@ -55,9 +56,9 @@ export function UsersSection() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
-  const importInputRef = useRef<HTMLInputElement | null>(null)
 
   const [editUser, setEditUser] = useState<User | null>(null)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [editState, setEditState] = useState<EditState>({
     memberNumber: '',
     fullName: '',
@@ -67,15 +68,11 @@ export function UsersSection() {
     isActive: true,
   })
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
-  const [importFile, setImportFile] = useState<File | null>(null)
-  const [importResult, setImportResult] = useState<MemberImportResult | null>(null)
-  const [importDragActive, setImportDragActive] = useState(false)
 
   const { data, isLoading, isError } = useAdminUsers(page, 10, search)
   const updateMutation = useAdminUpdateUser()
   const deleteMutation = useAdminDeleteUser()
   const patchMutation = useAdminPatchUser()
-  const importMutation = useAdminImportUsers()
 
   function openEdit(user: User) {
     setEditState({
@@ -136,116 +133,24 @@ export function UsersSection() {
     })
   }
 
-  function handleImportSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!importFile) return
-
-    importMutation.mutate(importFile, {
-      onSuccess: (result) => {
-        setImportResult(result)
-        setImportFile(null)
-        if (importInputRef.current) {
-          importInputRef.current.value = ''
-        }
-      },
-    })
-  }
-
-  function setNextImportFile(nextFile: File | null) {
-    setImportFile(nextFile)
-  }
-
-  function openImportPicker() {
-    importInputRef.current?.click()
-  }
-
   return (
     <div className="space-y-4">
-      <form onSubmit={handleImportSubmit} className="rounded-lg border border-border bg-secondary/10 p-4 space-y-3">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-background-secondary/40 p-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-1">
-          <h2 className="font-medium text-foreground">{t('importMembersTitle')}</h2>
-          <p className="text-sm text-muted-foreground">{t('importMembersDescription')}</p>
+          <h2 className="font-cinzel text-xl text-foreground">{t('userManagement')}</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">{t('userManagementDescription')}</p>
         </div>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <div className="flex-1 space-y-1.5">
-            <Label htmlFor="member-import-file">{t('importMembersFile')}</Label>
-            <button
-              type="button"
-              className={`flex w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed px-4 py-6 text-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${importDragActive ? 'border-primary bg-primary/10' : 'border-border bg-background/40 hover:bg-background/70'}`}
-              aria-describedby="member-import-help member-import-selected-file"
-              onClick={openImportPicker}
-              onDragOver={(event) => {
-                event.preventDefault()
-                setImportDragActive(true)
-              }}
-              onDragLeave={() => setImportDragActive(false)}
-              onDrop={(event) => {
-                event.preventDefault()
-                setImportDragActive(false)
-                setNextImportFile(event.dataTransfer.files?.[0] ?? null)
-              }}
-            >
-              <span className="text-sm font-medium text-foreground">{t('importMembersDropLabel')}</span>
-              <span id="member-import-help" className="text-xs text-muted-foreground">{t('importMembersHelp')}</span>
-              {importFile && (
-                <span id="member-import-selected-file" className="text-xs text-foreground">{t('importMembersSelectedFile', { name: importFile.name })}</span>
-              )}
-            </button>
-            <Input
-              ref={importInputRef}
-              id="member-import-file"
-              type="file"
-              className="sr-only"
-              accept=".csv,.xlsx,.odt,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.oasis.opendocument.text"
-              onChange={(event) => {
-                setNextImportFile(event.target.files?.[0] ?? null)
-              }}
-            />
-          </div>
-          <Button type="submit" disabled={!importFile || importMutation.isPending}>
-            {importMutation.isPending ? <DiceLoader size="sm" className="mr-2" hideRole /> : null}
-            {t('importMembersAction')}
-          </Button>
-        </div>
-        {importMutation.isError && (
-          <p className="text-sm text-destructive-foreground">{t('importMembersFailed')}</p>
-        )}
-        {importResult && (
-          <div className="rounded-md border border-border bg-background/60 p-3 text-sm space-y-2">
-            <div className="flex flex-wrap gap-4 text-muted-foreground">
-              <span>{t('importMembersCreated', { count: importResult.createdCount })}</span>
-              <span>{t('importMembersUpdated', { count: importResult.updatedCount })}</span>
-              <span>{t('importMembersSkipped', { count: importResult.skippedCount })}</span>
-            </div>
-            {importResult.issues.length > 0 && (
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">{t('importMembersIssues')}</p>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {importResult.issues.slice(0, 10).map((issue) => (
-                    <li key={`${issue.rowNumber}-${issue.memberNumber ?? 'missing'}`}>
-                      {t('importMembersIssueRow', { row: issue.rowNumber })}: {t(`importMembersIssueCodes.${issue.code}`)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {importResult.normalizedRows.length > 0 && (
-              <div className="space-y-1">
-                <p className="font-medium text-foreground">{t('importMembersNormalizedPreview')}</p>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {importResult.normalizedRows.slice(0, 5).map((row) => (
-                    <li key={`${row.rowNumber}-${row.memberNumber}`}>
-                      {row.memberNumber} · {row.fullName}{row.email ? ` · ${row.email}` : ''}{row.phone ? ` · ${row.phone}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
-      </form>
+        <Button
+          type="button"
+          onClick={() => setIsImportModalOpen(true)}
+          className="w-full sm:w-auto"
+        >
+          <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('openImportMembers')}
+        </Button>
+      </div>
 
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
@@ -256,7 +161,7 @@ export function UsersSection() {
             aria-label={t('searchUsers')}
           />
         </div>
-        <Button type="submit" variant="outline" size="sm">
+        <Button type="submit" variant="outline" size="sm" className="w-full sm:w-auto">
           {tc('search')}
         </Button>
       </form>
@@ -412,6 +317,18 @@ export function UsersSection() {
       )}
 
       {/* Edit Dialog */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-0 sm:max-h-[85vh]">
+          <DialogHeader className="border-b border-border px-6 pb-4 pt-6">
+            <DialogTitle>{t('importMembersTitle')}</DialogTitle>
+            <DialogDescription>{t('importMembersDescription')}</DialogDescription>
+          </DialogHeader>
+          <div className="px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
+            <ImportMembersSection inDialog />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null) }}>
         <DialogContent>
           <DialogHeader>

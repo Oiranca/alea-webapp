@@ -5,6 +5,7 @@ const rangeMock = vi.fn()
 const orderMock = vi.fn()
 const orMock = vi.fn()
 const deleteUserMock = vi.fn()
+const updateAuthUserByIdMock = vi.fn()
 let capturedOrFilter: string | undefined
 const eqMock = vi.fn()
 const listQuery = {
@@ -46,6 +47,7 @@ function resetQueryMocks() {
   orderMock.mockReset()
   orMock.mockReset()
   deleteUserMock.mockReset()
+  updateAuthUserByIdMock.mockReset()
   eqMock.mockReset()
 
   capturedOrFilter = undefined
@@ -71,6 +73,7 @@ function resetQueryMocks() {
   orderMock.mockReturnValue({ range: rangeMock })
   maybeSingleMock.mockResolvedValue({ data: profileRows[0], error: null })
   deleteUserMock.mockResolvedValue({ error: null })
+  updateAuthUserByIdMock.mockResolvedValue({ error: null })
 }
 
 vi.mock('@/lib/supabase/server', () => ({
@@ -110,11 +113,12 @@ vi.mock('@/lib/supabase/server', () => ({
         })),
       })),
     })),
-    auth: {
-      admin: {
-        deleteUser: deleteUserMock,
+      auth: {
+        admin: {
+          deleteUser: deleteUserMock,
+          updateUserById: updateAuthUserByIdMock,
+        },
       },
-    },
   })),
 }))
 
@@ -273,7 +277,7 @@ describe('updateUser', () => {
           })),
         })),
       })),
-      auth: { admin: { deleteUser: deleteUserMock } },
+      auth: { admin: { deleteUser: deleteUserMock, updateUserById: updateAuthUserByIdMock } },
     } as never)
   }
 
@@ -366,7 +370,7 @@ describe('updateUser', () => {
           }
         }),
       })),
-      auth: { admin: { deleteUser: deleteUserMock } },
+      auth: { admin: { deleteUser: deleteUserMock, updateUserById: updateAuthUserByIdMock } },
     } as never)
     const { updateUser } = await loadUsersModules()
 
@@ -396,7 +400,7 @@ describe('updateUser', () => {
           }
         }),
       })),
-      auth: { admin: { deleteUser: deleteUserMock } },
+      auth: { admin: { deleteUser: deleteUserMock, updateUserById: updateAuthUserByIdMock } },
     } as never)
     const { updateUser } = await loadUsersModules()
 
@@ -430,7 +434,7 @@ describe('updateUser', () => {
           }
         }),
       })),
-      auth: { admin: { deleteUser: deleteUserMock } },
+      auth: { admin: { deleteUser: deleteUserMock, updateUserById: updateAuthUserByIdMock } },
     } as never)
     const { updateUser } = await loadUsersModules()
 
@@ -440,6 +444,7 @@ describe('updateUser', () => {
       member_number: '100123',
       auth_email: '100123@members.alea.internal',
     })
+    expect(updateAuthUserByIdMock).toHaveBeenCalledWith('1', { email: '100123@members.alea.internal' })
   })
 
   it('rejects blank fullName updates', async () => {

@@ -39,6 +39,16 @@ type AdminProfilesTableClient = {
 }
 
 type ProfileImportLookupResult = Promise<{ data: PublicProfileRow | null; error: unknown }>
+type MemberImportOptionalColumnPresence = {
+  email: boolean
+  phone: boolean
+}
+type ParsedMemberImportResult = {
+  totalRows: number
+  normalizedRows: MemberImportRow[]
+  issues: MemberImportIssue[]
+  optionalColumnPresence: MemberImportOptionalColumnPresence
+}
 type ProfilesImportTableClient = {
   select: (columns: string) => {
     eq: (column: 'member_number' | 'id', value: string) => {
@@ -52,6 +62,9 @@ type ProfilesImportTableClient = {
       }
     }
   }
+}
+type AuthAdminClient = {
+  updateUserById: (id: string, attributes: { email: string }) => Promise<{ error: unknown | null }>
 }
 
 const PROFILE_COLUMNS = 'id, member_number, full_name, auth_email, email, phone, role, is_active, active_from, psw_changed, no_show_count, blocked_until, created_at, updated_at'
@@ -68,6 +81,7 @@ const PROFILE_IMPORT_HEADERS_NORMALIZED = {
   phone: PROFILE_IMPORT_HEADERS.phone.map(normalizeHeader),
 } as const
 const CANONICAL_IMPORT_HEADERS = ['USUARIOS', 'ID', 'email', 'phone'] as const
+const MEMBER_IMPORT_PREVIEW_LIMIT = 50
 const ACCEPTED_MEMBER_IMPORT_CONTENT_TYPES_BY_EXTENSION: Record<string, Set<string>> = {
   csv: new Set(['text/csv', 'application/csv', 'application/vnd.ms-excel']),
   xlsx: new Set(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']),
@@ -402,11 +416,7 @@ function pushImportIssue(issues: MemberImportIssue[], issue: MemberImportIssue) 
   issues.push(issue)
 }
 
-export function parseMemberImportCsv(input: string): {
-  totalRows: number
-  normalizedRows: MemberImportRow[]
-  issues: MemberImportIssue[]
-} {
+export function parseMemberImportCsv(input: string): ParsedMemberImportResult {
   const rows = parseCsv(input)
   if (rows.length === 0) {
     serviceError('Empty CSV file', 400)
@@ -461,7 +471,15 @@ export function parseMemberImportCsv(input: string): {
     })
   })
 
-  return { totalRows, normalizedRows, issues }
+  return {
+    totalRows,
+    normalizedRows,
+    issues,
+    optionalColumnPresence: {
+      email: emailIndex !== -1,
+      phone: phoneIndex !== -1,
+    },
+  }
 }
 
 export function normalizeMemberImportSource(input: {
@@ -473,6 +491,7 @@ export function normalizeMemberImportSource(input: {
   normalizedRows: MemberImportRow[]
   issues: MemberImportIssue[]
   normalizedCsv: string
+  optionalColumnPresence: MemberImportOptionalColumnPresence
 } {
   const extension = getSourceExtension(input.fileName)
   const normalizedContentType = input.contentType?.trim() ?? ''
@@ -515,12 +534,14 @@ async function importMembersFromNormalizedRows(input: {
   totalRows: number
   normalizedRows: MemberImportRow[]
   issues: MemberImportIssue[]
+  optionalColumnPresence: MemberImportOptionalColumnPresence
 }): Promise<MemberImportResult> {
   const { totalRows, normalizedRows } = input
   const issues = [...input.issues]
   const auditedRows: MemberImportRow[] = []
   const admin = createSupabaseServerAdminClient()
   const profiles = admin.from('profiles') as unknown as ProfilesImportTableClient
+  const authAdmin = admin.auth.admin as AuthAdminClient
   const concurrencyLimit = 10
 
   async function processImportRow(row: MemberImportRow) {
@@ -542,8 +563,19 @@ async function importMembersFromNormalizedRows(input: {
       const resolvedEmail = row.email ?? createInternalAuthEmail(row.memberNumber)
       const updatePayload: TablesUpdate<'profiles'> = {
         full_name: row.fullName,
-        email: resolvedEmail,
-        phone: row.phone,
+      }
+      const normalizedRow: MemberImportRow = { ...row }
+
+      if (input.optionalColumnPresence.email) {
+        updatePayload.email = resolvedEmail
+        normalizedRow.email = resolvedEmail
+      } else {
+        normalizedRow.email = existing.email ?? null
+      }
+      if (input.optionalColumnPresence.phone) {
+        updatePayload.phone = row.phone
+      } else {
+        normalizedRow.phone = existing.phone ?? null
       }
 
       const { error: updateError } = await profiles
@@ -564,10 +596,7 @@ async function importMembersFromNormalizedRows(input: {
       return {
         created: 0,
         updated: 1,
-        normalizedRow: {
-          ...row,
-          email: resolvedEmail,
-        },
+        normalizedRow,
         issue: null,
       }
     }
@@ -651,7 +680,7 @@ async function importMembersFromNormalizedRows(input: {
     createdCount,
     updatedCount,
     skippedCount: issues.length,
-    normalizedRows: auditedRows,
+    normalizedRows: auditedRows.slice(0, MEMBER_IMPORT_PREVIEW_LIMIT),
     issues,
   }
 }
@@ -745,6 +774,7 @@ export async function updateUser(
 
   const supabase = createSupabaseServerAdminClient()
   const profiles = supabase.from('profiles') as unknown as ProfilesTableClient
+  const authAdmin = supabase.auth.admin as AuthAdminClient
   const { data: existingProfile, error: existingProfileError } = await profiles
     .select(PROFILE_COLUMNS)
     .eq('id', id)
@@ -766,6 +796,8 @@ export async function updateUser(
     updates.auth_email = createInternalAuthEmail(nextMemberNumber)
   }
 
+  const previousMemberNumber = existingProfile.member_number
+  const previousAuthEmail = existingProfile.auth_email
   const { data, error } = await profiles
     .update(updates)
     .eq('id', id)
@@ -777,6 +809,20 @@ export async function updateUser(
   }
   if (!data) {
     serviceError('User not found', 404)
+  }
+
+  if (typeof updates.auth_email === 'string') {
+    const { error: authUpdateError } = await authAdmin.updateUserById(id, { email: updates.auth_email })
+
+    if (authUpdateError) {
+      await profiles
+        .update({
+          member_number: previousMemberNumber,
+          auth_email: previousAuthEmail,
+        })
+        .eq('id', id)
+      serviceError('Failed to keep auth credentials aligned', 500)
+    }
   }
 
   return toPublicUser(data as PublicProfileRow)

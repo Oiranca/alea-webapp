@@ -401,6 +401,32 @@ describe('importMembersFromCsv', () => {
     ])
   })
 
+  it('preserves existing optional contact data when optional headers are omitted', async () => {
+    const { importMembersFromCsv } = await loadService()
+
+    const result = await importMembersFromCsv(
+      'USUARIOS,ID\nExisting Again,100001\n'
+    )
+
+    expect(result.updatedCount).toBe(1)
+    expect(profileState.get('100001')).toEqual(
+      expect.objectContaining({
+        full_name: 'Existing Again',
+        email: 'existing@alea.club',
+        phone: '600111222',
+      })
+    )
+    expect(result.normalizedRows).toEqual([
+      {
+        rowNumber: 2,
+        memberNumber: '100001',
+        fullName: 'Existing Again',
+        email: 'existing@alea.club',
+        phone: '600111222',
+      },
+    ])
+  })
+
   it('rejects mismatched file extension and MIME type during source normalization', async () => {
     const { normalizeMemberImportSource } = await loadService()
 
@@ -593,5 +619,21 @@ describe('importMembersFromSource', () => {
         email: 'sheet@alea.club',
       })
     )
+  })
+
+  it('limits normalizedRows to a bounded preview size', async () => {
+    const { importMembersFromCsv } = await loadService()
+
+    const rows = ['USUARIOS,ID,email']
+    for (let index = 0; index < 60; index += 1) {
+      rows.push(`Member ${index},${200000 + index},member${index}@alea.club`)
+    }
+
+    const result = await importMembersFromCsv(rows.join('\n'))
+
+    expect(result.createdCount).toBe(60)
+    expect(result.normalizedRows).toHaveLength(50)
+    expect(result.normalizedRows[0]?.memberNumber).toBe('200000')
+    expect(result.normalizedRows.at(-1)?.memberNumber).toBe('200049')
   })
 })
