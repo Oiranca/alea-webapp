@@ -1,176 +1,137 @@
-# Migration Execution Plan — Alea Webapp
+# Alea Plan
 
-**Last updated:** 2026-04-05
-**Branch:** feat/next-api-m5-flatten-repo
-**Epic:** #3 — Next.js API migration (remove NestJS + monorepo)
-**Platform:** Supabase (sole DB/auth provider, single unified environment)
-
----
-
-## Current State
-
-| Milestone | Issue | Status | Branch / PR |
-|-----------|-------|--------|-------------|
-| M1 — Contract freeze & baseline | #4 | Done | PR #13 (merged) |
-| M2 — Server layer extraction | #5 | Done | PR #15 (merged) |
-| Platform — Supabase env split | #11 | Done | PR #16 + #20 (merged) |
-| QA — CI quality gates | #12 | Done | — |
-| UI — shadcn + auth foundation | #18 | Done | PR #19 (merged) |
-| M3 — Auth cutover (Supabase SSR) | #6 | Done | PR #22 (merged) |
-| M4 — API parity | #7 | Done | PR #23 (merged) |
-| SEC — Security hardening | #10 | Done | PR #24 (merged) |
-| M5 — Flatten repo / remove NestJS | #8 | In Progress | Branch `feat/next-api-m5-flatten-repo` |
-| M6 — Cleanup + release readiness | #9 | Pending | — |
+**Last updated:** 2026-04-15
+**Source of truth:** current repository state + active Linear issues for project `Alea`
+**Ignore:** canceled legacy tickets and removed migration-era planning docs
 
 ---
 
-## Priority Order
+## Current Product State
 
-### P0 — Completed
-
-#### Issue #4 — [M1] Contract freeze & baseline
-**Branch:** `feat/next-api-m1-baseline`
-**PR:** #13 (merged)
-
-#### Issue #5 — [M2] Server layer extraction
-**Branch:** `feat/next-api-m2-server-layer`
-**PR:** #15 (merged)
-
-#### Issue #11 — [PLATFORM] Supabase environment split
-**Branch:** `feat/supabase-env-separation`
-**PR:** #16 + #20 (merged)
-
-**Deliverables completed:**
-- `@supabase/supabase-js` + `@supabase/ssr` installed
-- `supabase/` directory with `config.toml` for local dev
-- Initial schema migration: `profiles`, `rooms`, `tables`, `reservations`
-- RLS policies with `WITH CHECK` on all UPDATE policies
-- Env variable structure: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`, `SUPABASE_SECRET_DEFAULT_KEY`
-- `.env.example` (single unified environment)
-- Typed Supabase clients: SSR (`createServerClient`) + admin (`createClient` stateless)
-- Signup trigger (`handle_new_user`) for auto-creating profiles
-- GiST exclusion constraint for reservation overlap prevention
-
-#### Issue #18 — [UI] shadcn/ui initialization + Supabase auth UI foundation
-**Branch:** `feat/shadcn-supabase-ui`
-**PR:** #19 (merged)
-
-**Deliverables completed:**
-- `components.json` — formal shadcn/ui initialization
-- shadcn components: form, accordion, alert-dialog, avatar, checkbox, dropdown-menu, popover, scroll-area, tooltip, sonner
-- Shared `PasswordInput` component with variant support and full test coverage
-- Auth forms (login + register) rewritten with shadcn Form + zod + i18n
-- `FormMessage` with automatic i18n key translation via `useTranslations`
-- Auth callback route scaffold with 3-layer open redirect defense
-- Full i18n coverage (en.json + es.json) with proper Spanish accents
-- All review comments addressed (security, a11y, code quality)
+- Stack: single Next.js 15 app with Supabase, `next-intl`, Vitest, and shadcn/ui.
+- Member import is done and merged (`KIM-377`).
+- Admin already has: users, reservations, rooms, events, and member import.
+- Current auth model still exposes public registration routes and copy that no longer match the new business rules.
+- Current reservation model supports normal table bookings, QR check-in, no-show tracking, and event blocking, but does not yet support equipment bookings or `Saved Game`.
 
 ---
 
-### P0 — Completed
+## Open Issues In Scope
 
-#### Issue #12 — [QA] Testing stack and CI quality gates
-**Branch:** `feat/qa-next-api-gates`
-**Status:** Done. CI expanded with auth coverage thresholds, Supabase local validation, Semgrep, and production dependency audit. Next.js upgraded to `15.5.14` to clear the current production advisories identified by `pnpm audit`.
+### Immediate operational gate
 
-**Current usage note:** core developer checks also run locally through the `pre-push` hook installed with `pnpm hooks:install`, but the extra gates from the previous GitHub Actions pipeline are not replaced by the hook.
+- `KIM-365` — Manual QA checklist for merged / nearly merged work
 
-**Deliverables completed:**
-- CI job matrix for `lint`, `typecheck`, `test`, `build`
-- Auth-critical coverage thresholds enforced in Vitest
-- Supabase CLI validation in CI with local stack boot + migration reset + lint
-- Semgrep static analysis gate
-- Production dependency audit gate
-- `next` / `eslint-config-next` upgraded to `15.5.14`
+### Urgent
 
----
+- `KIM-378` — Replace open sign-up with pre-registered member activation and make login the default entry route
 
-### P1 — After Supabase + QA + UI ready
+### High priority
 
-#### 3. Issue #6 — [M3] Auth cutover to Supabase SSR
-**Branch:** `feat/next-api-m3-auth-cutover`
-**Depends on:** #11, #18, #12
-**Note:** All prerequisite blockers are resolved. M3 is now ready to start.
-**Deliverables:**
-- Replace mock auth (`mock-db` users) with Supabase Auth
-- Implement `createServerClient` / `createBrowserClient` SSR pattern
-- HTTP-only cookies via `@supabase/ssr` cookie helpers
-- CSRF protection for unsafe methods (POST/PUT/PATCH/DELETE)
-- Auth parity: `login`, `register`, `me`, `logout`
-- Frontend no longer contacts NestJS for auth
-- Cookie flags: `HttpOnly`, `Secure` in prod, `SameSite=Lax`
+- `KIM-379` — New password policy + admin-mediated password recovery links
+- `KIM-380` — Equipment inventory model + room defaults + single QR for double tables
+- `KIM-381` — Reservation flow with optional equipment + overlap validation + one-week booking window
+- `KIM-382` — QR activation window up to 60 minutes after reservation start
+- `KIM-383` — Multi-day / multi-room event management with reservation overrides
+
+### Medium priority
+
+- `KIM-317` — 24h reservation times with 30-minute intervals
+- `KIM-384` — `Saved Game` reservation type
+- `KIM-385` — Public FAQ route
 
 ---
 
-### P2 — After M3
+## Execution Order
 
-#### 4. Issue #10 — [SEC] Security hardening
-**Branch:** `feat/next-api-security-hardening`
-**PR:** #24 (merged)
-**Status:** Done. Merged via PR #24 on 2026-04-04.
-**Deliverables completed:**
-- Env-specific cookie policy finalized
-- Rate limiting on auth + sensitive endpoints
-- Origin/fetch-metadata checks
-- Security runbook documented
+### Phase 0 — Stabilize current merged work
 
-#### 5. Issue #7 — [M4] API parity across all domains
-**Branch:** `feat/next-api-m4-api-parity`
-**Depends on:** #6
-**Status:** Done. Merged via PR #23 on 2026-04-04.
-**Deliverables:**
-- Replace `mock-db` with Supabase queries in all services
-- `users`, `rooms`, `tables`, `reservations` services rewritten against Supabase
-- RLS enforced at DB level, service layer validates above it
-- Consistent auth/authz guards across all handlers
+1. Close `KIM-365` manual QA.
+2. Merge PR `#106` if QA passes.
+3. Refresh docs only after the product state is confirmed in `develop`.
+
+Reason:
+- No new feature plan should sit on top of unverified behavior in reservations/events/check-in.
+
+### Phase 1 — Lock the new access model
+
+1. `KIM-378`
+2. `KIM-379`
+
+Reason:
+- `KIM-377` created the imported member base.
+- `KIM-378` turns that imported base into the real access model.
+- `KIM-379` completes the same auth transition with the recovery flow and final password rules.
+- These two issues redefine the entry flow of the application and should land before user-facing FAQ or deeper booking changes.
+
+### Phase 2 — Prepare inventory for equipment-aware bookings
+
+1. `KIM-380`
+
+Reason:
+- Equipment cannot be reserved cleanly until it exists as a first-class admin-managed resource.
+- The single-QR rule for double tables also affects later saved-game and booking behavior.
+
+### Phase 3 — Upgrade the normal reservation flow
+
+1. `KIM-381`
+2. `KIM-382`
+3. `KIM-317`
+
+Reason:
+- `KIM-381` depends on the equipment inventory from `KIM-380`.
+- `KIM-382` is independent enough to run near this phase, but it still belongs to the reservation rules layer.
+- `KIM-317` is also a reservation-flow change and should be validated against the new overlap/equipment behavior rather than implemented against an old flow and then reworked.
+
+### Phase 4 — Expand event authority
+
+1. `KIM-383`
+
+Reason:
+- This extends a feature that already exists in the repo.
+- It must be aligned with normal reservation behavior from Phase 3.
+- It should land before `Saved Game`, because `KIM-384` explicitly depends on event blocking semantics.
+
+### Phase 5 — Add the new saved-game product
+
+1. `KIM-384`
+
+Reason:
+- `Saved Game` depends on stable inventory, booking, QR attendance, and event-blocking rules.
+- It is the most cross-cutting open feature and should not be started before the lower-level rules are settled.
+
+### Phase 6 — Publish user-facing documentation
+
+1. `KIM-385`
+
+Reason:
+- The FAQ must describe the final implemented rules, not transitional behavior.
+- It should land after auth, equipment, booking, event, and saved-game flows are stable.
 
 ---
 
-### P3 — After M4
+## Dependency Summary
 
-#### 6. Issue #8 — [M5] Flatten repo / remove NestJS + monorepo
-**Branch:** `feat/next-api-m5-flatten-repo`
-**Depends on:** #7
-**Deliverables:**
-- Promote `apps/web` to repo root
-- Delete `apps/api` (NestJS) and all NestJS dependencies
-- Delete `pnpm-workspace.yaml`, `packages/` workspace
-- Move `packages/types` into `apps/web/lib/types`
-- Single root `package.json` with `dev`, `build`, `test`, `lint`, `typecheck`
-- No monorepo artifacts remain
+- `KIM-377` -> `KIM-378`
+- `KIM-378` -> `KIM-379`
+- `KIM-380` -> `KIM-381`
+- `KIM-381` + `KIM-382` + `KIM-383` -> `KIM-384`
+- `KIM-378` + `KIM-379` + `KIM-381` + `KIM-382` + `KIM-384` -> `KIM-385`
+- `KIM-317` is technically independent, but should be validated after the reservation flow changes in `KIM-381`
 
 ---
 
-### P4 — Final
+## Recommended Next Build Step
 
-#### 7. Issue #9 — [M6] Cleanup, docs, release readiness
-**Branch:** `feat/next-api-m6-cleanup`
-**Depends on:** #8
-**Deliverables:**
-- Update `docs/ARCHITECTURE.md` for final single-app structure
-- Remove dead code and obsolete env vars
-- Rollback procedure documented
-- CI passes in final state
+If the goal is implementation work after docs cleanup, the next branch should target:
 
----
-
-## Dependency Graph
-
-```
-#4 (M1) ✅ → #5 (M2) ✅ → #11 (Platform) ✅ → #6 (M3) ✅ ─┐
-                                                             ├→ #7 (M4 API parity) ✅
-#12 (QA gates) ✅ ───────────────────────────────────────────┤
-#18 (shadcn + auth UI) ✅ ───────────────────────────────────┘
-                                                             └→ #10 (Security hardening) ✅
-                                                             └→ #8 (M5 Flatten repo) ← CURRENT
-```
+1. `KIM-365` if we are finishing operational closure
+2. otherwise `KIM-378` as the first real feature branch in the new plan
 
 ---
 
 ## Notes
 
-- Each issue gets its own branch targeting `develop`.
-- PRs stay open as review artifacts; user merges manually.
-- Never merge to `main` directly — only via release branch.
-- Mock-db is replaced incrementally: auth in M3, domains in M4.
-- `packages/types` stays in place until M5 flattening.
+- Do not reintroduce milestone plans from the old migration era.
+- Do not use canceled child tickets as active roadmap items when a newer parent issue supersedes them.
+- Keep `docs/HANDOFF.md` short and aligned with this file.

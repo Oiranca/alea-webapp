@@ -9,32 +9,33 @@
 ## Last updated: 2026-04-15
 
 ## Current branch
-`feat/KIM-377-member-import-admin`
+`develop`
 
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
 | #106 | `fix/event-create-update-cancel-reservations` | Ready to merge (3× /team-review passed) |
-| #108 | `feat/KIM-377-member-import-admin` | In progress — source import normalization flow implemented (`csv`/`xlsx`/`odt` → normalized dataset → DB create/update `profile`); final review/merge pending |
 
 ## Merged this session
 | PR | Branch | Fix |
 |---|---|---|
 | ~~#105~~ | `fix/availability-polling` | Availability polling 30s/60s + tests ✅ |
+| ~~#108~~ | `feat/KIM-377-member-import-admin` | Member import flow merged to `develop`: `csv` / `xlsx` / `odt` normalization, fallback internal email, nullable phone, responsive admin UX, import moved from dedicated tab into Users modal ✅ |
 
 ---
 
 ## Status Summary
 
-PR #106 is clean — 3 `/team-review` passes, 415/415 tests, full CI green.
-Merge into `develop` when ready.
+`KIM-377` is merged into `develop`.
 
-PR #108 now includes source upload support for `csv` / `xlsx` / `odt`, normalization into the canonical dataset, audit preview rows, and DB create/update for `profile`.
-Current behavior:
-- Missing source `email` now falls back to the generated internal address (`<member_number>@members.alea.internal`)
-- Missing source `phone` is allowed and persists as `null`
-- Import validation now rejects malformed/renamed `xlsx` and `odt` archives with `400` responses
-- Final QA + review cycles still pending before merge/close
+Current meaningful next steps:
+- Finish `KIM-365` manual QA.
+- Merge PR `#106` if QA passes.
+- Start `KIM-378` next if implementation resumes after QA.
+
+Plan source:
+- Use only `docs/PLAN.md`.
+- Ignore removed legacy planning docs and canceled legacy tickets.
 
 ---
 
@@ -75,22 +76,23 @@ All checks require a live browser session. See KIM-365 for full list.
 
 ---
 
-## Post-MVP backlog
+## Active roadmap reference
 
-- **KIM-364** — After cancellation cutoff, show explanation instead of hiding cancel button
-- **KIM-365** — Manual QA checklist (In Progress — items above)
-- **KIM-361** — Spanish translations missing ñ
-- **KIM-317** — 24h time range for reservations
-- **KIM-329 epic** — No-show tracking (KIM-329, 333, 334, 335, 336)
-- **KIM-332 epic** — Events / room blocking (KIM-332, 343–347)
-- **KIM-348 epic** — Equipment management (KIM-348–356)
-- **Hardening** — DB overlap constraint alignment with inclusive end_time (UI/DB semantic gap noted in PR #103 review)
-- **Hardening** — UTC-anchored reservation timestamps (noted in PR #104 security review)
+- `KIM-365` — Manual QA checklist
+- `KIM-378` — Pre-registered activation flow
+- `KIM-379` — Admin-mediated password recovery
+- `KIM-380` — Equipment inventory model
+- `KIM-381` — Equipment-aware reservation flow
+- `KIM-382` — 60-minute QR activation window
+- `KIM-383` — Expanded event scheduling and blocking
+- `KIM-317` — 24h booking times with 30-minute intervals
+- `KIM-384` — Saved Game reservation type
+- `KIM-385` — FAQ route
 
 ---
 
 ## Execution plan reference
-→ `docs/ALEA-EXECUTION-PLAN.md`
+→ `docs/PLAN.md`
 
 ## Linear project
 → https://linear.app/kimox-studio/project/alea-a9a47d8b2bb2/issues
