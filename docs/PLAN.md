@@ -11,16 +11,12 @@
 - Stack: single Next.js 15 app with Supabase, `next-intl`, Vitest, and shadcn/ui.
 - Member import is done and merged (`KIM-377`).
 - Admin already has: users, reservations, rooms, events, and member import.
-- Current auth model still exposes public registration routes and copy that no longer match the new business rules.
+- `KIM-378` is the current active implementation track: replace public sign-up with admin-issued activation links and make login the default entry route.
 - Current reservation model supports normal table bookings, QR check-in, no-show tracking, and event blocking, but does not yet support equipment bookings or `Saved Game`.
 
 ---
 
 ## Open Issues In Scope
-
-### Immediate operational gate
-
-- `KIM-365` — Manual QA checklist for merged / nearly merged work
 
 ### Urgent
 
@@ -46,9 +42,9 @@
 
 ### Phase 0 — Stabilize current merged work
 
-1. Close `KIM-365` manual QA.
-2. Merge PR `#106` if QA passes.
-3. Refresh docs only after the product state is confirmed in `develop`.
+1. Close the pending manual QA checklist for merged work.
+2. Refresh docs only after the product state is confirmed in `develop`.
+3. `KIM-378` can continue in parallel, but merge sequencing should still respect the operational QA gate.
 
 Reason:
 - No new feature plan should sit on top of unverified behavior in reservations/events/check-in.
@@ -125,8 +121,8 @@ Reason:
 
 If the goal is implementation work after docs cleanup, the next branch should target:
 
-1. `KIM-365` if we are finishing operational closure
-2. otherwise `KIM-378` as the first real feature branch in the new plan
+1. the pending manual QA checklist if we are finishing operational closure
+2. otherwise `KIM-379` once `KIM-378` is merged
 
 ---
 

@@ -410,6 +410,7 @@ export function enforceRateLimit(
 
 export const RATE_LIMIT_POLICIES = {
   authLogin: { bucket: 'auth-login', limit: 5, windowMs: 60_000 },
+  authActivate: { bucket: 'auth-activate', limit: 5, windowMs: 60_000 },
   authRegister: { bucket: 'auth-register', limit: 3, windowMs: 60_000 },
   authLogout: { bucket: 'auth-logout', limit: 10, windowMs: 60_000 },
   adminMutation: { bucket: 'admin-mutation', limit: 30, windowMs: 60_000 },

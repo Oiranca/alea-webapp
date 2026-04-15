@@ -1,14 +1,31 @@
 import { z } from 'zod'
 
 const PASSWORD_SPECIAL_CHARS = /[!@#$%^&*()\-_=+\[\]{};':"\\|,.<>\/?]/
+const PASSWORD_LETTER_REGEX = /[a-zA-Z]/
+const PASSWORD_NUMBER_REGEX = /[0-9]/
+const PASSWORD_MIN_LENGTH = 12
+
+export type PasswordRequirementKey = 'minLength' | 'letter' | 'number' | 'specialChar'
 
 export const passwordSchema = z
   .string()
-  .min(12, 'errors.passwordMinLength')
+  .min(PASSWORD_MIN_LENGTH, 'errors.passwordMinLength')
   .max(1024, 'errors.passwordMaxLength')
-  .regex(/[a-zA-Z]/, 'errors.passwordAlphanumeric')
-  .regex(/[0-9]/, 'errors.passwordAlphanumeric')
+  .regex(PASSWORD_LETTER_REGEX, 'errors.passwordAlphanumeric')
+  .regex(PASSWORD_NUMBER_REGEX, 'errors.passwordAlphanumeric')
   .regex(PASSWORD_SPECIAL_CHARS, 'errors.passwordSpecialChar')
+
+export function getPasswordRequirementChecks(password: string): Array<{
+  key: PasswordRequirementKey
+  passed: boolean
+}> {
+  return [
+    { key: 'minLength', passed: password.length >= PASSWORD_MIN_LENGTH },
+    { key: 'letter', passed: PASSWORD_LETTER_REGEX.test(password) },
+    { key: 'number', passed: PASSWORD_NUMBER_REGEX.test(password) },
+    { key: 'specialChar', passed: PASSWORD_SPECIAL_CHARS.test(password) },
+  ]
+}
 
 export const loginSchema = z.object({
   identifier: z.string().min(1, 'errors.memberNumberRequired'),
@@ -41,6 +58,22 @@ export const registerServerSchema = z.object({
   password: passwordSchema,
 })
 
+export const activationSchema = z
+  .object({
+    password: passwordSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'errors.passwordsDoNotMatch',
+    path: ['confirmPassword'],
+  })
+
+export const activationServerSchema = z.object({
+  token: z.string().min(1),
+  password: passwordSchema,
+})
+
 export type LoginFormData = z.infer<typeof loginSchema>
 export type RegisterFormData = z.infer<typeof registerSchema>
 export type RegisterServerData = z.infer<typeof registerServerSchema>
+export type ActivationFormData = z.infer<typeof activationSchema>

@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
-import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { Sword, Shield } from 'lucide-react'
 import { LoginForm } from '@/components/auth/login-form'
+import { getSessionFromServerCookies } from '@/lib/server/auth'
+import { getCurrentUser } from '@/lib/server/auth-service'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('auth')
@@ -15,6 +17,16 @@ interface LoginPageProps {
 
 export default async function LoginPage({ params }: LoginPageProps) {
   const { locale } = await params
+  const session = await getSessionFromServerCookies()
+  if (session) {
+    try {
+      await getCurrentUser(session)
+    } catch {
+      // Ignore stale/invalid session state and render the login form.
+    }
+
+    redirect(`/${locale}/rooms`)
+  }
   const t = await getTranslations('auth')
 
   return (
@@ -30,12 +42,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
         </div>
         <div className="rpg-card p-8">
           <LoginForm locale={locale} />
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">{t('noAccount')}</span>{' '}
-            <Link href={`/${locale}/register`} className="text-primary hover:text-primary/80 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded">
-              {t('register')}
-            </Link>
-          </div>
+          <p className="mt-6 text-center text-sm text-muted-foreground">{t('loginHelp')}</p>
         </div>
       </div>
     </div>

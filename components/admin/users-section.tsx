@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { useTranslations } from 'next-intl'
-import { Search, Pencil, Trash2, AlertCircle, FileUp } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useLocale, useTranslations } from 'next-intl'
+import { Search, Pencil, Trash2, AlertCircle, FileUp, Link2 } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser } from '@/lib/hooks/use-admin'
+import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser, useAdminGenerateActivationLink } from '@/lib/hooks/use-admin'
 import { ImportMembersSection } from './import-members-section'
 import type { User } from '@/lib/types'
 
@@ -52,10 +52,12 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
 export function UsersSection() {
   const t = useTranslations('admin')
   const tc = useTranslations('common')
+  const locale = useLocale()
 
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
+  const [activationFeedback, setActivationFeedback] = useState<{ userId: string; kind: 'success' | 'error'; message: string } | null>(null)
 
   const [editUser, setEditUser] = useState<User | null>(null)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
@@ -73,6 +75,17 @@ export function UsersSection() {
   const updateMutation = useAdminUpdateUser()
   const deleteMutation = useAdminDeleteUser()
   const patchMutation = useAdminPatchUser()
+  const activationLinkMutation = useAdminGenerateActivationLink()
+
+  useEffect(() => {
+    if (!activationFeedback) return
+
+    const timeoutId = window.setTimeout(() => {
+      setActivationFeedback(null)
+    }, 5000)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [activationFeedback])
 
   function openEdit(user: User) {
     setEditState({
@@ -131,6 +144,43 @@ export function UsersSection() {
     deleteMutation.mutate(deleteUser.id, {
       onSuccess: () => setDeleteUser(null),
     })
+  }
+
+  async function handleCopyActivationLink(user: User) {
+    setActivationFeedback(null)
+
+    try {
+      const result = await activationLinkMutation.mutateAsync({
+        id: user.id,
+        locale,
+      })
+
+      try {
+        await navigator.clipboard.writeText(result.activationLink)
+        setActivationFeedback({
+          userId: user.id,
+          kind: 'success',
+          message: t('activationLinkCopied'),
+        })
+      } catch {
+        window.prompt(t('activationLinkPrompt'), result.activationLink)
+        setActivationFeedback({
+          userId: user.id,
+          kind: 'success',
+          message: t('activationLinkReady'),
+        })
+      }
+    } catch (error) {
+      setActivationFeedback({
+        userId: user.id,
+        kind: 'error',
+        message: error instanceof Error
+          ? error.message
+          : typeof error === 'object' && error !== null && 'message' in error && typeof error.message === 'string'
+            ? error.message
+            : t('activationLinkFailed'),
+      })
+    }
   }
 
   return (
@@ -193,10 +243,10 @@ export function UsersSection() {
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('name')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('email')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('role')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('status')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('noShowCount')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('blockedUntil')}</th>
-                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('joinDate')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('statusShort')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('noShowsShort')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('blockedShort')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('createdShort')}</th>
                   <th className="px-4 py-3 text-right font-medium text-muted-foreground">{tc('actions')}</th>
                 </tr>
               </thead>
@@ -263,6 +313,21 @@ export function UsersSection() {
                             {t('unblockUser')}
                           </Button>
                         )}
+                        {!user.isActive && user.role === 'member' && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8 border-sky-500/40 text-sky-400 hover:bg-sky-900/20 hover:text-sky-300"
+                            disabled={activationLinkMutation.isPending}
+                            onClick={() => handleCopyActivationLink(user)}
+                            aria-label={t('copyActivationLink')}
+                            title={t('copyActivationLink')}
+                          >
+                            {activationLinkMutation.isPending && activationLinkMutation.variables?.id === user.id
+                              ? <DiceLoader size="sm" hideRole />
+                              : <Link2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -281,6 +346,11 @@ export function UsersSection() {
                           <Trash2 className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </div>
+                      {activationFeedback?.userId === user.id && (
+                        <p className={`mt-2 text-right text-xs ${activationFeedback.kind === 'success' ? 'text-emerald-400' : 'text-destructive'}`}>
+                          {activationFeedback.message}
+                        </p>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -242,7 +242,7 @@ describe('auth API routes', () => {
     expect(blocked.headers.get('retry-after')).toBeTruthy()
   })
 
-  it('registers a new user and returns 201 with the public user payload and session cookie', async () => {
+  it('returns 410 when self-registration is disabled', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
 
     const response = await POST(
@@ -252,23 +252,16 @@ describe('auth API routes', () => {
       }),
     )
 
-    expect(response.status).toBe(201)
+    expect(response.status).toBe(410)
     await expect(response.json()).resolves.toMatchObject({
-      id: 'new-user-id',
-      memberNumber: '100099',
-      role: 'member',
+      message: 'Self-registration is disabled. Ask an administrator for an activation link.',
+      statusCode: 410,
     })
-    expect(response.cookies.get('sb-access-token')?.value).toBe('test-session')
-    // The route must pass the session-scoped supabase client as the second argument
-    // so register() can call signInWithPassword and establish a session.
-    const [, sessionClientArg] = registerMock.mock.calls[0]
-    expect(typeof sessionClientArg?.auth?.signInWithPassword).toBe('function')
+    expect(registerMock).not.toHaveBeenCalled()
   })
 
-  it('returns 409 when the member number is already registered', async () => {
+  it('still returns 410 even if a member number is supplied', async () => {
     const { POST } = await import('@/app/api/auth/register/route')
-    const { ServiceError } = await import('@/lib/server/service-error')
-    registerMock.mockRejectedValueOnce(new ServiceError('This member number is already registered', 409))
 
     const response = await POST(
       createJsonRequest('/api/auth/register', {
@@ -277,8 +270,9 @@ describe('auth API routes', () => {
       }),
     )
 
-    expect(response.status).toBe(409)
-    await expect(response.json()).resolves.toMatchObject({ statusCode: 409 })
+    expect(response.status).toBe(410)
+    await expect(response.json()).resolves.toMatchObject({ statusCode: 410 })
+    expect(registerMock).not.toHaveBeenCalled()
   })
 
   it('reads the session from /me after login and signs out through the auth routes', async () => {

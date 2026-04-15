@@ -9,29 +9,29 @@
 ## Last updated: 2026-04-15
 
 ## Current branch
-`develop`
+`feat/KIM-378-member-activation`
 
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
-| #106 | `fix/event-create-update-cancel-reservations` | Ready to merge (3× /team-review passed) |
+| #109 | `feat/KIM-378-member-activation` | Open — local QA/review passed; merge still gated by pending manual QA checklist |
 
 ## Merged this session
 | PR | Branch | Fix |
 |---|---|---|
-| ~~#105~~ | `fix/availability-polling` | Availability polling 30s/60s + tests ✅ |
-| ~~#108~~ | `feat/KIM-377-member-import-admin` | Member import flow merged to `develop`: `csv` / `xlsx` / `odt` normalization, fallback internal email, nullable phone, responsive admin UX, import moved from dedicated tab into Users modal ✅ |
+| None | — | — |
 
 ---
 
 ## Status Summary
 
-`KIM-377` is merged into `develop`.
+`develop` already includes `KIM-377` and merged PR `#106`.
+Current branch implements `KIM-378`: public sign-up removed, login becomes primary entry route, admin copy-link activation flow added, and first-time activation now sets password + activates the imported member profile.
 
 Current meaningful next steps:
-- Finish `KIM-365` manual QA.
-- Merge PR `#106` if QA passes.
-- Start `KIM-378` next if implementation resumes after QA.
+- Finish the pending manual QA checklist still listed below.
+- Merge PR `#109` once the manual QA gate is considered closed.
+- Start `KIM-379` next after `KIM-378` lands.
 
 Plan source:
 - Use only `docs/PLAN.md`.
@@ -39,9 +39,9 @@ Plan source:
 
 ---
 
-## Manual QA pending (KIM-365)
+## Manual QA pending
 
-All checks require a live browser session. See KIM-365 for full list.
+All checks require a live browser session.
 
 ### PR #82 — Cancellation cutoff UI
 - [ ] Cancel a reservation < 60 min away → cutoff error shown in red
@@ -78,7 +78,6 @@ All checks require a live browser session. See KIM-365 for full list.
 
 ## Active roadmap reference
 
-- `KIM-365` — Manual QA checklist
 - `KIM-378` — Pre-registered activation flow
 - `KIM-379` — Admin-mediated password recovery
 - `KIM-380` — Equipment inventory model
@@ -105,7 +104,8 @@ All checks require a live browser session. See KIM-365 for full list.
 1. Read `docs/HANDOFF.md` (this file) — mandatory before any action
 2. `gh pr list --state open` — check PRs awaiting merge
 3. `git branch --show-current` — confirm you are on the branch referenced above
-4. Follow MVP Critical Path above in order
+4. If operational closure is still pending, use the Manual QA checklist above
+5. Otherwise continue `KIM-378` on this branch, or start `KIM-379` if `KIM-378` is already merged
 
 **At session end:**
 1. Update this file with current state
