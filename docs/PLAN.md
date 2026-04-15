@@ -21,6 +21,7 @@
 ### High priority
 
 - `KIM-379` — New password policy + admin-mediated password recovery links
+- `KIM-386` — Investigate and fix database time drift versus system time
 - `KIM-380` — Equipment inventory model + room defaults + single QR for double tables
 - `KIM-381` — Reservation flow with optional equipment + overlap validation + one-week booking window
 - `KIM-382` — QR activation window up to 60 minutes after reservation start
@@ -57,9 +58,12 @@ Reason:
 
 ### Phase 2 — Prepare inventory for equipment-aware bookings
 
-1. `KIM-380`
+1. `KIM-386`
+2. `KIM-380`
 
 Reason:
+- Time correctness is cross-cutting infrastructure for reservations, check-in, auth timestamps, and event rules.
+- The database/system time mismatch should be corrected before continuing deeper time-sensitive booking work.
 - Equipment cannot be reserved cleanly until it exists as a first-class admin-managed resource.
 - The single-QR rule for double tables also affects later saved-game and booking behavior.
 
@@ -104,6 +108,7 @@ Reason:
 ## Dependency Summary
 
 - `KIM-378` -> `KIM-379`
+- `KIM-386` -> `KIM-381` + `KIM-382` + `KIM-383`
 - `KIM-380` -> `KIM-381`
 - `KIM-381` + `KIM-382` + `KIM-383` -> `KIM-384`
 - `KIM-378` + `KIM-379` + `KIM-381` + `KIM-382` + `KIM-384` -> `KIM-385`
@@ -116,7 +121,7 @@ Reason:
 If the goal is implementation work after docs cleanup, the next branch should target:
 
 1. the pending manual QA checklist if we are finishing operational closure
-2. otherwise `KIM-379` from a fresh branch off `develop`
+2. otherwise `KIM-386` from a fresh branch off `develop`
 
 ---
 
