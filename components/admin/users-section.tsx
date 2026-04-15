@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { Search, Pencil, Trash2, AlertCircle } from 'lucide-react'
+import { Search, Pencil, Trash2, AlertCircle, FileUp } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -19,12 +19,16 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { useAdminUsers, useAdminUpdateUser, useAdminDeleteUser, useAdminPatchUser } from '@/lib/hooks/use-admin'
+import { ImportMembersSection } from './import-members-section'
 import type { User } from '@/lib/types'
 
 type UserRole = 'member' | 'admin'
 
 interface EditState {
   memberNumber: string
+  fullName: string
+  email: string
+  phone: string
   role: UserRole
   isActive: boolean
 }
@@ -34,7 +38,7 @@ function StatusBadge({ isActive }: { isActive: boolean }) {
   if (!isActive) {
     return (
       <Badge className="border-orange-500/40 bg-orange-900/20 text-orange-400">
-        {t('suspended')}
+        {t('inactive')}
       </Badge>
     )
   }
@@ -54,7 +58,15 @@ export function UsersSection() {
   const [searchInput, setSearchInput] = useState('')
 
   const [editUser, setEditUser] = useState<User | null>(null)
-  const [editState, setEditState] = useState<EditState>({ memberNumber: '', role: 'member', isActive: true })
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [editState, setEditState] = useState<EditState>({
+    memberNumber: '',
+    fullName: '',
+    email: '',
+    phone: '',
+    role: 'member',
+    isActive: true,
+  })
   const [deleteUser, setDeleteUser] = useState<User | null>(null)
 
   const { data, isLoading, isError } = useAdminUsers(page, 10, search)
@@ -65,6 +77,9 @@ export function UsersSection() {
   function openEdit(user: User) {
     setEditState({
       memberNumber: user.memberNumber,
+      fullName: user.fullName ?? '',
+      email: user.email ?? '',
+      phone: user.phone ?? '',
       role: user.role,
       isActive: user.isActive,
     })
@@ -79,13 +94,33 @@ export function UsersSection() {
 
   function handleSaveEdit() {
     if (!editUser) return
+
+    const data: {
+      memberNumber: string
+      role: UserRole
+      is_active: boolean
+      fullName?: string
+      email?: string
+      phone?: string
+    } = {
+      memberNumber: editState.memberNumber,
+      role: editState.role,
+      is_active: editState.isActive,
+    }
+
+    if (editState.fullName.trim() !== (editUser.fullName ?? '').trim()) {
+      data.fullName = editState.fullName
+    }
+    if (editState.email.trim() !== (editUser.email ?? '').trim()) {
+      data.email = editState.email
+    }
+    if (editState.phone.trim() !== (editUser.phone ?? '').trim()) {
+      data.phone = editState.phone
+    }
+
     updateMutation.mutate({
       id: editUser.id,
-      data: {
-        memberNumber: editState.memberNumber,
-        role: editState.role,
-        is_active: editState.isActive,
-      },
+      data,
     }, {
       onSuccess: () => setEditUser(null),
     })
@@ -100,7 +135,22 @@ export function UsersSection() {
 
   return (
     <div className="space-y-4">
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <div className="flex flex-col gap-3 rounded-xl border border-border bg-background-secondary/40 p-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h2 className="font-cinzel text-xl text-foreground">{t('userManagement')}</h2>
+          <p className="max-w-2xl text-sm text-muted-foreground">{t('userManagementDescription')}</p>
+        </div>
+        <Button
+          type="button"
+          onClick={() => setIsImportModalOpen(true)}
+          className="w-full sm:w-auto"
+        >
+          <FileUp className="mr-2 h-4 w-4" aria-hidden="true" />
+          {t('openImportMembers')}
+        </Button>
+      </div>
+
+      <form onSubmit={handleSearch} className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" aria-hidden="true" />
           <Input
@@ -111,7 +161,7 @@ export function UsersSection() {
             aria-label={t('searchUsers')}
           />
         </div>
-        <Button type="submit" variant="outline" size="sm">
+        <Button type="submit" variant="outline" size="sm" className="w-full sm:w-auto">
           {tc('search')}
         </Button>
       </form>
@@ -140,6 +190,7 @@ export function UsersSection() {
               <thead>
                 <tr className="border-b border-border bg-secondary/20">
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('memberNumber')}</th>
+                  <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('name')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{tc('email')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('role')}</th>
                   <th className="px-4 py-3 text-left font-medium text-muted-foreground">{t('status')}</th>
@@ -153,6 +204,7 @@ export function UsersSection() {
                 {data.data.map((user) => (
                   <tr key={user.id} className="border-b border-border last:border-0 hover:bg-secondary/10 transition-colors">
                     <td className="px-4 py-3 font-mono text-xs">{user.memberNumber}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{user.fullName ?? '—'}</td>
                     <td className="px-4 py-3 text-muted-foreground">{user.email ?? '—'}</td>
                     <td className="px-4 py-3">
                       <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
@@ -265,6 +317,18 @@ export function UsersSection() {
       )}
 
       {/* Edit Dialog */}
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto p-0 sm:max-h-[85vh]">
+          <DialogHeader className="border-b border-border px-6 pb-4 pt-6">
+            <DialogTitle>{t('importMembersTitle')}</DialogTitle>
+            <DialogDescription>{t('importMembersDescription')}</DialogDescription>
+          </DialogHeader>
+          <div className="px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
+            <ImportMembersSection inDialog />
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={!!editUser} onOpenChange={(open) => { if (!open) setEditUser(null) }}>
         <DialogContent>
           <DialogHeader>
@@ -281,6 +345,34 @@ export function UsersSection() {
                 id="edit-member-number"
                 value={editState.memberNumber}
                 onChange={(e) => setEditState((s) => ({ ...s, memberNumber: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-full-name">{t('fullName')}</Label>
+              <Input
+                id="edit-full-name"
+                value={editState.fullName}
+                onChange={(e) => setEditState((s) => ({ ...s, fullName: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-email">{tc('email')}</Label>
+              <Input
+                id="edit-email"
+                type="email"
+                value={editState.email}
+                onChange={(e) => setEditState((s) => ({ ...s, email: e.target.value }))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-phone">{t('phone')}</Label>
+              <Input
+                id="edit-phone"
+                value={editState.phone}
+                onChange={(e) => setEditState((s) => ({ ...s, phone: e.target.value }))}
               />
             </div>
 
@@ -311,7 +403,7 @@ export function UsersSection() {
                   onChange={(e) => setEditState((s) => ({ ...s, isActive: e.target.checked }))}
                 />
                 <span className="text-sm text-muted-foreground">
-                  {editState.isActive ? t('active') : t('suspended')}
+                  {editState.isActive ? t('active') : t('inactive')}
                 </span>
               </div>
             </div>

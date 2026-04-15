@@ -23,6 +23,7 @@ const adminCreateUser = vi.fn()
 const adminDeleteUser = vi.fn()
 const adminUpdateProfileSelectMaybeSingle = vi.fn()
 const adminUpdateProfileEq = vi.fn()
+const adminUpdateProfile = vi.fn()
 
 function makeProfile(overrides?: Partial<ProfileRow>): ProfileRow {
   return {
@@ -81,9 +82,12 @@ vi.mock('@/lib/supabase/server', () => ({
           }),
         })),
       })),
-      update: vi.fn(() => ({
-        eq: adminUpdateProfileEq,
-      })),
+      update: vi.fn((updates: Record<string, unknown>) => {
+        adminUpdateProfile(updates)
+        return {
+          eq: adminUpdateProfileEq,
+        }
+      }),
     })),
   })),
 }))
@@ -108,6 +112,7 @@ describe('auth service', () => {
     sessionScopedProfileMaybeSingle.mockReset()
     adminCreateUser.mockResolvedValue({ data: { user: { id: 'new-user-id' } }, error: null })
     adminDeleteUser.mockResolvedValue({ error: null })
+    adminUpdateProfile.mockReset()
     adminUpdateProfileSelectMaybeSingle.mockResolvedValue({
       data: {
         id: 'new-user-id',
@@ -255,6 +260,20 @@ describe('auth service', () => {
       expect(signInWithPassword).toHaveBeenCalledWith({
         email: '100099@members.alea.internal',
         password: 'Password1234!@#',
+      })
+    })
+
+    it('does not overwrite contact email with the internal auth email during registration', async () => {
+      const { register } = await loadService()
+      const sessionClient = { auth: { signInWithPassword, signOut } }
+
+      await register({ memberNumber: '100099', password: 'Password1234!@#' }, sessionClient)
+
+      expect(adminUpdateProfile).toHaveBeenCalledWith({
+        member_number: '100099',
+        auth_email: '100099@members.alea.internal',
+        role: 'member',
+        is_active: true,
       })
     })
 

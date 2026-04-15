@@ -8,6 +8,7 @@ export const endpoints = {
   users: {
     list: '/users',
     byId: (id: string) => `/users/${id}`,
+    import: '/users/import',
   },
   rooms: {
     list: '/rooms',
