@@ -1,8 +1,21 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MyReservationsView } from '@/components/reservations/my-reservations-view'
+import { getCurrentClubDate } from '@/lib/club-time'
 import type { Reservation } from '@/lib/types'
+
+vi.mock('@/lib/club-time', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/club-time')>('@/lib/club-time')
+  const testTimeZone = 'Atlantic/Canary'
+
+  return {
+    ...actual,
+    CLUB_TIMEZONE: testTimeZone,
+    getCurrentClubDate: (now: Date = new Date()) => actual.getCurrentClubDate(now, testTimeZone),
+    zonedDateTimeToUtc: (date: string, time: string) => actual.zonedDateTimeToUtc(date, time, testTimeZone),
+  }
+})
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
@@ -31,12 +44,13 @@ vi.mock('@/lib/hooks/use-reservations', () => ({
 
 // Mock utility functions
 vi.mock('@/lib/utils', () => ({
-  formatDate: (date: string) => new Date(date).toLocaleDateString(),
+  formatDate: (date: string) => date ? new Date(date).toLocaleDateString() : '',
   formatTime: (time: string) => time,
   cn: (...classes: any[]) => classes.filter(Boolean).join(' '),
 }))
 
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
+const TEST_TIME_ZONE = 'Atlantic/Canary'
 
 // Helper to create reservations with different times
 function createReservation(overrides: Partial<Reservation> = {}): Reservation {
@@ -57,20 +71,19 @@ function createReservation(overrides: Partial<Reservation> = {}): Reservation {
 
 // Helper to create a reservation with a specific time offset from now
 function createReservationWithTimeOffset(minutesFromNow: number, overrides: Partial<Reservation> = {}): Reservation {
-  const now = new Date()
+  const now = new Date(Date.now())
   const startTime = new Date(now.getTime() + minutesFromNow * 60 * 1000)
-  const y = startTime.getFullYear()
-  const mo = String(startTime.getMonth() + 1).padStart(2, '0')
-  const d = String(startTime.getDate()).padStart(2, '0')
-  const date = `${y}-${mo}-${d}`
-  const hours = String(startTime.getHours()).padStart(2, '0')
-  const minutes = String(startTime.getMinutes()).padStart(2, '0')
-  const startTimeStr = `${hours}:${minutes}`
+  const date = getCurrentClubDate(startTime, TEST_TIME_ZONE)
+  const timeFormatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TEST_TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+  const startTimeStr = timeFormatter.format(startTime)
 
   const endTime = new Date(startTime.getTime() + 2 * 60 * 60 * 1000)
-  const endHours = String(endTime.getHours()).padStart(2, '0')
-  const endMinutes = String(endTime.getMinutes()).padStart(2, '0')
-  const endTimeStr = `${endHours}:${endMinutes}`
+  const endTimeStr = timeFormatter.format(endTime)
 
   return createReservation({
     date,
@@ -83,6 +96,11 @@ function createReservationWithTimeOffset(minutesFromNow: number, overrides: Part
 describe('MyReservationsView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.spyOn(Date, 'now').mockReturnValue(new Date('2026-04-15T16:00:00.000Z').getTime())
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   describe('Loading state', () => {

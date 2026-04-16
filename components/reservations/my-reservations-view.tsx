@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 import { CalendarDays, Clock, MapPin, Layers, AlertCircle } from 'lucide-react'
 import { DiceLoader } from '@/components/ui/dice-loader'
 import { useAuth } from '@/lib/auth/auth-context'
+import { zonedDateTimeToUtc } from '@/lib/club-time'
 import { useMyReservations, useCancelReservation } from '@/lib/hooks/use-reservations'
 import { formatDate, formatTime } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
@@ -18,8 +19,12 @@ import type { Reservation } from '@/lib/types'
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
 
 function isCutoffPassed(reservation: Reservation): boolean {
-  const startMs = new Date(`${reservation.date}T${reservation.startTime}`).getTime()
-  return Date.now() >= startMs - CANCELLATION_CUTOFF_MS
+  try {
+    const startMs = zonedDateTimeToUtc(reservation.date, reservation.startTime).getTime()
+    return Date.now() >= startMs - CANCELLATION_CUTOFF_MS
+  } catch {
+    return true
+  }
 }
 
 const statusBadgeVariant: Record<Reservation['status'], 'available' | 'reserved' | 'outline'> = {

@@ -58,6 +58,15 @@ const profilesMap = new Map<string, { member_number: string }>()
 const roomsMap = new Map<string, RoomRow>()
 const eventRoomBlocksState: EventRoomBlockRow[] = []
 
+function createDatabaseTimeRpc() {
+  return vi.fn(async (fn: string) => {
+    if (fn === 'get_database_time') {
+      return { data: new Date(Date.now()).toISOString(), error: null }
+    }
+    return { data: null, error: null }
+  })
+}
+
 function makeReservation(overrides?: Partial<ReservationRow>): ReservationRow {
   return {
     id: 'r1',
@@ -309,7 +318,7 @@ vi.mock('@/lib/supabase/server', () => ({
         }),
       }
     }),
-    rpc: vi.fn(),
+    rpc: createDatabaseTimeRpc(),
   })),
 }))
 
@@ -322,6 +331,7 @@ async function loadReservationModules() {
 describe('reservations service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.unstubAllEnvs()
     seedState()
   })
 
@@ -1568,7 +1578,7 @@ describe('reservations service', () => {
           // updateChain: .update().eq().eq().select().single() → PGRST116
           return { update: vi.fn(() => buildPGRST116UpdateChain()) }
         }),
-        rpc: vi.fn(),
+        rpc: createDatabaseTimeRpc(),
       } as unknown as ReturnType<typeof createSupabaseServerAdminClient>)
 
       const { activateReservationByTable } = await loadReservationModules()
@@ -1583,6 +1593,49 @@ describe('reservations service', () => {
     it('sequential double-call returns 409 CHECK_IN_ALREADY_ACTIVE on second call', async () => {
       // First call activates the reservation (pending → active).
       // Second call finds no pending row but finds an active row → 409 CHECK_IN_ALREADY_ACTIVE.
+      const { createSupabaseServerAdminClient } = await import('@/lib/supabase/server')
+      const adminMock = vi.mocked(createSupabaseServerAdminClient)
+      adminMock.mockImplementation(() => ({
+        from: vi.fn((table: string) => {
+          if (table === 'event_room_blocks') {
+            return {
+              select: vi.fn(() => buildSelectChain(eventRoomBlocksState)),
+            }
+          }
+
+          if (table !== 'reservations') {
+            throw new Error(`Unexpected admin table ${table}`)
+          }
+
+          return {
+            select: vi.fn(() => buildSelectChain(reservationsState)),
+            update: vi.fn((payload: Record<string, unknown>) => {
+              const filters: Array<[string, string]> = []
+              const chain = {
+                eq: vi.fn((column: string, value: string) => {
+                  filters.push([column, value])
+                  return chain
+                }),
+                select: vi.fn(() => ({
+                  single: vi.fn(async () => {
+                    const row = reservationsState.find((reservation) =>
+                      filters.every(([column, value]) => String((reservation as Record<string, unknown>)[column]) === value)
+                    )
+                    if (!row) {
+                      return { data: null, error: null }
+                    }
+                    Object.assign(row, payload)
+                    return { data: cloneReservation(row), error: null }
+                  }),
+                })),
+              }
+              return chain
+            }),
+          }
+        }),
+        rpc: createDatabaseTimeRpc(),
+      }) as unknown as ReturnType<typeof createSupabaseServerAdminClient>)
+
       const { activateReservationByTable } = await loadReservationModules()
 
       seedPendingReservation({ start_time: makeStartTime(10) })
@@ -1619,7 +1672,13 @@ describe('reservations service', () => {
       const { cancelExpiredPendingReservations, GRACE_PERIOD_MINUTES } = await import('@/lib/server/reservations-service')
       const result = await cancelExpiredPendingReservations()
 
-      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations', { grace_minutes: GRACE_PERIOD_MINUTES })
+      expect(mockRpc).toHaveBeenCalledWith('cancel_expired_pending_reservations', {
+        grace_minutes: GRACE_PERIOD_MINUTES,
+        club_timezone:
+          process.env.NEXT_PUBLIC_CLUB_TIMEZONE ??
+          process.env.CLUB_TIMEZONE ??
+          'Atlantic/Canary',
+      })
       expect(result).toBe(3)
     })
 
@@ -1661,7 +1720,12 @@ describe('reservations service', () => {
       const { markNoShowReservations } = await import('@/lib/server/reservations-service')
       const result = await markNoShowReservations()
 
-      expect(mockRpc).toHaveBeenCalledWith('mark_no_show_reservations')
+      expect(mockRpc).toHaveBeenCalledWith('mark_no_show_reservations', {
+        club_timezone:
+          process.env.NEXT_PUBLIC_CLUB_TIMEZONE ??
+          process.env.CLUB_TIMEZONE ??
+          'Atlantic/Canary',
+      })
       expect(result).toBe(2)
     })
 
