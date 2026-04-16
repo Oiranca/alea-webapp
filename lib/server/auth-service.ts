@@ -169,8 +169,8 @@ function createActivationToken() {
   return randomBytes(32).toString('hex')
 }
 
-function isActivationExpired(expiresAt: string) {
-  return new Date(expiresAt).getTime() <= Date.now()
+function isActivationExpired(expiresAt: string, currentTime: Date) {
+  return new Date(expiresAt).getTime() <= currentTime.getTime()
 }
 
 async function getDatabaseNowIso(admin: unknown) {
@@ -207,7 +207,8 @@ export async function getActivationLinkState(token: string): Promise<ActivationL
   if (activationToken.used_at) {
     return { status: 'used', memberNumber: null, fullName: null }
   }
-  if (isActivationExpired(activationToken.expires_at)) {
+  const databaseNow = await getDatabaseNow(admin)
+  if (isActivationExpired(activationToken.expires_at, databaseNow)) {
     return { status: 'expired', memberNumber: null, fullName: null }
   }
 
@@ -286,7 +287,8 @@ export async function getRecoveryLinkState(token: string): Promise<RecoveryLinkS
   if (recoveryToken.used_at) {
     return { status: 'used', memberNumber: null, fullName: null }
   }
-  if (isActivationExpired(recoveryToken.expires_at)) {
+  const databaseNow = await getDatabaseNow(admin)
+  if (isActivationExpired(recoveryToken.expires_at, databaseNow)) {
     return { status: 'expired', memberNumber: null, fullName: null }
   }
 
@@ -360,7 +362,8 @@ export async function activateAccount(input: { token: unknown; password: unknown
   if (activationTokenError) {
     serviceError('Internal server error', 500)
   }
-  if (!existingToken || isActivationExpired(existingToken.expires_at)) {
+  const databaseNow = existingToken ? await getDatabaseNow(admin) : null
+  if (!existingToken || !databaseNow || isActivationExpired(existingToken.expires_at, databaseNow)) {
     serviceError('Activation link is invalid or has expired', 400)
   }
   if (existingToken.used_at) {
@@ -397,7 +400,8 @@ export async function activateAccount(input: { token: unknown; password: unknown
     if (latestTokenError) {
       serviceError('Internal server error', 500)
     }
-    if (!latestToken || isActivationExpired(latestToken.expires_at)) {
+    const latestDatabaseNow = latestToken ? await getDatabaseNow(admin) : null
+    if (!latestToken || !latestDatabaseNow || isActivationExpired(latestToken.expires_at, latestDatabaseNow)) {
       serviceError('Activation link is invalid or has expired', 400)
     }
     if (latestToken.used_at) {
@@ -454,7 +458,8 @@ export async function recoverAccount(input: { token: unknown; password: unknown 
   if (recoveryTokenError) {
     serviceError('Internal server error', 500)
   }
-  if (!existingToken || isActivationExpired(existingToken.expires_at)) {
+  const databaseNow = existingToken ? await getDatabaseNow(admin) : null
+  if (!existingToken || !databaseNow || isActivationExpired(existingToken.expires_at, databaseNow)) {
     serviceError('Recovery link is invalid or has expired', 400)
   }
   if (existingToken.used_at) {
@@ -488,7 +493,8 @@ export async function recoverAccount(input: { token: unknown; password: unknown 
     if (latestTokenError) {
       serviceError('Internal server error', 500)
     }
-    if (!latestToken || isActivationExpired(latestToken.expires_at)) {
+    const latestDatabaseNow = latestToken ? await getDatabaseNow(admin) : null
+    if (!latestToken || !latestDatabaseNow || isActivationExpired(latestToken.expires_at, latestDatabaseNow)) {
       serviceError('Recovery link is invalid or has expired', 400)
     }
     if (latestToken.used_at) {

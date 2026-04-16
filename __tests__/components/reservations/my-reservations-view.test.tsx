@@ -5,6 +5,18 @@ import { MyReservationsView } from '@/components/reservations/my-reservations-vi
 import { getCurrentClubDate } from '@/lib/club-time'
 import type { Reservation } from '@/lib/types'
 
+vi.mock('@/lib/club-time', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/club-time')>('@/lib/club-time')
+  const testTimeZone = 'Atlantic/Canary'
+
+  return {
+    ...actual,
+    CLUB_TIMEZONE: testTimeZone,
+    getCurrentClubDate: (now: Date = new Date()) => actual.getCurrentClubDate(now, testTimeZone),
+    zonedDateTimeToUtc: (date: string, time: string) => actual.zonedDateTimeToUtc(date, time, testTimeZone),
+  }
+})
+
 // Mock next-intl
 vi.mock('next-intl', () => ({
   useTranslations: (namespace: string) => (key: string) => {
@@ -38,6 +50,7 @@ vi.mock('@/lib/utils', () => ({
 }))
 
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
+const TEST_TIME_ZONE = 'Atlantic/Canary'
 
 // Helper to create reservations with different times
 function createReservation(overrides: Partial<Reservation> = {}): Reservation {
@@ -58,11 +71,11 @@ function createReservation(overrides: Partial<Reservation> = {}): Reservation {
 
 // Helper to create a reservation with a specific time offset from now
 function createReservationWithTimeOffset(minutesFromNow: number, overrides: Partial<Reservation> = {}): Reservation {
-  const now = new Date()
+  const now = new Date(Date.now())
   const startTime = new Date(now.getTime() + minutesFromNow * 60 * 1000)
-  const date = getCurrentClubDate(startTime)
+  const date = getCurrentClubDate(startTime, TEST_TIME_ZONE)
   const timeFormatter = new Intl.DateTimeFormat('en-GB', {
-    timeZone: 'Atlantic/Canary',
+    timeZone: TEST_TIME_ZONE,
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,

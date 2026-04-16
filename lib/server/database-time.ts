@@ -7,12 +7,12 @@ export async function getDatabaseNow(client?: unknown) {
   }
 
   if (typeof admin.rpc !== 'function') {
-    return new Date()
+    serviceError('Internal server error', 500)
   }
 
   const response = await admin.rpc('get_database_time')
   if (!response || typeof response !== 'object') {
-    return new Date()
+    serviceError('Internal server error', 500)
   }
 
   const { data, error } = response
