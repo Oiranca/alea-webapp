@@ -37,6 +37,11 @@ const activationTokensByHash = new Map<string, ActivationTokenRow>()
 
 const updateUserByIdMock = vi.fn()
 const activationTokenUpsertMock = vi.fn()
+const databaseTimeRpcMock = vi.fn(async (fn: string) => (
+  fn === 'get_database_time'
+    ? { data: '2026-04-15T10:30:00.000Z', error: null }
+    : { data: null, error: null }
+))
 
 function hashToken(token: string) {
   return createHash('sha256').update(token).digest('hex')
@@ -100,6 +105,7 @@ vi.mock('@/lib/supabase/server', () => ({
         updateUserById: updateUserByIdMock,
       },
     },
+    rpc: databaseTimeRpcMock,
     from: vi.fn((table: 'profiles' | 'activation_tokens') => {
       if (table === 'profiles') {
         return {
@@ -222,6 +228,7 @@ describe('auth activation helpers', () => {
     activationTokensByHash.clear()
     updateUserByIdMock.mockResolvedValue({ error: null })
     activationTokenUpsertMock.mockClear()
+    databaseTimeRpcMock.mockClear()
 
     const profile = seedProfile()
     profilesById.set(profile.id, profile)
