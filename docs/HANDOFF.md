@@ -6,19 +6,20 @@
 
 ---
 
-## Last updated: 2026-04-15
+## Last updated: 2026-04-16
 
 ## Current branch
-`feat/KIM-386-database-time-drift`
+`develop`
 
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
 | None | — | —
 
-## Merged this session
+## Most recently merged
 | PR | Branch | Fix |
 |---|---|---|
+| #111 | `feat/KIM-386-database-time-drift` | `KIM-386` merged into `develop`: DB-backed timestamp authority, club-time date helpers, deterministic reservation cutoff handling, and one-statement migration split |
 | #110 | `feat/KIM-379-password-recovery` | `KIM-379` merged into `develop`: admin-mediated password recovery, stale-session auth redirects, and root entry redirect hardening |
 | #109 | `feat/KIM-378-member-activation` | `KIM-378` merged into `develop`: activation flow, login-first entry route, and auth redirect fixes |
 
@@ -26,23 +27,19 @@
 
 ## Status Summary
 
-Active work moved to `KIM-386` on branch `feat/KIM-386-database-time-drift`.
-Investigation found two root causes to fix first:
-- persisted sensitive timestamps such as `psw_changed`, `active_from`, `used_at`, and `activated_at` were being stamped from app runtime instead of DB time
-- reservation/check-in/cutoff logic mixed club-local business time with UTC/system-time helpers
+`develop` is current with `origin/develop` after merge of PR `#111`.
 
-Current implementation status:
-- `develop` was fast-forwarded after merge of PR `#110`
-- `docs/HANDOFF.md` and `docs/PLAN.md` were refreshed for the post-`KIM-379` roadmap
-- a minimal robust `KIM-386` pass is in progress:
-  - added a DB-backed time helper for persisted timestamps
-  - switched auth/check-in critical writes to DB time
-  - replaced `toISOString().split('T')[0]` / date-only parsing in the most sensitive reservation flows
-  - added a SQL migration so reservation cron comparisons use explicit club timezone semantics
+Merged product state now includes:
+- admin-issued activation and recovery links
+- DB-authoritative persisted auth/check-in timestamps
+- explicit club-time helpers for reservation date-only logic
+- timezone-safe reservation/check-in/cancellation comparisons
+- Supabase migration split into one-statement files per repo policy
 
 Current meaningful next steps:
-- review current diff and decide whether to keep the `KIM-386` fix scoped exactly to persisted timestamps + reservation timezone boundaries
-- if scope stays as-is, run broader validation (`pnpm lint`, `pnpm build`) and open the PR
+- keep closing the manual QA checklist for already merged reservation/event/check-in work
+- after QA/docs are in acceptable shape, branch next implementation from `develop`
+- likely next implementation target: `KIM-380`, unless product priority changes
 
 Plan source:
 - Use only `docs/PLAN.md`.
@@ -89,9 +86,6 @@ All checks require a live browser session.
 
 ## Active roadmap reference
 
-- `KIM-378` — Pre-registered activation flow
-- `KIM-379` — Admin-mediated password recovery
-- `KIM-386` — Investigate and fix database time drift versus system time
 - `KIM-380` — Equipment inventory model
 - `KIM-381` — Equipment-aware reservation flow
 - `KIM-382` — 60-minute QR activation window
@@ -115,9 +109,9 @@ All checks require a live browser session.
 **At session start:**
 1. Read `docs/HANDOFF.md` (this file) — mandatory before any action
 2. `gh pr list --state open` — check PRs awaiting merge
-3. `git branch --show-current` — confirm you are on the branch referenced above
+3. `git branch --show-current` — confirm you are on `develop` unless active branch work has started
 4. If operational closure is still pending, use the Manual QA checklist above
-5. Otherwise continue `KIM-386` on the branch above
+5. Otherwise branch fresh from `develop` for the next planned issue
 
 **At session end:**
 1. Update this file with current state
