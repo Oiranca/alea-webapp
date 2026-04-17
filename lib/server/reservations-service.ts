@@ -5,6 +5,7 @@ import { getDatabaseNow } from '@/lib/server/database-time'
 import { serviceError } from '@/lib/server/service-error'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import { normalizeTime } from '@/lib/server/availability'
 
 type ReservationRow = Tables<'reservations'>
 type TableRow = Tables<'tables'>
@@ -101,10 +102,6 @@ function parseSurface(value: unknown): TableSurface | undefined {
 
 function requireString(value: unknown): string {
   return String(value ?? '')
-}
-
-function normalizeTime(value: string) {
-  return value.slice(0, 5)
 }
 
 function assertReservationNotInPast(date: string, startTime: string, now: Date = new Date()) {

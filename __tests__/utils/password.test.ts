@@ -2,6 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { validatePassword } from '@/lib/validations/password'
 
 describe('validatePassword', () => {
+  it('accepts valid passwords', () => {
+    const result = validatePassword('ValidPass123')
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
   it('rejects passwords shorter than 8 characters', () => {
     const result = validatePassword('Shor1A')
     expect(result.valid).toBe(false)
@@ -26,11 +32,5 @@ describe('validatePassword', () => {
   it('rejects passwords with non-alphanumeric characters', () => {
     const result = validatePassword('Valid123!')
     expect(result.valid).toBe(false)
-  })
-
-  it('accepts valid passwords', () => {
-    const result = validatePassword('Secure123')
-    expect(result.valid).toBe(true)
-    expect(result.errors).toHaveLength(0)
   })
 })

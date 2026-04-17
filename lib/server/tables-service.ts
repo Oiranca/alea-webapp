@@ -4,24 +4,13 @@ import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/l
 import { serviceError } from '@/lib/server/service-error'
 import { resolveDate, buildAvailability } from '@/lib/server/availability'
 import type { Tables } from '@/lib/supabase/types'
+import { toGameTable } from '@/lib/server/table-mappers'
 
 type TableRow = Tables<'tables'>
 type ReservationRow = Tables<'reservations'>
 type EventBlockRow = Tables<'event_room_blocks'>
 
 const TABLE_COLUMNS = 'id, room_id, name, type, qr_code, qr_code_inf, pos_x, pos_y'
-
-function toGameTable(row: TableRow): GameTable {
-  return {
-    id: row.id,
-    roomId: row.room_id,
-    name: row.name,
-    type: row.type,
-    qrCode: row.qr_code ?? '',
-    qrCodeInf: row.qr_code_inf ?? null,
-    position: row.pos_x == null || row.pos_y == null ? undefined : { x: row.pos_x, y: row.pos_y },
-  }
-}
 
 async function uploadQrCodeToStorage(
   admin: ReturnType<typeof createSupabaseServerAdminClient>,
@@ -120,12 +109,21 @@ export async function getTableAvailability(tableId: string, date?: string | null
 
   const effectiveDate = resolveDate(date)
   const admin = createSupabaseServerAdminClient()
-  const reservationsResult = await admin
-    .from('reservations')
-    .select('id, table_id, date, start_time, end_time, status, surface, user_id, created_at')
-    .eq('table_id', tableId)
-    .eq('date', effectiveDate)
-    .in('status', ['active', 'pending'])
+
+  const [reservationsResult, eventBlocksResult] = await Promise.all([
+    admin
+      .from('reservations')
+      .select('id, table_id, date, start_time, end_time, status, surface, user_id, created_at')
+      .eq('table_id', tableId)
+      .eq('date', effectiveDate)
+      .in('status', ['active', 'pending']),
+    admin
+      .from('event_room_blocks')
+      .select('id, event_id, room_id, date, start_time, end_time, all_day')
+      .eq('room_id', table.room_id)
+      .eq('date', effectiveDate),
+  ])
+
   const reservations = (reservationsResult.data ?? []) as ReservationRow[]
   const reservationsError = reservationsResult.error
 
@@ -133,11 +131,6 @@ export async function getTableAvailability(tableId: string, date?: string | null
     serviceError('Internal server error', 500)
   }
 
-  const eventBlocksResult = await admin
-    .from('event_room_blocks')
-    .select('id, event_id, room_id, date, start_time, end_time, all_day')
-    .eq('room_id', table.room_id)
-    .eq('date', effectiveDate)
   const eventBlocks = (eventBlocksResult.data ?? []) as EventBlockRow[]
 
   if (eventBlocksResult.error) {

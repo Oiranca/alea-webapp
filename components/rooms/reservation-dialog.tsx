@@ -16,6 +16,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
+const ALL_TIME_SLOTS = generateTimeSlots('00:00', '24:00', 60)
+
 interface ReservationDialogProps {
   table: GameTable | null
   open: boolean
@@ -43,14 +45,13 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
   )
   const createReservation = useCreateReservation()
 
-  const allTimeSlots = generateTimeSlots('00:00', '24:00', 60)
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const timeSlots = selectedDate === today
-    ? allTimeSlots.filter((slot) => {
+    ? ALL_TIME_SLOTS.filter((slot) => {
         const [h, m] = slot.split(':').map(Number)
         return h * 60 + m > nowMinutes
       })
-    : allTimeSlots
+    : ALL_TIME_SLOTS
 
   function isSlotAvailable(time: string, surface?: TableSurface): boolean {
     if (!availability) return true

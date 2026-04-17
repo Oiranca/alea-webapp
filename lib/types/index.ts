@@ -11,7 +11,6 @@ export interface User {
   noShowCount: number;
   blockedUntil: string | null;
   activeFrom?: string | null;
-  pswChanged?: string | null;
   createdAt: string;
   updatedAt: string;
 }
