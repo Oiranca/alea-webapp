@@ -14,7 +14,7 @@
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
-| #114 | `feat/kim-380-equipment-inventory` | Ready for merge |
+| #114 | `feat/kim-380-equipment-inventory` | Ready for merge (KIM-380 + KIM-388 auth fix) |
 
 ## Most recently merged
 | PR | Branch | Fix |
