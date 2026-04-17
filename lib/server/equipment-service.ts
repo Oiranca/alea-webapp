@@ -99,13 +99,18 @@ export async function updateEquipment(
 
 export async function deleteEquipment(id: string): Promise<void> {
   const supabase = createSupabaseServerAdminClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('equipment')
     .delete()
     .eq('id', id)
+    .select('id')
+    .maybeSingle()
 
   if (error) {
     serviceError('Internal server error', 500)
+  }
+  if (!data) {
+    serviceError('Equipment not found', 404)
   }
 }
 
