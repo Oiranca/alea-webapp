@@ -1,11 +1,25 @@
 import { describe, it, expect } from 'vitest'
 import { loginSchema, registerSchema, registerServerSchema, passwordSchema } from '@/lib/validations/auth'
+import type { SafeParseReturnType } from 'zod'
+
+// Helper functions to reduce boilerplate
+function expectSuccess<T>(result: SafeParseReturnType<T, T>): T {
+  expect(result.success).toBe(true)
+  if (!result.success) throw new Error('Expected success')
+  return result.data
+}
+
+function expectError(result: SafeParseReturnType<unknown, unknown>): string {
+  expect(result.success).toBe(false)
+  if (result.success) throw new Error('Expected failure')
+  return result.error.errors[0]?.message ?? ''
+}
 
 describe('Auth validation schemas - error keys (KIM-325)', () => {
   describe('passwordSchema', () => {
     it('validates passwords with all requirements', () => {
       const result = passwordSchema.safeParse('Secure123')
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
 
     it('rejects passwords shorter than 8 characters with correct error key', () => {
@@ -63,7 +77,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         identifier: '100001',
         password: 'Secure123'
       })
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
 
     it('rejects missing identifier with correct error key', () => {
@@ -107,7 +121,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         password: 'Secure123',
         confirmPassword: 'Secure123'
       })
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
 
     it('rejects missing member number with correct error key', () => {
@@ -188,7 +202,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         password: 'Secure123',
         confirmPassword: 'Secure123'
       })
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
   })
 
@@ -198,7 +212,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         memberNumber: '100099',
         password: 'Secure123'
       })
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
 
     it('rejects missing member number with correct error key', () => {
@@ -217,7 +231,7 @@ describe('Auth validation schemas - error keys (KIM-325)', () => {
         memberNumber: '100099',
         password: 'Secure123'
       })
-      expect(result.success).toBe(true)
+      expectSuccess(result)
     })
   })
 

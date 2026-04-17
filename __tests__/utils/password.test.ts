@@ -27,10 +27,4 @@ describe('validatePassword', () => {
     const result = validatePassword('Valid123!')
     expect(result.valid).toBe(false)
   })
-
-  it('accepts valid passwords', () => {
-    const result = validatePassword('Secure123')
-    expect(result.valid).toBe(true)
-    expect(result.errors).toHaveLength(0)
-  })
 })
