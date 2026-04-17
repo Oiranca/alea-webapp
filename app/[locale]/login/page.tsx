@@ -135,6 +135,9 @@ export default async function LoginPage({ params }: LoginPageProps) {
               className="w-8 h-px"
               style={{ background: 'color-mix(in srgb, var(--primary) 35%, transparent)' }}
             />
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {t('loginSubtitle')}
+            </p>
           </div>
 
           {/* Desktop form label */}
