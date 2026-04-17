@@ -10,9 +10,9 @@ import type { SessionUser } from '@/lib/server/auth'
  */
 
 /**
- * Default unauthenticated session user
+ * Default authenticated member session
  */
-const defaultUnauthenticatedSession: SessionUser = {
+const defaultAuthenticatedSession: SessionUser = {
   id: 'user-default',
   role: 'member',
 }
@@ -45,7 +45,7 @@ function createMockContext(session: SessionUser) {
  * ```
  */
 export function mockRequireAuth(session?: Partial<SessionUser>) {
-  const finalSession = { ...defaultUnauthenticatedSession, ...session }
+  const finalSession = { ...defaultAuthenticatedSession, ...session }
   return vi.fn(async () => createMockContext(finalSession))
 }
 

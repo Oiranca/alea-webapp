@@ -6,12 +6,11 @@ import { serviceError } from '@/lib/server/service-error'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert } from '@/lib/supabase/types'
 import { activationServerSchema, recoveryServerSchema, registerServerSchema } from '@/lib/validations/auth'
+import { type PublicProfileRow, toPublicUser } from '@/lib/server/profile-mappers'
 
-type ProfileRow = Tables<'profiles'>
 type ActivationTokenRow = Tables<'activation_tokens'>
-type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'full_name' | 'email' | 'phone' | 'role' | 'is_active' | 'active_from' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
-type AuthCredentialRow = Pick<ProfileRow, 'id' | 'member_number' | 'auth_email' | 'email' | 'full_name' | 'phone' | 'role' | 'is_active' | 'active_from' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
-const PUBLIC_PROFILE_COLUMNS = 'id, member_number, full_name, email, phone, role, is_active, active_from, no_show_count, blocked_until, created_at, updated_at' as const
+type AuthCredentialRow = Pick<Tables<'profiles'>, 'id' | 'member_number' | 'auth_email' | 'email' | 'full_name' | 'phone' | 'role' | 'is_active' | 'active_from' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
+const PUBLIC_PROFILE_COLUMNS = 'id, member_number, full_name, auth_email, email, phone, role, is_active, active_from, no_show_count, blocked_until, created_at, updated_at' as const
 const ACTIVATION_TOKEN_COLUMNS = 'id, profile_id, token_hash, expires_at, used_at, created_by, created_at, updated_at' as const
 const ACTIVATION_WINDOW_MS = 24 * 60 * 60 * 1000
 
@@ -136,23 +135,6 @@ async function getAuthCredentialProfileBy(
   }
 
   return data
-}
-
-function toPublicUser(profile: PublicProfileRow): User {
-  return {
-    id: profile.id,
-    memberNumber: profile.member_number,
-    fullName: profile.full_name ?? null,
-    email: profile.email ?? null,
-    phone: profile.phone ?? null,
-    role: profile.role,
-    isActive: profile.is_active,
-    activeFrom: profile.active_from ?? null,
-    noShowCount: profile.no_show_count,
-    blockedUntil: profile.blocked_until ?? null,
-    createdAt: profile.created_at,
-    updatedAt: profile.updated_at,
-  }
 }
 
 async function getAuthCredentialByMemberNumber(memberNumber: string) {

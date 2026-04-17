@@ -9,6 +9,7 @@ export type PublicProfileRow = Pick<
   | 'id'
   | 'member_number'
   | 'full_name'
+  | 'auth_email'
   | 'email'
   | 'phone'
   | 'role'

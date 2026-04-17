@@ -25,3 +25,18 @@ $$;
 -- Public buckets serve objects by URL without a policy; this policy only enabled
 -- unauthenticated listing of all keys in the bucket.
 DROP POLICY IF EXISTS "qr_codes_public_read" ON "storage"."objects";
+
+-- Revoke EXECUTE on SECURITY DEFINER cron functions from anon and authenticated.
+-- These functions are invoked exclusively by pg_cron / service_role and must not
+-- be callable by client roles.
+REVOKE ALL ON FUNCTION "public"."cancel_expired_pending_reservations"("grace_minutes" integer, "reference_time" timestamp with time zone, "club_timezone" "text") FROM "anon";
+REVOKE ALL ON FUNCTION "public"."cancel_expired_pending_reservations"("grace_minutes" integer, "reference_time" timestamp with time zone, "club_timezone" "text") FROM "authenticated";
+
+REVOKE ALL ON FUNCTION "public"."create_event_atomic"("p_title" "text", "p_description" "text", "p_date" "date", "p_start_time" time without time zone, "p_end_time" time without time zone, "p_room_id" "uuid", "p_all_day" boolean) FROM "anon";
+REVOKE ALL ON FUNCTION "public"."create_event_atomic"("p_title" "text", "p_description" "text", "p_date" "date", "p_start_time" time without time zone, "p_end_time" time without time zone, "p_room_id" "uuid", "p_all_day" boolean) FROM "authenticated";
+
+REVOKE ALL ON FUNCTION "public"."mark_no_show_reservations"("reference_time" timestamp with time zone, "club_timezone" "text") FROM "anon";
+REVOKE ALL ON FUNCTION "public"."mark_no_show_reservations"("reference_time" timestamp with time zone, "club_timezone" "text") FROM "authenticated";
+
+REVOKE ALL ON FUNCTION "public"."update_event_atomic"("p_id" "uuid", "p_title" "text", "p_description" "text", "p_date" "date", "p_start_time" time without time zone, "p_end_time" time without time zone, "p_room_id" "uuid", "p_all_day" boolean) FROM "anon";
+REVOKE ALL ON FUNCTION "public"."update_event_atomic"("p_id" "uuid", "p_title" "text", "p_description" "text", "p_date" "date", "p_start_time" time without time zone, "p_end_time" time without time zone, "p_room_id" "uuid", "p_all_day" boolean) FROM "authenticated";
