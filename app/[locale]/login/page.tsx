@@ -33,7 +33,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
   const t = await getTranslations('auth')
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col lg:flex-row">
+    <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* LEFT ZONE — atmosphere and brand */}
       <div className="relative hidden lg:flex lg:w-[45%] xl:w-[50%] flex-col justify-between p-14 overflow-hidden">
         {/* Subtle radial ember behind identity block */}
@@ -105,7 +105,7 @@ export default async function LoginPage({ params }: LoginPageProps) {
 
       {/* RIGHT ZONE — sign-in panel */}
       <div
-        className="flex-1 flex items-center justify-center p-8 lg:p-14 relative"
+        className="flex-1 flex items-center justify-center p-8 lg:p-14 relative overflow-y-auto"
         style={{
           background:
             'color-mix(in srgb, var(--background-secondary) 55%, var(--background))',
