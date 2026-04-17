@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
+import { Sword } from 'lucide-react'
 import { LoginForm } from '@/components/auth/login-form'
 import { getSessionFromServerCookies } from '@/lib/server/auth'
 import { getCurrentUser } from '@/lib/server/auth-service'
@@ -55,18 +56,27 @@ export default async function LoginPage({ params }: LoginPageProps) {
         {/* Identity block */}
         <div className="relative z-10 py-8">
           <p
-            className="text-[10px] tracking-[0.35em] uppercase font-medium mb-8"
+            className="text-[10px] tracking-[0.35em] uppercase font-medium mb-6"
             style={{ color: 'color-mix(in srgb, var(--primary) 55%, transparent)' }}
           >
             Asociación Cultural
           </p>
 
-          <h1
-            className="font-cinzel font-bold leading-none tracking-tight mb-8"
-            style={{ fontSize: 'clamp(4rem, 7vw, 5.5rem)', color: '#e5e2e1' }}
-          >
-            Alea
-          </h1>
+          {/* Logo mark — sword icon as brand symbol */}
+          <div className="flex items-end gap-5 mb-8">
+            <Sword
+              className="text-primary"
+              style={{ width: 'clamp(2rem, 3vw, 2.5rem)', height: 'clamp(2rem, 3vw, 2.5rem)' }}
+              aria-hidden="true"
+              strokeWidth={1.5}
+            />
+            <h1
+              className="font-cinzel font-bold leading-none tracking-tight"
+              style={{ fontSize: 'clamp(3.5rem, 6vw, 5rem)', color: '#e5e2e1', lineHeight: 1 }}
+            >
+              Alea
+            </h1>
+          </div>
 
           <div
             className="w-14 h-px mb-8"

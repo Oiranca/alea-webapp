@@ -6,7 +6,7 @@ import { locales } from '@/lib/i18n/config'
 import { AuthProvider } from '@/lib/auth/auth-context'
 import { Providers } from '@/lib/providers'
 import { Header } from '@/components/layout/header'
-import { Footer } from '@/components/layout/footer'
+import { ConditionalFooter } from '@/components/layout/conditional-footer'
 import { NavigationProgress } from '@/components/ui/navigation-progress'
 import { getSessionFromServerCookies } from '@/lib/server/auth'
 import { getCurrentUser } from '@/lib/server/auth-service'
@@ -55,7 +55,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               <main id="main-content" className="flex-1">
                 {children}
               </main>
-              <Footer locale={locale} />
+              <ConditionalFooter locale={locale} />
             </AuthProvider>
           </Providers>
         </NextIntlClientProvider>
