@@ -90,7 +90,7 @@ export async function listEvents(): Promise<AdminEvent[]> {
   const supabase = await createSupabaseServerClient()
   const { data: events, error: eventsError } = await supabase
     .from('events')
-    .select('*')
+    .select('id, title, description, date, start_time, end_time, created_by, created_at')
     .order('date', { ascending: true })
     .order('start_time', { ascending: true })
 
@@ -102,7 +102,7 @@ export async function listEvents(): Promise<AdminEvent[]> {
   const admin = createSupabaseServerAdminClient()
   const { data: blocks, error: blocksError } = await admin
     .from('event_room_blocks')
-    .select('*')
+    .select('id, event_id, room_id, date, start_time, end_time, all_day')
     .in('event_id', rows.map((r) => r.id))
 
   if (blocksError) serviceError('Internal server error', 500)
@@ -121,7 +121,7 @@ export async function getEvent(id: string): Promise<AdminEvent> {
   const supabase = await createSupabaseServerClient()
   const { data: event, error: eventError } = await supabase
     .from('events')
-    .select('*')
+    .select('id, title, description, date, start_time, end_time, created_by, created_at')
     .eq('id', id)
     .maybeSingle()
 
@@ -131,7 +131,7 @@ export async function getEvent(id: string): Promise<AdminEvent> {
   const admin = createSupabaseServerAdminClient()
   const { data: blocks, error: blocksError } = await admin
     .from('event_room_blocks')
-    .select('*')
+    .select('id, event_id, room_id, date, start_time, end_time, all_day')
     .eq('event_id', id)
 
   if (blocksError) serviceError('Internal server error', 500)
@@ -323,7 +323,7 @@ export async function listEventsBlockingRoom(
 
   const { data: events, error: eventsError } = await admin
     .from('events')
-    .select('*')
+    .select('id, title, description, date, start_time, end_time, created_by, created_at')
     .in('id', eventIds)
 
   if (eventsError) serviceError('Internal server error', 500)

@@ -1,4 +1,3 @@
-import 'server-only'
 import type { MemberImportIssue, MemberImportResult, MemberImportRow, PaginatedResponse, User } from '@/lib/types'
 import { strFromU8, unzipSync } from 'fflate'
 import { createSupabaseServerAdminClient } from '@/lib/supabase/server'
@@ -6,6 +5,7 @@ import { serviceError } from '@/lib/server/service-error'
 import type { Tables, TablesUpdate } from '@/lib/supabase/types'
 import { memberNumberSchema } from '@/lib/validations/auth'
 import { read, utils } from 'xlsx'
+import { toPublicUser } from '@/lib/server/profile-mappers'
 
 type ProfileRow = Tables<'profiles'>
 type PublicProfileRow = Pick<ProfileRow, 'id' | 'member_number' | 'full_name' | 'auth_email' | 'email' | 'phone' | 'role' | 'is_active' | 'active_from' | 'psw_changed' | 'no_show_count' | 'blocked_until' | 'created_at' | 'updated_at'>
@@ -87,24 +87,6 @@ const ACCEPTED_MEMBER_IMPORT_CONTENT_TYPES_BY_EXTENSION: Record<string, Set<stri
   csv: new Set(['text/csv', 'application/csv', 'application/vnd.ms-excel']),
   xlsx: new Set(['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']),
   odt: new Set(['application/vnd.oasis.opendocument.text']),
-}
-
-function toPublicUser(profile: PublicProfileRow): User {
-  return {
-    id: profile.id,
-    memberNumber: profile.member_number,
-    fullName: profile.full_name ?? null,
-    email: profile.email ?? null,
-    phone: profile.phone ?? null,
-    role: profile.role,
-    isActive: profile.is_active,
-    activeFrom: profile.active_from ?? null,
-    pswChanged: profile.psw_changed ?? null,
-    noShowCount: profile.no_show_count,
-    blockedUntil: profile.blocked_until ?? null,
-    createdAt: profile.created_at,
-    updatedAt: profile.updated_at,
-  }
 }
 
 function normalizePage(page: number) {
@@ -413,6 +395,10 @@ function createInternalAuthEmail(memberNumber: string) {
   return `${memberNumber}@members.alea.internal`
 }
 
+function pushImportIssue(issues: MemberImportIssue[], issue: MemberImportIssue) {
+  issues.push(issue)
+}
+
 export function parseMemberImportCsv(input: string): ParsedMemberImportResult {
   const rows = parseCsv(input)
   if (rows.length === 0) {
@@ -441,7 +427,7 @@ export function parseMemberImportCsv(input: string): ParsedMemberImportResult {
     const memberNumberResult = memberNumberSchema.safeParse(memberNumberRaw.trim())
 
     if (!memberNumberResult.success) {
-      issues.push({ rowNumber, memberNumber: memberNumberRaw || null, code: 'invalid_member_number' })
+      pushImportIssue(issues, { rowNumber, memberNumber: memberNumberRaw || null, code: 'invalid_member_number' })
       return
     }
 
@@ -449,12 +435,12 @@ export function parseMemberImportCsv(input: string): ParsedMemberImportResult {
     const fullName = fullNameRaw.trim()
 
     if (!fullName) {
-      issues.push({ rowNumber, memberNumber, code: 'missing_full_name' })
+      pushImportIssue(issues, { rowNumber, memberNumber, code: 'missing_full_name' })
       return
     }
 
     if (seenMemberNumbers.has(memberNumber)) {
-      issues.push({ rowNumber, memberNumber, code: 'duplicate_member_number' })
+      pushImportIssue(issues, { rowNumber, memberNumber, code: 'duplicate_member_number' })
       return
     }
     seenMemberNumbers.add(memberNumber)
@@ -667,7 +653,7 @@ async function importMembersFromNormalizedRows(input: {
         auditedRows.push(result.normalizedRow)
       }
       if (result.issue) {
-        issues.push(result.issue)
+        pushImportIssue(issues, result.issue)
       }
     }
   }

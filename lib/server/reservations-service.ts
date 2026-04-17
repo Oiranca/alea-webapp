@@ -1,4 +1,3 @@
-import 'server-only'
 import type { Reservation, TableSurface } from '@/lib/types'
 import type { SessionUser } from '@/lib/server/auth'
 import { CLUB_TIMEZONE, getCurrentClubDate, isValidDateOnlyString, zonedDateTimeToUtc } from '@/lib/club-time'
@@ -6,6 +5,7 @@ import { getDatabaseNow } from '@/lib/server/database-time'
 import { serviceError } from '@/lib/server/service-error'
 import { createSupabaseServerAdminClient, createSupabaseServerClient } from '@/lib/supabase/server'
 import type { Tables, TablesInsert, TablesUpdate } from '@/lib/supabase/types'
+import { normalizeTime } from '@/lib/server/availability'
 
 type ReservationRow = Tables<'reservations'>
 type TableRow = Tables<'tables'>
@@ -102,10 +102,6 @@ function parseSurface(value: unknown): TableSurface | undefined {
 
 function requireString(value: unknown): string {
   return String(value ?? '')
-}
-
-function normalizeTime(value: string) {
-  return value.slice(0, 5)
 }
 
 function assertReservationNotInPast(date: string, startTime: string, now: Date = new Date()) {
@@ -531,7 +527,9 @@ export async function updateReservationForSession(
 
 export async function cancelExpiredPendingReservations(): Promise<number> {
   const admin = createSupabaseServerAdminClient()
-  const { data, error } = await admin.rpc('cancel_expired_pending_reservations', {
+  const { data, error } = await (admin as unknown as {
+    rpc: (fn: string, args?: unknown) => Promise<{ data: number | null; error: unknown }>
+  }).rpc('cancel_expired_pending_reservations', {
     grace_minutes: GRACE_PERIOD_MINUTES,
     club_timezone: CLUB_TIMEZONE,
   })
@@ -541,7 +539,9 @@ export async function cancelExpiredPendingReservations(): Promise<number> {
 
 export async function markNoShowReservations(): Promise<number> {
   const admin = createSupabaseServerAdminClient()
-  const { data, error } = await admin.rpc('mark_no_show_reservations', {
+  const { data, error } = await (admin as unknown as {
+    rpc: (fn: string, args?: unknown) => Promise<{ data: number | null; error: unknown }>
+  }).rpc('mark_no_show_reservations', {
     club_timezone: CLUB_TIMEZONE,
   })
   if (error) serviceError('Internal server error', 500)
