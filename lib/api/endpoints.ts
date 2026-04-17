@@ -19,6 +19,8 @@ export const endpoints = {
     byId: (id: string) => `/rooms/${id}`,
     tables: (roomId: string) => `/rooms/${roomId}/tables`,
     tablesAvailability: (roomId: string, date: string) => `/rooms/${roomId}/tables/availability?date=${date}`,
+    availableEquipment: (roomId: string, date: string, startTime: string, endTime: string) =>
+      `/rooms/${roomId}/available-equipment?date=${date}&startTime=${startTime}&endTime=${endTime}`,
   },
   tables: {
     byId: (id: string) => `/tables/${id}`,

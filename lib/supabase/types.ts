@@ -85,6 +85,36 @@ export type Database = {
           },
         ]
       }
+      reservation_equipment: {
+        Row: {
+          equipment_id: string
+          reservation_id: string
+        }
+        Insert: {
+          equipment_id: string
+          reservation_id: string
+        }
+        Update: {
+          equipment_id?: string
+          reservation_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_equipment_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activation_tokens: {
         Row: {
           created_at: string
