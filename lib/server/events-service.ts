@@ -163,11 +163,11 @@ export async function createEvent(body: {
 
   const { data: result, error: rpcError } = await admin.rpc('create_event_atomic', {
     p_title: title,
-    p_description: description as never,
+    p_description: description,
     p_date: date,
     p_start_time: resolvedTimes.startTime,
     p_end_time: resolvedTimes.endTime,
-    p_room_id: roomId as never,
+    p_room_id: roomId,
     p_all_day: allDay,
   })
 
@@ -239,11 +239,11 @@ export async function updateEvent(
   const { data: result, error: rpcError } = await admin.rpc('update_event_atomic', {
     p_id: id,
     p_title: title,
-    p_description: description as never,
+    p_description: description,
     p_date: date,
     p_start_time: resolvedTimes.startTime,
     p_end_time: resolvedTimes.endTime,
-    p_room_id: roomId as never,
+    p_room_id: roomId,
     p_all_day: allDay,
   })
 

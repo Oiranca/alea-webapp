@@ -350,9 +350,9 @@ export type Database = {
         Args: {
           p_all_day?: boolean
           p_date: string
-          p_description: string
+          p_description: string | null
           p_end_time: string
-          p_room_id: string
+          p_room_id: string | null
           p_start_time: string
           p_title: string
         }
@@ -369,10 +369,10 @@ export type Database = {
         Args: {
           p_all_day?: boolean
           p_date: string
-          p_description: string
+          p_description: string | null
           p_end_time: string
           p_id: string
-          p_room_id: string
+          p_room_id: string | null
           p_start_time: string
           p_title: string
         }
