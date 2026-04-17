@@ -1,6 +1,6 @@
 # Alea Plan
 
-**Last updated:** 2026-04-16
+**Last updated:** 2026-04-17
 **Source of truth:** current repository state + active Linear issues for project `Alea`
 **Ignore:** canceled legacy tickets and removed migration-era planning docs
 
@@ -36,15 +36,6 @@
 ---
 
 ## Execution Order
-
-### Phase 0 — Stabilize current merged work
-
-1. Close the pending manual QA checklist for merged work.
-2. Refresh docs only after the product state is confirmed in `develop`.
-3. Start new implementation work only after deciding how strictly to enforce the remaining manual QA gate.
-
-Reason:
-- No new feature plan should sit on top of unverified behavior in reservations, events, or check-in.
 
 ### Phase 1 — Prepare inventory for equipment-aware bookings
 
@@ -104,10 +95,7 @@ Reason:
 
 ## Recommended Next Build Step
 
-If the goal is implementation work after docs/manual QA cleanup, the next branch should target:
-
-1. the pending manual QA checklist if operational closure is the priority
-2. otherwise `KIM-380` from a fresh branch off `develop`
+Next branch: `KIM-380` from `develop`. Manual QA gate cancelled 2026-04-17.
 
 ---
 

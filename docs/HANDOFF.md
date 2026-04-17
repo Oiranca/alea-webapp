@@ -6,7 +6,7 @@
 
 ---
 
-## Last updated: 2026-04-16
+## Last updated: 2026-04-17
 
 ## Current branch
 `develop`
@@ -37,9 +37,7 @@ Merged product state now includes:
 - Supabase migration split into one-statement files per repo policy
 
 Current meaningful next steps:
-- keep closing the manual QA checklist for already merged reservation/event/check-in work
-- after QA/docs are in acceptable shape, branch next implementation from `develop`
-- likely next implementation target: `KIM-380`, unless product priority changes
+- branch `KIM-380` from `develop` — manual QA gate cancelled, implementation unblocked
 
 Plan source:
 - Use only `docs/PLAN.md`.
@@ -47,40 +45,9 @@ Plan source:
 
 ---
 
-## Manual QA pending
+## Manual QA
 
-All checks require a live browser session.
-
-### PR #82 — Cancellation cutoff UI
-- [ ] Cancel a reservation < 60 min away → cutoff error shown in red
-- [ ] Dismiss dialog → error clears on reopen
-
-### PR #86 — Check-in hardening
-- [ ] Valid QR scan → reservation activates to `active`
-- [ ] `/en/check-in/not-a-uuid` → redirects to `/en/rooms`
-- [ ] `/xx/check-in/<valid-uuid>` (invalid locale) → redirects to `/`
-
-### PR #101 — Admin force-delete events
-- [ ] Admin deletes event with active/pending reservations → reservations cancelled, event removed
-- [ ] Delete error displays in active locale (ES or EN)
-
-### PR #103 — Slot end_time inclusive
-- [ ] User A has 17:00–18:00 → User B sees both 17:00 and 18:00 as unavailable
-- [ ] 19:00 remains green
-
-### PR #104 — Check-in timezone fix
-- [ ] Check-in at exact reservation start time → succeeds
-- [ ] Check-in 5 min before start → succeeds
-- [ ] Check-in 6 min before start → "too early" error
-
-### PR #105 — Availability polling
-- [ ] User A opens reservation dialog → User B books same table/date → within 30s slot appears red in User A's open dialog
-
-### PR #106 — Event create/update cancels reservations
-- [ ] Admin creates event for a room with active/pending reservations in same time window → reservations cancelled immediately
-- [ ] Admin updates event time range to overlap existing reservations → overlapping reservations cancelled
-- [ ] Admin updates event room assignment → only new room's reservations cancelled (old room unaffected)
-- [ ] Admin updates only event title/description → no reservations cancelled
+~~Pending checklist (PRs #82, #86, #101, #103, #104, #105, #106)~~ — **Cancelled 2026-04-17. Gate removed. Implementation proceeds.**
 
 ---
 
