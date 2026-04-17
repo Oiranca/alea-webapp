@@ -35,61 +35,58 @@ export default async function LoginPage({ params }: LoginPageProps) {
   return (
     <div className="h-dvh flex flex-col lg:flex-row overflow-hidden">
       {/* LEFT ZONE — atmosphere and brand */}
-      <div className="relative hidden lg:flex lg:w-[45%] xl:w-[50%] flex-col justify-between p-14 overflow-hidden">
-        {/* Subtle radial ember behind identity block */}
+      <div className="relative hidden lg:flex lg:w-[45%] xl:w-[50%] flex-col items-center justify-center p-14 overflow-hidden">
+        {/* Ember radial glow centred on the logo */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'radial-gradient(ellipse 70% 60% at 30% 60%, rgba(255, 183, 123, 0.03) 0%, transparent 70%)',
+              'radial-gradient(ellipse 60% 55% at 50% 50%, rgba(255, 183, 123, 0.04) 0%, transparent 65%)',
           }}
           aria-hidden="true"
         />
 
-        {/* Top-left corner ornament */}
-        <div
-          aria-hidden="true"
-          className="relative z-10 w-10 h-10 border-l border-t"
-          style={{ borderColor: 'color-mix(in srgb, var(--primary) 25%, transparent)' }}
-        />
+        {/* Corner ornaments — absolute */}
+        <div aria-hidden="true" className="absolute top-10 left-10 w-8 h-8 border-l border-t"
+          style={{ borderColor: 'color-mix(in srgb, var(--primary) 22%, transparent)' }} />
+        <div aria-hidden="true" className="absolute top-10 right-10 w-8 h-8 border-r border-t"
+          style={{ borderColor: 'color-mix(in srgb, var(--primary) 22%, transparent)' }} />
+        <div aria-hidden="true" className="absolute bottom-10 left-10 w-8 h-8 border-l border-b"
+          style={{ borderColor: 'color-mix(in srgb, var(--primary) 22%, transparent)' }} />
+        <div aria-hidden="true" className="absolute bottom-10 right-10 w-8 h-8 border-r border-b"
+          style={{ borderColor: 'color-mix(in srgb, var(--primary) 22%, transparent)' }} />
 
-        {/* Identity block */}
-        <div className="relative z-10 py-8">
+        {/* Identity block — centred medallion */}
+        <div className="relative z-10 flex flex-col items-center text-center gap-6">
+          {/* Logo */}
+          <Image
+            src="/alea-logo.png"
+            alt="Alea"
+            width={180}
+            height={180}
+            className="w-[clamp(130px,14vw,180px)] h-auto drop-shadow-[0_0_24px_rgba(255,183,123,0.12)]"
+            priority
+          />
+
+          {/* Overline */}
           <p
-            className="text-[10px] tracking-[0.35em] uppercase font-medium mb-6"
+            className="text-[9px] tracking-[0.4em] uppercase font-medium"
             style={{ color: 'color-mix(in srgb, var(--primary) 55%, transparent)' }}
           >
             Asociación Cultural
           </p>
 
-          {/* Alea logo */}
-          <div className="mb-8">
-            <Image
-              src="/alea-logo.png"
-              alt="Alea"
-              width={220}
-              height={220}
-              className="w-[clamp(140px,18vw,220px)] h-auto"
-              priority
-            />
-          </div>
-
+          {/* Rule */}
           <div
-            className="w-14 h-px mb-8"
-            style={{ background: 'color-mix(in srgb, var(--primary) 40%, transparent)' }}
+            className="w-10 h-px"
+            style={{ background: 'color-mix(in srgb, var(--primary) 35%, transparent)' }}
           />
 
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
+          {/* Subtitle */}
+          <p className="text-sm text-muted-foreground leading-relaxed max-w-[18rem]">
             {t('loginSubtitle')}
           </p>
         </div>
-
-        {/* Bottom-left corner ornament */}
-        <div
-          aria-hidden="true"
-          className="relative z-10 w-10 h-10 border-l border-b self-start"
-          style={{ borderColor: 'color-mix(in srgb, var(--primary) 25%, transparent)' }}
-        />
       </div>
 
       {/* VERTICAL DIVIDER */}
