@@ -14,7 +14,9 @@
 - `KIM-378` is merged: public sign-up is disabled, activation links are admin-issued, and login is the default entry route.
 - `KIM-379` is merged: admin-mediated password recovery and the current password reset path are live.
 - `KIM-386` is merged: persisted sensitive timestamps now use DB time, reservation/check-in comparisons use club-time-aware helpers, and cron SQL compares slot boundaries with explicit timezone semantics.
-- Current reservation model supports normal table bookings, QR check-in, no-show tracking, and event blocking, but does not yet support equipment bookings or `Saved Game`.
+- `KIM-381` is in progress on the feature branch: optional equipment selection, server-side overlap validation, and the one-week booking window are being added to the reservation flow.
+- Follow-up still required after `KIM-381`: fix equipment reservation scoping. Equipment can still be reserved from any room, except equipment linked to a room during room creation.
+- `Saved Game` is still not implemented.
 
 ---
 
@@ -95,7 +97,7 @@ Reason:
 
 ## Recommended Next Build Step
 
-Next branch: `KIM-380` from `develop`. Manual QA gate cancelled 2026-04-17.
+Current branch work: `KIM-381`. After `KIM-381` is merged, continue with `KIM-382`. Manual QA gate cancelled 2026-04-17.
 
 ---
 
@@ -103,4 +105,6 @@ Next branch: `KIM-380` from `develop`. Manual QA gate cancelled 2026-04-17.
 
 - Do not reintroduce milestone plans from the old migration era.
 - Do not use canceled child tickets as active roadmap items when a newer parent issue supersedes them.
+- Move the selected Linear issue to `In Progress` before starting implementation work.
+- Equipment reservation scoping still needs a dedicated fix: equipment can currently be reserved from any room, except equipment linked to a room during room creation.
 - Keep `docs/HANDOFF.md` short and aligned with this file.

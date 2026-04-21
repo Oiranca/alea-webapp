@@ -81,6 +81,7 @@ export interface Reservation {
   memberNumber?: string | null;
   roomName?: string | null;
   tableName?: string | null;
+  equipment?: Equipment[];
 }
 
 export interface RemovableTopTableStatus {
@@ -142,6 +143,11 @@ export interface Equipment {
   createdAt: string;
 }
 
+export interface AvailableEquipment extends Equipment {
+  available: boolean;
+  conflictReason?: string | null;
+}
+
 export interface ApiError {
   message: string;
   statusCode: number;
@@ -165,4 +171,5 @@ export interface CreateReservationRequest {
   startTime: string;
   endTime: string;
   surface?: TableSurface;
+  equipmentIds?: string[];
 }

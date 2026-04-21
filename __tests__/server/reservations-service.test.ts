@@ -15,6 +15,26 @@ type ReservationRow = {
   // enriched join fields populated by the mock
   profiles?: { member_number: string } | null
   tables?: { name: string; rooms?: { name: string } | null } | null
+  reservation_equipment?: Array<{ reservation_id: string; equipment_id: string; equipment: EquipmentRow | null }> | null
+}
+
+type EquipmentRow = {
+  id: string
+  name: string
+  description: string | null
+  created_at: string
+}
+
+type ReservationEquipmentRow = {
+  reservation_id: string
+  equipment_id: string
+  equipment?: EquipmentRow | null
+}
+
+type RoomDefaultEquipmentRow = {
+  room_id: string
+  equipment_id: string
+  equipment?: EquipmentRow | null
 }
 
 type TableRow = {
@@ -53,6 +73,9 @@ const memberSession: SessionUser = {
 }
 
 const reservationsState: ReservationRow[] = []
+const equipmentState = new Map<string, EquipmentRow>()
+const reservationEquipmentState: ReservationEquipmentRow[] = []
+const roomDefaultEquipmentState: RoomDefaultEquipmentRow[] = []
 const tablesState = new Map<string, TableRow>()
 const profilesMap = new Map<string, { member_number: string }>()
 const roomsMap = new Map<string, RoomRow>()
@@ -84,10 +107,33 @@ function makeReservation(overrides?: Partial<ReservationRow>): ReservationRow {
 }
 
 function cloneReservation(row: ReservationRow) {
-  return { ...row }
+  return {
+    ...row,
+    reservation_equipment: reservationEquipmentState
+      .filter((item) => item.reservation_id === row.id)
+      .map((item) => ({
+        reservation_id: item.reservation_id,
+        equipment_id: item.equipment_id,
+        equipment: equipmentState.get(item.equipment_id) ?? null,
+      })),
+  }
 }
 
 function seedState() {
+  equipmentState.clear()
+  equipmentState.set('eq-1', {
+    id: 'eq-1',
+    name: 'Projector',
+    description: 'Ceiling projector',
+    created_at: '2026-04-01T10:00:00.000Z',
+  })
+  equipmentState.set('eq-2', {
+    id: 'eq-2',
+    name: 'Speaker Kit',
+    description: 'Portable speakers',
+    created_at: '2026-04-01T10:00:00.000Z',
+  })
+
   profilesMap.clear()
   profilesMap.set('2', { member_number: 'M-00000002' })
 
@@ -124,7 +170,14 @@ function seedState() {
   })
 
   reservationsState.length = 0
+  reservationEquipmentState.length = 0
+  roomDefaultEquipmentState.length = 0
   eventRoomBlocksState.length = 0
+
+  roomDefaultEquipmentState.push(
+    { room_id: 'room-1', equipment_id: 'eq-1', equipment: equipmentState.get('eq-1') ?? null },
+    { room_id: 'room-1', equipment_id: 'eq-2', equipment: equipmentState.get('eq-2') ?? null },
+  )
 
   const r1base = makeReservation()
   const t1 = tablesState.get(r1base.table_id)!
@@ -133,6 +186,7 @@ function seedState() {
     profiles: profilesMap.get(r1base.user_id) ?? null,
     tables: t1 ? { name: t1.name, rooms: roomsMap.get(t1.room_id) ?? null } : null,
   })
+  reservationEquipmentState.push({ reservation_id: 'r1', equipment_id: 'eq-1', equipment: equipmentState.get('eq-1') ?? null })
 
   const r2base = makeReservation({
     id: 'r2',
@@ -149,7 +203,7 @@ function seedState() {
   })
 }
 
-function buildSelectChain<T>(rows: T[]) {
+function buildSelectChain<T>(rows: T[], hydrate?: (row: T) => T) {
   let current = [...rows]
 
   return {
@@ -200,19 +254,31 @@ function buildSelectChain<T>(rows: T[]) {
       return this
     },
     limit(count: number) {
-      return Promise.resolve({ data: current.slice(0, count).map((row) => ({ ...row })), error: null })
+      return Promise.resolve({
+        data: current.slice(0, count).map((row) => hydrate ? hydrate(row) : ({ ...row })),
+        error: null,
+      })
+    },
+    range(from: number, to: number) {
+      return Promise.resolve({
+        data: current.slice(from, to + 1).map((row) => hydrate ? hydrate(row) : ({ ...row })),
+        error: null,
+      })
     },
     then<TResult1 = { data: T[]; error: null }, TResult2 = never>(
       onfulfilled?: ((value: { data: T[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
     ) {
-      return Promise.resolve({ data: current.map((row) => ({ ...row })), error: null }).then(onfulfilled, onrejected)
+      return Promise.resolve({
+        data: current.map((row) => hydrate ? hydrate(row) : ({ ...row })),
+        error: null,
+      }).then(onfulfilled, onrejected)
     },
     maybeSingle() {
-      return Promise.resolve({ data: current[0] ? { ...current[0] } : null, error: null })
+      return Promise.resolve({ data: current[0] ? (hydrate ? hydrate(current[0]) : { ...current[0] }) : null, error: null })
     },
     single() {
-      return Promise.resolve({ data: current[0] ? { ...current[0] } : null, error: null })
+      return Promise.resolve({ data: current[0] ? (hydrate ? hydrate(current[0]) : { ...current[0] }) : null, error: null })
     },
   }
 }
@@ -235,7 +301,7 @@ vi.mock('@/lib/supabase/server', () => ({
 
       if (table === 'reservations') {
         return {
-          select: vi.fn(() => buildSelectChain(reservationsState)),
+          select: vi.fn(() => buildSelectChain(reservationsState, cloneReservation)),
           insert: vi.fn((payload: Record<string, string | null>) => ({
             select: vi.fn(() => ({
               single: vi.fn(async () => {
@@ -285,12 +351,39 @@ vi.mock('@/lib/supabase/server', () => ({
         }
       }
 
+      if (table === 'room_default_equipment') {
+        return {
+          select: vi.fn(() => buildSelectChain(roomDefaultEquipmentState)),
+        }
+      }
+
+      if (table === 'reservation_equipment') {
+        return {
+          select: vi.fn(() => buildSelectChain(reservationEquipmentState)),
+          insert: vi.fn(async (payload: ReservationEquipmentRow | ReservationEquipmentRow[]) => {
+            const rows = Array.isArray(payload) ? payload : [payload]
+            reservationEquipmentState.push(...rows.map((row) => ({ ...row })))
+            return { error: null }
+          }),
+          delete: vi.fn(() => ({
+            eq: vi.fn(async (_column: string, value: string) => {
+              for (let index = reservationEquipmentState.length - 1; index >= 0; index -= 1) {
+                if (reservationEquipmentState[index]!.reservation_id === value) {
+                  reservationEquipmentState.splice(index, 1)
+                }
+              }
+              return { error: null }
+            }),
+          })),
+        }
+      }
+
       if (table !== 'reservations') {
         throw new Error(`Unexpected admin table ${table}`)
       }
 
       return {
-        select: vi.fn(() => buildSelectChain(reservationsState)),
+        select: vi.fn(() => buildSelectChain(reservationsState, cloneReservation)),
         update: vi.fn((payload: Record<string, unknown>) => {
           // Support chained .eq() calls: update().eq(col, val).eq(col2, val2).select().single()
           // The first .eq() identifies the row (by 'id'); subsequent .eq() calls act as
@@ -425,9 +518,47 @@ describe('reservations service', () => {
       expect(r1!.roomName).toBe('Sala Mirkwood')
       expect(r1!.tableName).toBe('Mesa 1')
     })
+
+    it('includes reserved equipment in visible reservations', async () => {
+      const { listVisibleReservations } = await loadReservationModules()
+
+      const result = await listVisibleReservations({ session: memberSession })
+      const r1 = result.find((reservation) => reservation.id === 'r1')
+
+      expect(r1?.equipment).toEqual([
+        expect.objectContaining({ id: 'eq-1', name: 'Projector' }),
+      ])
+    })
+  })
+
+  describe('listAvailableEquipmentForReservation', () => {
+    it('marks overlapping equipment as unavailable', async () => {
+      const { listAvailableEquipmentForReservation } = await loadReservationModules()
+
+      const result = await listAvailableEquipmentForReservation({
+        roomId: 'room-1',
+        date: '2026-12-31',
+        startTime: '17:00',
+        endTime: '19:00',
+      })
+
+      expect(result).toEqual(expect.arrayContaining([
+        expect.objectContaining({ id: 'eq-1', available: false, conflictReason: 'EQUIPMENT_ALREADY_RESERVED' }),
+        expect.objectContaining({ id: 'eq-2', available: true }),
+      ]))
+    })
   })
 
   describe('createReservationForSession', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-12-25T10:00:00.000Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('creates an active reservation through the session-scoped client', async () => {
       const { createReservationForSession } = await loadReservationModules()
 
@@ -446,6 +577,26 @@ describe('reservations service', () => {
         endTime: '13:00',
         status: 'active',
         surface: null,
+      }))
+    })
+
+    it('creates a reservation with optional equipment when available', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      const created = await createReservationForSession(memberSession, {
+        tableId: 't2',
+        date: '2026-12-31',
+        startTime: '12:00',
+        endTime: '13:00',
+        equipmentIds: ['eq-2'],
+      })
+
+      expect(created.equipment).toEqual([
+        expect.objectContaining({ id: 'eq-2', name: 'Speaker Kit' }),
+      ])
+      expect(reservationEquipmentState).toContainEqual(expect.objectContaining({
+        reservation_id: created.id,
+        equipment_id: 'eq-2',
       }))
     })
 
@@ -594,6 +745,42 @@ describe('reservations service', () => {
       ).rejects.toMatchObject({ name: 'ServiceError', statusCode: 409 })
     })
 
+    it('rejects equipment already reserved in an overlapping booking', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(
+        createReservationForSession({ id: '99', role: 'member' }, {
+          tableId: 't2',
+          date: '2026-12-31',
+          startTime: '17:00',
+          endTime: '19:00',
+          equipmentIds: ['eq-1'],
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        message: 'EQUIPMENT_ALREADY_RESERVED',
+        statusCode: 409,
+      })
+    })
+
+    it('rejects equipment that does not belong to the room defaults', async () => {
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(
+        createReservationForSession(memberSession, {
+          tableId: 't2',
+          date: '2026-12-31',
+          startTime: '12:00',
+          endTime: '13:00',
+          equipmentIds: ['eq-missing'],
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        message: 'INVALID_ROOM_EQUIPMENT',
+        statusCode: 400,
+      })
+    })
+
     it('allows a reservation on a different date even if times overlap', async () => {
       const { createReservationForSession } = await loadReservationModules()
       await expect(
@@ -660,9 +847,39 @@ describe('reservations service', () => {
 
       vi.useRealTimers()
     })
+
+    it('rejects reservations created more than one week in advance', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-04-17T10:00:00.000Z'))
+      const { createReservationForSession } = await loadReservationModules()
+
+      await expect(
+        createReservationForSession(memberSession, {
+          tableId: 't2',
+          date: '2026-04-25',
+          startTime: '12:00',
+          endTime: '13:00',
+        }),
+      ).rejects.toMatchObject({
+        name: 'ServiceError',
+        message: 'BOOKING_WINDOW_EXCEEDED',
+        statusCode: 400,
+      })
+
+      vi.useRealTimers()
+    })
   })
 
   describe('updateReservationForSession', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+      vi.setSystemTime(new Date('2026-12-25T10:00:00.000Z'))
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+    })
+
     it('rejects invalid statuses', async () => {
       const { updateReservationForSession } = await loadReservationModules()
 

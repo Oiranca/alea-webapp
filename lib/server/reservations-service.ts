@@ -1,4 +1,4 @@
-import type { Reservation, TableSurface } from '@/lib/types'
+import type { AvailableEquipment, Equipment, Reservation, TableSurface } from '@/lib/types'
 import type { SessionUser } from '@/lib/server/auth'
 import { CLUB_TIMEZONE, getCurrentClubDate, isValidDateOnlyString, zonedDateTimeToUtc } from '@/lib/club-time'
 import { getDatabaseNow } from '@/lib/server/database-time'
@@ -9,6 +9,8 @@ import { normalizeTime } from '@/lib/server/availability'
 
 type ReservationRow = Tables<'reservations'>
 type TableRow = Tables<'tables'>
+type EquipmentRow = Tables<'equipment'>
+type ReservationEquipmentRow = Tables<'reservation_equipment'>
 type PostgrestErrorLike = { code?: string }
 type TablesLookupClient = {
   select: (columns?: string) => {
@@ -21,6 +23,11 @@ type AdminReservationsQuery = {
   eq: (column: 'id' | 'table_id' | 'date' | 'status', value: string) => AdminReservationsQuery
   neq: (column: 'id', value: string) => AdminReservationsQuery
   in: (column: 'status', values: string[]) => AdminReservationsQuery
+  lt: (column: 'start_time', value: string) => AdminReservationsQuery
+  gt: (column: 'end_time', value: string) => AdminReservationsQuery
+  order: (column: string, options?: { ascending: boolean }) => AdminReservationsQuery
+  range: (from: number, to: number) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>
+  limit: (count: number) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>
   maybeSingle: () => Promise<{ data: ReservationRow | null; error: unknown }>
   then: Promise<{ data: ReservationRow[] | null; error: unknown }>['then']
 }
@@ -63,6 +70,7 @@ type SessionReservationsTableClient = {
 type EnrichedReservationRow = ReservationRow & {
   profiles?: { member_number: string } | null
   tables?: { name: string; rooms?: { name: string } | null } | null
+  reservation_equipment?: Array<ReservationEquipmentRow & { equipment: EquipmentRow | null }> | null
 }
 
 type EnrichedReservationsQuery = {
@@ -77,10 +85,11 @@ type EnrichedReservationsTableClient = {
 export const GRACE_PERIOD_MINUTES = 20
 // How many minutes before the reservation start time check-in is allowed.
 export const CHECK_IN_EARLY_MINUTES = 5
+export const BOOKING_WINDOW_DAYS = 7
 const CANCELLATION_CUTOFF_MS = 60 * 60 * 1000 // 60 minutes
 
 const RESERVATION_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at'
-const RESERVATION_ENRICHED_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at, profiles(member_number), tables(name, rooms(name))'
+const RESERVATION_ENRICHED_COLUMNS = 'id, table_id, user_id, date, start_time, end_time, status, surface, activated_at, created_at, profiles(member_number), tables(name, rooms(name)), reservation_equipment(equipment(id, name, description, created_at))'
 
 function parseDate(value: string): string {
   if (!isValidDateOnlyString(value)) {
@@ -117,6 +126,29 @@ function assertReservationNotInPast(date: string, startTime: string, now: Date =
   }
 }
 
+function addDaysToDateOnly(date: string, days: number) {
+  const [year, month, day] = date.split('-').map(Number)
+  const next = new Date(Date.UTC(year, month - 1, day + days))
+  return next.toISOString().slice(0, 10)
+}
+
+function assertReservationWithinBookingWindow(date: string, now: Date = new Date()) {
+  const todayInClub = getCurrentClubDate(now)
+  const maxAllowedDate = addDaysToDateOnly(todayInClub, BOOKING_WINDOW_DAYS)
+  if (date > maxAllowedDate) {
+    serviceError('BOOKING_WINDOW_EXCEEDED', 400)
+  }
+}
+
+function toEquipment(row: EquipmentRow): Equipment {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? null,
+    createdAt: row.created_at,
+  }
+}
+
 function mapReservation(row: ReservationRow): Reservation {
   return {
     id: row.id,
@@ -129,6 +161,7 @@ function mapReservation(row: ReservationRow): Reservation {
     surface: row.surface,
     activatedAt: row.activated_at ?? null,
     createdAt: row.created_at,
+    equipment: [],
   }
 }
 
@@ -147,6 +180,10 @@ function mapEnrichedReservation(row: EnrichedReservationRow): Reservation {
     memberNumber: row.profiles?.member_number ?? null,
     roomName: row.tables?.rooms?.name ?? null,
     tableName: row.tables?.name ?? null,
+    equipment: (row.reservation_equipment ?? [])
+      .map((item) => item.equipment)
+      .filter((item): item is EquipmentRow => item !== null)
+      .map(toEquipment),
   }
 }
 
@@ -227,6 +264,157 @@ async function listActiveReservationsForConflict(input: {
   return (data ?? []) as ReservationRow[]
 }
 
+async function listOverlappingReservationIds(input: {
+  date: string
+  startTime: string
+  endTime: string
+  ignoreReservationId?: string
+}) {
+  const admin = createSupabaseServerAdminClient()
+  const pageSize = 1000
+  const reservationIds: string[] = []
+  let from = 0
+
+  while (true) {
+    let query = (admin.from('reservations') as unknown as AdminReservationsTableClient)
+      .select('id')
+      .eq('date', input.date)
+      .in('status', ['pending', 'active'])
+      .lt('start_time', input.endTime)
+      .gt('end_time', input.startTime)
+
+    if (input.ignoreReservationId) {
+      query = query.neq('id', input.ignoreReservationId)
+    }
+
+    const { data, error } = await query.order('id', { ascending: true }).range(from, from + pageSize - 1)
+
+    if (error) {
+      serviceError('Internal server error', 500)
+    }
+
+    const rows = data ?? []
+    reservationIds.push(...rows.map((row) => row.id))
+
+    if (rows.length < pageSize) break
+    from += pageSize
+  }
+
+  return reservationIds
+}
+
+async function listRoomEquipment(roomId: string) {
+  const admin = createSupabaseServerAdminClient()
+  const { data, error } = await admin
+    .from('room_default_equipment')
+    .select('equipment(id, name, description, created_at)')
+    .eq('room_id', roomId)
+
+  if (error) {
+    serviceError('Internal server error', 500)
+  }
+
+  return ((data ?? []) as Array<{ equipment: EquipmentRow | null }>)
+    .map((row) => row.equipment)
+    .filter((row): row is EquipmentRow => row !== null)
+}
+
+async function listConflictingEquipmentIds(input: {
+  equipmentIds: string[]
+  date: string
+  startTime: string
+  endTime: string
+  ignoreReservationId?: string
+}) {
+  if (input.equipmentIds.length === 0) {
+    return new Set<string>()
+  }
+
+  const overlappingReservationIds = await listOverlappingReservationIds(input)
+  if (overlappingReservationIds.length === 0) {
+    return new Set<string>()
+  }
+
+  const admin = createSupabaseServerAdminClient()
+  const { data, error } = await admin
+    .from('reservation_equipment')
+    .select('equipment_id')
+    .in('reservation_id', overlappingReservationIds)
+    .in('equipment_id', input.equipmentIds)
+
+  if (error) {
+    serviceError('Internal server error', 500)
+  }
+
+  return new Set((data ?? []).map((row) => row.equipment_id))
+}
+
+async function assertEquipmentSelectionAllowed(input: {
+  roomId: string
+  equipmentIds: string[]
+  date: string
+  startTime: string
+  endTime: string
+  ignoreReservationId?: string
+}) {
+  if (input.equipmentIds.length === 0) {
+    return
+  }
+
+  const roomEquipment = await listRoomEquipment(input.roomId)
+  const roomEquipmentIds = new Set(roomEquipment.map((item) => item.id))
+  if (input.equipmentIds.some((equipmentId) => !roomEquipmentIds.has(equipmentId))) {
+    serviceError('INVALID_ROOM_EQUIPMENT', 400)
+  }
+
+  const conflictingEquipmentIds = await listConflictingEquipmentIds(input)
+  if (conflictingEquipmentIds.size > 0) {
+    serviceError('EQUIPMENT_ALREADY_RESERVED', 409)
+  }
+}
+
+async function saveReservationEquipment(reservationId: string, equipmentIds: string[]) {
+  const admin = createSupabaseServerAdminClient()
+  const { error: deleteError } = await admin
+    .from('reservation_equipment')
+    .delete()
+    .eq('reservation_id', reservationId)
+
+  if (deleteError) {
+    serviceError('Internal server error', 500)
+  }
+
+  if (equipmentIds.length === 0) {
+    return
+  }
+
+  const inserts: TablesInsert<'reservation_equipment'>[] = equipmentIds.map((equipment_id) => ({
+    reservation_id: reservationId,
+    equipment_id,
+  }))
+  const { error: insertError } = await admin
+    .from('reservation_equipment')
+    .insert(inserts)
+
+  if (insertError) {
+    serviceError('Internal server error', 500)
+  }
+}
+
+async function getReservationEquipmentIds(reservationId: string) {
+  const admin = createSupabaseServerAdminClient()
+  const { data, error } = await admin
+    .from('reservation_equipment')
+    .select('equipment_id')
+    .eq('reservation_id', reservationId)
+
+  if (error) {
+    serviceError('Internal server error', 500)
+  }
+
+  return (data ?? []).map((row) => row.equipment_id)
+}
+
 function hasReservationConflict(
   existingReservations: ReservationRow[],
   input: {
@@ -268,12 +456,7 @@ export async function listVisibleReservations(input: {
   tableId?: string | null
   date?: string | null
 }) {
-  // Admin sessions use the admin client so the cross-user profiles join is not
-  // silently blocked by RLS. Member sessions use the session client so RLS
-  // remains an additional safety net (the member can only join their own profile row).
-  const supabase = input.session.role === 'admin'
-    ? createSupabaseServerAdminClient()
-    : await createSupabaseServerClient()
+  const supabase = createSupabaseServerAdminClient()
   const effectiveUserId = input.session.role === 'admin' ? input.userId ?? undefined : input.session.id
   const effectiveDate = input.date != null && input.date !== '' ? parseDate(input.date) : undefined
 
@@ -306,6 +489,39 @@ export async function listVisibleReservations(input: {
     }
     return reservation
   })
+}
+
+export async function listAvailableEquipmentForReservation(input: {
+  roomId: string
+  date?: string | null
+  startTime?: string | null
+  endTime?: string | null
+}) {
+  const date = parseDate(requireString(input.date))
+  const startTime = parseHHMM(requireString(input.startTime))
+  const endTime = parseHHMM(requireString(input.endTime))
+
+  if (startTime >= endTime) {
+    serviceError('Invalid reservation time range', 400)
+  }
+
+  const roomEquipment = await listRoomEquipment(input.roomId)
+  const conflictingEquipmentIds = await listConflictingEquipmentIds({
+    equipmentIds: roomEquipment.map((item) => item.id),
+    date,
+    startTime,
+    endTime,
+  })
+
+  return roomEquipment.reduce<AvailableEquipment[]>((items, equipment) => {
+    const available = !conflictingEquipmentIds.has(equipment.id)
+    items.push({
+      ...toEquipment(equipment),
+      available,
+      conflictReason: available ? null : 'EQUIPMENT_ALREADY_RESERVED',
+    })
+    return items
+  }, [])
 }
 
 async function checkUserSlotOverlap(
@@ -342,13 +558,16 @@ async function checkUserSlotOverlap(
 
 export async function createReservationForSession(
   session: SessionUser,
-  body: { tableId?: unknown; date?: unknown; startTime?: unknown; endTime?: unknown; surface?: unknown },
+  body: { tableId?: unknown; date?: unknown; startTime?: unknown; endTime?: unknown; surface?: unknown; equipmentIds?: unknown },
 ) {
   const tableId = requireString(body.tableId)
   const rawDate = requireString(body.date)
   const rawStartTime = requireString(body.startTime)
   const rawEndTime = requireString(body.endTime)
   const surface = parseSurface(body.surface)
+  const equipmentIds = Array.isArray(body.equipmentIds)
+    ? [...new Set(body.equipmentIds.map((value) => String(value)).filter(Boolean))]
+    : []
 
   if (!tableId || !rawDate || !rawStartTime || !rawEndTime) {
     serviceError('tableId, date, startTime and endTime are required', 400)
@@ -370,6 +589,7 @@ export async function createReservationForSession(
   }
 
   assertReservationNotInPast(date, startTime)
+  assertReservationWithinBookingWindow(date)
 
   const supabase = await createSupabaseServerClient()
 
@@ -382,6 +602,13 @@ export async function createReservationForSession(
   if (await hasEventBlockConflict({ roomId: table.room_id, date, startTime, endTime })) {
     serviceError('ROOM_BLOCKED_BY_EVENT', 409)
   }
+  await assertEquipmentSelectionAllowed({
+    roomId: table.room_id,
+    equipmentIds,
+    date,
+    startTime,
+    endTime,
+  })
   const insertPayload: TablesInsert<'reservations'> = {
     table_id: tableId,
     user_id: session.id,
@@ -403,7 +630,23 @@ export async function createReservationForSession(
     serviceError('Internal server error', 500)
   }
 
-  return mapReservation(data as ReservationRow)
+  try {
+    await saveReservationEquipment(data.id, equipmentIds)
+  } catch {
+    // Compensating delete: remove the just-created reservation to avoid a ghost
+    // row with no equipment association. Ignore errors from the delete itself —
+    // the original equipment error is what the caller needs to act on.
+    const adminForRollback = createSupabaseServerAdminClient()
+    await adminForRollback.from('reservations').delete().eq('id', data.id)
+    serviceError('Failed to save equipment. Reservation was cancelled. Please try again.', 500)
+  }
+
+  return {
+    ...mapReservation(data as ReservationRow),
+    equipment: (await listRoomEquipment(table.room_id))
+      .filter((item) => equipmentIds.includes(item.id))
+      .map(toEquipment),
+  }
 }
 
 export async function checkReservationAccess(session: SessionUser, reservationId: string) {
@@ -467,6 +710,7 @@ export async function updateReservationForSession(
   const needsUserOverlapCheck = isScheduleChange || nextStatus === 'active'
   if (isScheduleChange) {
     assertReservationNotInPast(nextDate, nextStartTime)
+    assertReservationWithinBookingWindow(nextDate)
   }
 
   const conflictingReservations = await listActiveReservationsForConflict({
@@ -500,6 +744,17 @@ export async function updateReservationForSession(
       supabase,
       existingReservation.id,
     )
+  }
+  const existingEquipmentIds = await getReservationEquipmentIds(existingReservation.id)
+  if (isScheduleChange && existingEquipmentIds.length > 0) {
+    await assertEquipmentSelectionAllowed({
+      roomId: table.room_id,
+      equipmentIds: existingEquipmentIds,
+      date: nextDate,
+      startTime: nextStartTime,
+      endTime: nextEndTime,
+      ignoreReservationId: existingReservation.id,
+    })
   }
   const updatePayload: TablesUpdate<'reservations'> = {
     date: nextDate,

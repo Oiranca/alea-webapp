@@ -9,12 +9,12 @@
 ## Last updated: 2026-04-17
 
 ## Current branch
-`develop`
+`feat/KIM-381-equipment-aware-reservations`
 
 ## Open PRs — awaiting merge
 | PR | Branch | Status |
 |---|---|---|
-| #114 | `feat/kim-380-equipment-inventory` | Ready for merge (KIM-380 + KIM-388 auth fix) |
+| #115 | `feat/KIM-381-equipment-aware-reservations` | Open — validated locally, awaiting review |
 
 ## Most recently merged
 | PR | Branch | Fix |
@@ -27,18 +27,20 @@
 
 ## Status Summary
 
-`develop` is current with `origin/develop` after merge of PR `#111`.
+`KIM-381` is in progress on `feat/KIM-381-equipment-aware-reservations`.
 
-Merged product state now includes:
-- admin-issued activation and recovery links
-- DB-authoritative persisted auth/check-in timestamps
-- explicit club-time helpers for reservation date-only logic
-- timezone-safe reservation/check-in/cancellation comparisons
-- Supabase migration split into one-statement files per repo policy
+Current branch state includes:
+- optional equipment selection in the reservation flow
+- server-side equipment overlap checks for selected reservation windows
+- one-week reservation booking window enforcement
+- reservation equipment display in member/admin reservation views
+- new room equipment availability API route and route test coverage
+- two validation cycles clean on `lint`, `typecheck`, `build`, and targeted Vitest server/route suites
 
 Current meaningful next steps:
-- merge PR #114 (`KIM-380`) into `develop`
-- next implementation: `KIM-381` (equipment-aware reservation flow)
+- review and merge PR #115 for `KIM-381`
+- after `KIM-381` merges, continue with `KIM-382`
+- follow-up still needed: fix equipment reservation scoping, because equipment can still be reserved from any room except equipment linked to a room during room creation
 
 Plan source:
 - Use only `docs/PLAN.md`.
@@ -76,10 +78,11 @@ Plan source:
 
 **At session start:**
 1. Read `docs/HANDOFF.md` (this file) — mandatory before any action
-2. `gh pr list --state open` — check PRs awaiting merge
-3. `git branch --show-current` — confirm you are on `develop` unless active branch work has started
-4. If operational closure is still pending, use the Manual QA checklist above
-5. Otherwise branch fresh from `develop` for the next planned issue
+2. Move the selected Linear issue to `In Progress` before writing code
+3. `gh pr list --state open` — check PRs awaiting merge
+4. `git branch --show-current` — confirm you are on `develop` unless active branch work has started
+5. If operational closure is still pending, use the Manual QA checklist above
+6. Otherwise branch fresh from `develop` for the next planned issue
 
 **At session end:**
 1. Update this file with current state
