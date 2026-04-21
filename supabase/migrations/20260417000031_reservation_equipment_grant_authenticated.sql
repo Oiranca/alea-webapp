@@ -1,1 +1,2 @@
-GRANT ALL ON TABLE "public"."reservation_equipment" TO "authenticated";
+-- Intentionally no-op: reservation_equipment must remain service-role-only.
+-- Do not grant authenticated access at any point during migration.

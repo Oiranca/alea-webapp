@@ -25,6 +25,8 @@ type AdminReservationsQuery = {
   in: (column: 'status', values: string[]) => AdminReservationsQuery
   lt: (column: 'start_time', value: string) => AdminReservationsQuery
   gt: (column: 'end_time', value: string) => AdminReservationsQuery
+  order: (column: string, options?: { ascending: boolean }) => AdminReservationsQuery
+  range: (from: number, to: number) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>
   limit: (count: number) => Promise<{ data: Array<{ id: string }> | null; error: unknown }>
   maybeSingle: () => Promise<{ data: ReservationRow | null; error: unknown }>
   then: Promise<{ data: ReservationRow[] | null; error: unknown }>['then']
@@ -269,24 +271,36 @@ async function listOverlappingReservationIds(input: {
   ignoreReservationId?: string
 }) {
   const admin = createSupabaseServerAdminClient()
-  let query = (admin.from('reservations') as unknown as AdminReservationsTableClient)
-    .select('id')
-    .eq('date', input.date)
-    .in('status', ['pending', 'active'])
-    .lt('start_time', input.endTime)
-    .gt('end_time', input.startTime)
+  const pageSize = 1000
+  const reservationIds: string[] = []
+  let from = 0
 
-  if (input.ignoreReservationId) {
-    query = query.neq('id', input.ignoreReservationId)
+  while (true) {
+    let query = (admin.from('reservations') as unknown as AdminReservationsTableClient)
+      .select('id')
+      .eq('date', input.date)
+      .in('status', ['pending', 'active'])
+      .lt('start_time', input.endTime)
+      .gt('end_time', input.startTime)
+
+    if (input.ignoreReservationId) {
+      query = query.neq('id', input.ignoreReservationId)
+    }
+
+    const { data, error } = await query.order('id', { ascending: true }).range(from, from + pageSize - 1)
+
+    if (error) {
+      serviceError('Internal server error', 500)
+    }
+
+    const rows = data ?? []
+    reservationIds.push(...rows.map((row) => row.id))
+
+    if (rows.length < pageSize) break
+    from += pageSize
   }
 
-  const { data, error } = await query.limit(200)
-
-  if (error) {
-    serviceError('Internal server error', 500)
-  }
-
-  return (data ?? []).map((row) => row.id)
+  return reservationIds
 }
 
 async function listRoomEquipment(roomId: string) {
@@ -616,7 +630,16 @@ export async function createReservationForSession(
     serviceError('Internal server error', 500)
   }
 
-  await saveReservationEquipment(data.id, equipmentIds)
+  try {
+    await saveReservationEquipment(data.id, equipmentIds)
+  } catch {
+    // Compensating delete: remove the just-created reservation to avoid a ghost
+    // row with no equipment association. Ignore errors from the delete itself —
+    // the original equipment error is what the caller needs to act on.
+    const adminForRollback = createSupabaseServerAdminClient()
+    await adminForRollback.from('reservations').delete().eq('id', data.id)
+    serviceError('Failed to save equipment. Reservation was cancelled. Please try again.', 500)
+  }
 
   return {
     ...mapReservation(data as ReservationRow),
