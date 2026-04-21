@@ -6,40 +6,41 @@
 
 ---
 
-## Last updated: 2026-04-17
+## Last updated: 2026-04-21
 
 ## Current branch
-`feat/KIM-381-equipment-aware-reservations`
+`develop`
 
 ## Open PRs — awaiting merge
-| PR | Branch | Status |
-|---|---|---|
-| #115 | `feat/KIM-381-equipment-aware-reservations` | Open — validated locally, awaiting review |
+(none)
 
 ## Most recently merged
 | PR | Branch | Fix |
 |---|---|---|
+| #115 | `feat/KIM-381-equipment-aware-reservations` | `KIM-381` merged into `develop`: equipment-aware reservation flow, overlap validation, one-week booking window, a11y fix (Radix Checkbox label pattern), ghost reservation safety, and pagination hardening |
 | #111 | `feat/KIM-386-database-time-drift` | `KIM-386` merged into `develop`: DB-backed timestamp authority, club-time date helpers, deterministic reservation cutoff handling, and one-statement migration split |
 | #110 | `feat/KIM-379-password-recovery` | `KIM-379` merged into `develop`: admin-mediated password recovery, stale-session auth redirects, and root entry redirect hardening |
-| #109 | `feat/KIM-378-member-activation` | `KIM-378` merged into `develop`: activation flow, login-first entry route, and auth redirect fixes |
 
 ---
 
 ## Status Summary
 
-`KIM-381` is in progress on `feat/KIM-381-equipment-aware-reservations`.
+`KIM-381` is merged into `develop` (merge commit `5e10a38`).
 
-Current branch state includes:
+Delivered in `KIM-381`:
 - optional equipment selection in the reservation flow
 - server-side equipment overlap checks for selected reservation windows
 - one-week reservation booking window enforcement
 - reservation equipment display in member/admin reservation views
 - new room equipment availability API route and route test coverage
-- two validation cycles clean on `lint`, `typecheck`, `build`, and targeted Vitest server/route suites
+- a11y fix: Radix Checkbox label pattern
+- ghost reservation safety: compensating delete on equipment save failure
+- overlap scan: pagination loop (pageSize=1000) replacing 200-row hard limit
+- migration security: intermediate authenticated grant migrations replaced with no-ops
+- pre-push hook: removed full test suite + build (now typecheck + lint only)
 
 Current meaningful next steps:
-- review and merge PR #115 for `KIM-381`
-- after `KIM-381` merges, continue with `KIM-382`
+- continue with `KIM-382` (60-minute QR activation window)
 - follow-up still needed: fix equipment reservation scoping, because equipment can still be reserved from any room except equipment linked to a room during room creation
 
 Plan source:

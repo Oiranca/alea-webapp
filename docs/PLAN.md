@@ -1,6 +1,6 @@
 # Alea Plan
 
-**Last updated:** 2026-04-17
+**Last updated:** 2026-04-21
 **Source of truth:** current repository state + active Linear issues for project `Alea`
 **Ignore:** canceled legacy tickets and removed migration-era planning docs
 
@@ -14,8 +14,8 @@
 - `KIM-378` is merged: public sign-up is disabled, activation links are admin-issued, and login is the default entry route.
 - `KIM-379` is merged: admin-mediated password recovery and the current password reset path are live.
 - `KIM-386` is merged: persisted sensitive timestamps now use DB time, reservation/check-in comparisons use club-time-aware helpers, and cron SQL compares slot boundaries with explicit timezone semantics.
-- `KIM-381` is in progress on the feature branch: optional equipment selection, server-side overlap validation, and the one-week booking window are being added to the reservation flow.
-- Follow-up still required after `KIM-381`: fix equipment reservation scoping. Equipment can still be reserved from any room, except equipment linked to a room during room creation.
+- `KIM-381` is merged: optional equipment selection, server-side overlap validation, and the one-week booking window are live in the reservation flow.
+- Follow-up still required: fix equipment reservation scoping. Equipment can still be reserved from any room, except equipment linked to a room during room creation.
 - `Saved Game` is still not implemented.
 
 ---
@@ -97,7 +97,7 @@ Reason:
 
 ## Recommended Next Build Step
 
-Current branch work: `KIM-381`. After `KIM-381` is merged, continue with `KIM-382`. Manual QA gate cancelled 2026-04-17.
+`KIM-381` is merged. Next: `KIM-382` (60-minute QR activation window). Manual QA gate cancelled 2026-04-17.
 
 ---
 
