@@ -259,6 +259,12 @@ function buildSelectChain<T>(rows: T[], hydrate?: (row: T) => T) {
         error: null,
       })
     },
+    range(from: number, to: number) {
+      return Promise.resolve({
+        data: current.slice(from, to + 1).map((row) => hydrate ? hydrate(row) : ({ ...row })),
+        error: null,
+      })
+    },
     then<TResult1 = { data: T[]; error: null }, TResult2 = never>(
       onfulfilled?: ((value: { data: T[]; error: null }) => TResult1 | PromiseLike<TResult1>) | null,
       onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
