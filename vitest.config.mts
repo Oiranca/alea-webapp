@@ -10,13 +10,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    pool: 'threads',
-    poolOptions: {
-      threads: {
-        maxThreads: 2,
-        minThreads: 1,
-      },
-    },
+    teardownTimeout: 10000,
     setupFiles: ['./vitest.setup.ts'],
     env: {
       // Pin tests to a known IANA timezone so service code and test helpers agree.
