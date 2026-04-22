@@ -1639,6 +1639,66 @@ describe('reservations service', () => {
       expect(result.status).toBe('active')
     })
 
+    it('boundary: called at start_time + 30 min succeeds', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 13:30:00 (30 min in past)
+      // Within 60-min window: should succeed
+      seedPendingReservation({ start_time: makeStartTime(30) })
+
+      const result = await activateReservationByTable('t3', '2', undefined)
+
+      expect(result.status).toBe('active')
+    })
+
+    it('boundary: called at start_time + 60 min succeeds when reservation longer', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 13:00:00 (60 min in past)
+      // Exactly at 60-min boundary, end_time is 14:30:00 (extends past boundary)
+      // windowEnd = min(start + 60min, end) = min(14:00:00, 14:30:00) = 14:00:00
+      // now === windowEnd → should succeed (not strictly greater)
+      const startTime = makeStartTime(60)
+      const endTime = makeEndTime(startTime, 90)
+      seedPendingReservation({ start_time: startTime, end_time: endTime })
+
+      const result = await activateReservationByTable('t3', '2', undefined)
+
+      expect(result.status).toBe('active')
+    })
+
+    it('boundary: called at start_time + 61 min throws CHECK_IN_TOO_LATE', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 12:59:00 (61 min in past)
+      // Beyond 60-min window: should fail
+      seedPendingReservation({ start_time: makeStartTime(61) })
+
+      await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+        message: expect.stringContaining('CHECK_IN_TOO_LATE'),
+      })
+    })
+
+    it('boundary: end_time before 60-min mark caps window at end_time', async () => {
+      const { activateReservationByTable } = await loadReservationModules()
+
+      // now is 14:00:00, start_time is 13:30:00 (30 min in past)
+      // end_time is 13:40:00 (20 min in past, before 60-min window closes)
+      // windowEnd = min(start + 60min, end) = min(14:30:00, 13:40:00) = 13:40:00
+      // now > windowEnd → should fail
+      const startTime = makeStartTime(30)
+      const endTime = makeEndTime(startTime, 10)
+      seedPendingReservation({ start_time: startTime, end_time: endTime })
+
+      await expect(activateReservationByTable('t3', '2', undefined)).rejects.toMatchObject({
+        name: 'ServiceError',
+        statusCode: 400,
+        message: expect.stringContaining('CHECK_IN_TOO_LATE'),
+      })
+    })
+
     it('boundary: called exactly at end_time succeeds', async () => {
       const { activateReservationByTable } = await loadReservationModules()
 
