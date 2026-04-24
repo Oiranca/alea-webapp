@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 
-const ALL_TIME_SLOTS = generateTimeSlots('00:00', '24:00', 60)
+const ALL_TIME_SLOTS = generateTimeSlots('00:00', '24:00', 30)
 
 function addDaysToDateOnly(date: string, days: number) {
   const [year, month, day] = date.split('-').map(Number)
@@ -321,6 +321,45 @@ export function ReservationDialog({ table, open, onClose }: ReservationDialogPro
                       </button>
                     )
                   })}
+                  {(() => {
+                    const midnightSlot = getSlotDetails('23:30', selectedSurface ?? undefined)
+                    const canSelectMidnightBoundary = Boolean(
+                      selectedStartTime &&
+                      !selectedEndTime &&
+                      selectedStartTime < '24:00'
+                    )
+                    const midnightAvailable = midnightSlot?.available ?? false
+                    const isMidnightEnd = selectedEndTime === '24:00'
+
+                    return (
+                      <button
+                        key="24:00"
+                        disabled={!canSelectMidnightBoundary || !midnightAvailable}
+                        onClick={() => {
+                          if (canSelectMidnightBoundary && midnightAvailable) {
+                            setSelectedEndTime('24:00')
+                          }
+                        }}
+                        className={cn(
+                          'py-1 px-1.5 text-xs rounded transition-all font-medium',
+                          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
+                          canSelectMidnightBoundary && midnightAvailable
+                            ? cn(
+                                'border hover:border-primary/60',
+                                isMidnightEnd && 'bg-primary text-primary-foreground border-primary',
+                                !isMidnightEnd && 'border-emerald/40 bg-emerald-dark/20 text-emerald-light'
+                              )
+                            : 'border border-dashed border-border/60 text-muted-foreground cursor-not-allowed opacity-60'
+                        )}
+                        aria-label={`24:00 — ${canSelectMidnightBoundary && midnightAvailable ? t('available') : t('occupied')}`}
+                        aria-pressed={isMidnightEnd}
+                        aria-disabled={!canSelectMidnightBoundary || !midnightAvailable}
+                        title="24:00"
+                      >
+                        24:00
+                      </button>
+                    )
+                  })()}
                 </div>
               )}
 
